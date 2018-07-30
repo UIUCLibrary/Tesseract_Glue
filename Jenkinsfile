@@ -261,6 +261,9 @@ junit_filename                  = ${junit_filename}
                                     bat "del ${log_file}"
                                 }
                             }
+                            dir("build"){
+                                bat "dir /s /B"
+                            }
                         }
                     }
                 }
