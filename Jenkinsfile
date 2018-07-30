@@ -355,7 +355,7 @@ junit_filename                  = ${junit_filename}
                             bat "dir"
                         }
                         script{
-                            tee("${pwd tmp: true}/logs/mypy.log") {
+                            tee("logs/mypy.log") {
                                 try{
                                     dir("source"){
                                         bat "dir"
