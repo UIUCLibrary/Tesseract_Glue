@@ -16,8 +16,6 @@ from setuptools.command.build_ext import build_ext
 import tarfile
 import zipfile
 
-# TODO dynamically find cmake
-CMAKE_PATH = r"C:\Program Files\CMake\bin\cmake.exe"
 
 TESSERACT_SOURCE_URL = \
     "https://github.com/tesseract-ocr/tesseract/archive/4.0.0-beta.3.tar.gz"
@@ -45,6 +43,14 @@ class BuildExt(build_ext):
         self.cmake_source_dir = None
         self.cmake_binary_dir = None
         self._env_vars = None
+        self._cmake_path = self._get_cmake_path()
+
+    def _get_cmake_path(self):
+        cmake = shutil.which("cmake")
+        if cmake:
+            return cmake
+        raise FileNotFoundError("CMake not found on path")
+
 
     def run(self):
         for ext in self.extensions:
@@ -75,7 +81,7 @@ class BuildExt(build_ext):
         python_root = sysconfig.get_paths()['data']
 
         configure_command = [
-            CMAKE_PATH, cmake_root,
+            self._cmake_path, cmake_root,
             "-GVisual Studio 14 2015 Win64",  # TODO: configure dynamically
             "-DCMAKE_INSTALL_PREFIX={}".format(os.path.abspath(self.build_lib)),
             "-DPython3_ROOT_DIR={}".format(python_root),
@@ -92,7 +98,7 @@ class BuildExt(build_ext):
     def build_cmake(self, ext):
 
         build_command = [
-            CMAKE_PATH,
+            self._cmake_path,
             "--build", ".",
             "--config", "Release",
         ]
@@ -109,7 +115,7 @@ class BuildExt(build_ext):
         #    TODO: install to dest
 
         install_command = [
-            CMAKE_PATH,
+            self._cmake_path,
             "--build", ".",
             "--config", "Release",
             "--target", "install"
