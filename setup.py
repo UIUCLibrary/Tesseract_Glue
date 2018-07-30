@@ -51,6 +51,13 @@ class BuildExt(build_ext):
             self.cmake_binary_dir = os.path.abspath(os.path.join(self.build_temp, "{}-binary".format(ext.name)))
             os.makedirs(self.cmake_binary_dir, exist_ok=True)
             self.get_required_tools(ext)
+            tools = [t.executable for t in ext.tools.values()]
+
+            executables = set()
+            for i in [e.keys() for e in tools]:
+                for y in i:
+                    executables.add(y)
+            print("Tools available: {}".format(", ".join(executables)))
             # download_root = self.get_source(ext)
             # source_root = self.locate_cmake_source_root(download_root)
             # self.cmake_source_dir = source_root
