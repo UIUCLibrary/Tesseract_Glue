@@ -56,17 +56,18 @@ pipeline {
                 }
                 stage("Cleanup"){
                     steps {
-
                         bat "dir"
-                        dir(pwd(tmp: true)){
-                            dir("logs"){
-                                deleteDir()
-                            }
-
+                        dir("logs"){
+                            deleteDir()
                         }
                         dir("build"){
                             deleteDir()
                             echo "Cleaned out build directory"
+                            bat "dir"
+                        }
+                        dir("dist"){
+                            deleteDir()
+                            echo "Cleaned out dist directory"
                             bat "dir"
                         }
 
