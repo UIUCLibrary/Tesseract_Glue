@@ -362,10 +362,11 @@ junit_filename                  = ${junit_filename}
                                 try{
                                     dir("source"){
                                         bat "dir"
-                                        bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\ocr --html-report ${REPORT_DIR}\\mypy\\html"
+                                        bat "pipenv run mypy ${WORKSPACE}\\build\\lib.win-amd64-3.6\\ocr --html-report ${REPORT_DIR}\\mypy\\html"
                                     }
                                 } catch (exc) {
                                     echo "MyPy found some warnings"
+                                }
                                 }
                             }
                         }
