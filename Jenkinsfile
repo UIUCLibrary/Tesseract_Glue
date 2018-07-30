@@ -1,3 +1,5 @@
+def PKG_NAME = "unknown"
+def PKG_VERSION = "unknown"
 def DOC_ZIP_FILENAME = "doc.zip"
 def junit_filename = "junit.xml"
 def REPORT_DIR = ""
@@ -7,116 +9,161 @@ def VENV_PIP = ""
 
 pipeline {
     agent {
-        label "Windows"
+        label "Windows && VS2015 && Python3 && longfilenames"
     }
+
+    triggers {
+        cron('@daily')
+    }
+
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
     }
-    triggers {
-        cron('@daily')
+    environment {
+        build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
+        PIPENV_CACHE_DIR="${WORKSPACE}\\..\\.virtualenvs\\cache\\"
+        WORKON_HOME ="${WORKSPACE}\\pipenv\\"
     }
-
-    // environment {
-        //mypy_args = "--junit-xml=mypy.xml"
-        //pytest_args = "--junitxml=reports/junit-{env:OS:UNKNOWN_OS}-{envname}.xml --junit-prefix={env:OS:UNKNOWN_OS}  --basetemp={envtmpdir}"
-    // }
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
-        string(name: "PROJECT_NAME", defaultValue: "Hathi Validate", description: "Name given to the project")
-        booleanParam(name: "UNIT_TESTS", defaultValue: true, description: "Run Automated Unit Tests")
-//        booleanParam(name: "ADDITIONAL_TESTS", defaultValue: true, description: "Run additional tests")
-        // booleanParam(name: "PACKAGE", defaultValue: true, description: "Create a Packages")
-        // booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Deploy SCCM")
+//        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
+//        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
+        booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+
 //        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
 //        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
-//        booleanParam(name: "DEPLOY_SCCM", defaultValue: false, description: "Request deployment of MSI installer to SCCM")
+        // choice(choices: 'None\nrelease', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
+//        string(name: 'URL_SUBFOLDER', defaultValue: "py3exiv2bind", description: 'The directory that the docs should be saved under')
 //        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
-//        booleanParam(name: "UPDATE_DOCS", defaultValue: false, description: "Update the documentation")
-        string(name: 'URL_SUBFOLDER', defaultValue: "hathi_validate", description: 'The directory that the docs should be saved under')
     }
     stages {
-//        stage("Cloning Source") {
-//
-//            steps {
-//                deleteDir()
-//                checkout scm
-//                stash includes: '**', name: "Source", useDefaultExcludes: false
-//                stash includes: 'deployment.yml', name: "Deployment"
-//
-//            }
-//
-//        }
         stage("Configure") {
             stages{
                 stage("Purge all existing data in workspace"){
                     when{
                         equals expected: true, actual: params.FRESH_WORKSPACE
                     }
-                    steps {
+                    steps{
                         deleteDir()
-                        bat "dir"
-                        echo "Cloning source"
                         dir("source"){
                             checkout scm
                         }
                     }
-                    post{
-                        success {
-                            bat "dir /s /B"
-                        }
-                    }
                 }
-                stage("Stashing important files for later"){
-                    steps{
-                       dir("source"){
-                            stash includes: 'deployment.yml', name: "Deployment"
-                       }
-                    }
-                }
-                stage("Cleanup extra dirs"){
-                    steps{
-                        dir("reports"){
-                            deleteDir()
-                            echo "Cleaned out reports directory"
-                            bat "dir"
-                        }
-                        dir("dist"){
-                            deleteDir()
-                            echo "Cleaned out dist directory"
-                            bat "dir"
+                stage("Cleanup"){
+                    steps {
+
+                        bat "dir"
+                        dir(pwd(tmp: true)){
+                            dir("logs"){
+                                deleteDir()
+                            }
+
                         }
                         dir("build"){
                             deleteDir()
                             echo "Cleaned out build directory"
                             bat "dir"
                         }
+
+                        dir("reports"){
+                            deleteDir()
+                            echo "Cleaned out reports directory"
+                            bat "dir"
+                        }
+                    }
+                    post{
+                        failure {
+                            deleteDir()
+                        }
                     }
                 }
-                stage("Creating virtualenv for building"){
+                stage("Installing required system level dependencies"){
                     steps{
-                        bat "${tool 'CPython-3.6'} -m venv venv"
-                        script {
-                            try {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0"
-                            }
-                            catch (exc) {
-                                bat "${tool 'CPython-3.6'} -m venv venv"
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip>=18.0 --no-cache-dir"
-                            }
+                        lock("system_python"){
+                            bat "${tool 'CPython-3.6'} -m pip install --upgrade pip --quiet"
+                            bat "${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
                         }
-                        bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
-                        bat "venv\\Scripts\\pip.exe install tox mypy lxml pytest pytest-cov flake8 sphinx wheel --upgrade-strategy only-if-needed"
-                        bat "pipenv install --dev --deploy"
-
-                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
-                            bat "venv\\Scripts\\pip.exe list"
+                        tee("logs/pippackages_system_${NODE_NAME}.log") {
+                            bat "${tool 'CPython-3.6'} -m pip list"
                         }
                     }
                     post{
                         always{
                             dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/pippackages_system_*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+                        }
+                        failure {
+                            deleteDir()
+                        }
+                    }
+
+                }
+                stage("Installing Pipfile"){
+                    options{
+                        timeout(5)
+                    }
+                    steps {
+                        dir("source"){
+                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+
+                        }
+                        tee("logs/pippackages_pipenv_${NODE_NAME}.log") {
+                            bat "${tool 'CPython-3.6'} -m pipenv run pip list"
+                        }
+
+                    }
+                    post{
+                        always{
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/pippackages_pipenv_*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                stage("Creating virtualenv for building"){
+                    steps {
+                        bat "${tool 'CPython-3.6'} -m venv venv"
+
+                        script {
+                            try {
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip"
+                            }
+                            catch (exc) {
+                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+                            }
+                        }
+
+                        bat "venv\\Scripts\\pip.exe install devpi-client --upgrade-strategy only-if-needed"
+
+
+                        tee("${pwd tmp: true}/logs/pippackages_venv_${NODE_NAME}.log") {
+                            bat "venv\\Scripts\\pip.exe list"
+                        }
+                    }
+                    post{
+                        always{
+                            dir(pwd(tmp: true)){
                                 script{
                                     def log_files = findFiles glob: '**/pippackages_venv_*.log'
                                     log_files.each { log_file ->
@@ -138,10 +185,10 @@ pipeline {
                         script {
                             // Set up the reports directory variable
                             REPORT_DIR = "${pwd tmp: true}\\reports"
-                          dir("source"){
+                            dir("source"){
                                 PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
                                 PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
-                          }
+                            }
                         }
 
                         script{
@@ -169,145 +216,180 @@ pipeline {
 //                        }
                         bat "dir"
                     }
-                    post{
-                        always{
-                            bat "dir /s / B"
-                            echo """Name                            = ${PKG_NAME}
-        Version                         = ${PKG_VERSION}
-        Report Directory                = ${REPORT_DIR}
-        documentation zip file          = ${DOC_ZIP_FILENAME}
-        Python virtual environment path = ${VENV_ROOT}
-        VirtualEnv Python executable    = ${VENV_PYTHON}
-        VirtualEnv Pip executable       = ${VENV_PIP}
-        junit_filename                  = ${junit_filename}
-        """
-
-                        }
-
-                    }
                 }
             }
-            post {
-                success{
-                    tee("logs/workspace_files_${NODE_NAME}.log") {
-                        bat "dir /s /B"
-                    }
+            post{
+                always{
+                    echo """Name                            = ${PKG_NAME}
+Version                         = ${PKG_VERSION}
+Report Directory                = ${REPORT_DIR}
+documentation zip file          = ${DOC_ZIP_FILENAME}
+Python virtual environment path = ${VENV_ROOT}
+VirtualEnv Python executable    = ${VENV_PYTHON}
+VirtualEnv Pip executable       = ${VENV_PIP}
+junit_filename                  = ${junit_filename}
+"""
+
                 }
+
             }
+
         }
-        stage("Build"){
+        stage("Building") {
             stages{
-                stage("Python Package"){
+                stage("Building Python Package"){
+                    environment {
+                        PATH = "${tool 'cmake3.12'}\\;$PATH"
+                    }
                     steps {
                         tee("logs/build.log") {
                             dir("source"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py build -b ${WORKSPACE}\\build"
+                                bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS}"
                             }
 
                         }
                     }
-                }
-                stage("Docs"){
-                    steps{
-                        echo "Building docs on ${env.NODE_NAME}"
-                        tee("logs/build_sphinx.log") {
-                            dir("build/lib"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
-                            }
-                        }
-                    }
                     post{
-                        always {
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
+                        always{
+                            script{
+                                def log_files = findFiles glob: '**/*.log'
+                                log_files.each { log_file ->
+                                    echo "Found ${log_file}"
+                                    archiveArtifacts artifacts: "${log_file}"
+                                    warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
+                                    bat "del ${log_file}"
                                 }
-                            }
-                        }
-                        success{
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            dir("${WORKSPACE}/dist"){
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
                             }
                         }
                     }
                 }
             }
         }
-        stage("Tests") {
 
+        stage("Testing") {
             parallel {
-                stage("PyTest"){
-                    when {
-                        equals expected: true, actual: params.UNIT_TESTS
+                stage("Run Tox test") {
+                    agent{
+                        node {
+                            label "Windows && VS2015 && Python3 && longfilenames"
+                        }
                     }
-                    steps{
+                    when {
+                       equals expected: true, actual: params.TEST_RUN_TOX
+                    }
+                    environment {
+                        PATH = "${tool 'CMake_3.12'}\\;$PATH"
+                    }
+                    steps {
+
                         dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\pytest.exe --junitxml=${WORKSPACE}/reports/junit-${env.NODE_NAME}-pytest.xml --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/coverage/ --cov=ocr" //  --basetemp={envtmpdir}"
+                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                            script{
+                                try{
+                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=py3exiv2bind"
+                                    bat "dir ${REPORT_DIR}"
+
+                                } catch (exc) {
+                                    bat "pipenv run tox --recreate --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=py3exiv2bind"
+                                }
+                            }
                         }
 
                     }
                     post {
                         always{
-                            junit "reports/junit-${env.NODE_NAME}-pytest.xml"
-                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/coverage', reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                            dir("${REPORT_DIR}"){
+                                bat "dir"
+                                script {
+                                    def xml_files = findFiles glob: "**/*.xml"
+                                    xml_files.each { junit_xml_file ->
+                                        echo "Found ${junit_xml_file}"
+                                        junit "${junit_xml_file}"
+                                    }
+                                }
+                            }
+                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/coverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                         }
-                    }
-                }
-                stage("MyPy"){
-                    when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
-                    }
-                    steps{
-                        dir("source") {
-                            bat "${WORKSPACE}\\venv\\Scripts\\mypy.exe -p ocr --junit-xml=${WORKSPACE}/junit-${env.NODE_NAME}-mypy.xml --html-report ${WORKSPACE}/reports/mypy_html"
-                        }
-                    }
-                    post{
-                        always {
-                            junit "junit-${env.NODE_NAME}-mypy.xml"
-                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy_html', reportFiles: 'index.html', reportName: 'MyPy', reportTitles: ''])
-                        }
-                    }
-                }
-                stage("Documentation"){
-                    when{
-                        equals expected: true, actual: params.ADDITIONAL_TESTS
-                    }
-                    steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-                        }
-                    }
-
-                }
-            }
-        }
-        stage("Packaging") {
-//            when {
-//                expression { params.DEPLOY_DEVPI == true || params.RELEASE != "None"}
-//            }
-            parallel {
-                stage("Source and Wheel formats"){
-                    steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\scripts\\python.exe setup.py sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
-                        }
-
-                    }
-                    post{
-                        success{
-                            dir("dist"){
-                                archiveArtifacts artifacts: "*.whl", fingerprint: true
-                                archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                        failure {
+                            echo "Tox test failed. Removing ${WORKSPACE}\\.tox\\PyTest"
+                            dir("${WORKSPACE}\\.tox\\PyTest"){
+                                deleteDir()
                             }
                         }
                     }
+                }
+//                stage("Run Doctest Tests"){
+//                    when {
+//                       equals expected: true, actual: params.TEST_RUN_DOCTEST
+//                    }
+//                    steps {
+//                        dir("${REPORT_DIR}/doctests"){
+//                            echo "Cleaning doctest reports directory"
+//                            deleteDir()
+//                        }
+//                        dir("source"){
+//                            dir("${REPORT_DIR}/doctests"){
+//                                echo "Cleaning doctest reports directory"
+//                                deleteDir()
+//                            }
+//                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+//                        }
+//                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${REPORT_DIR}\\doctest.txt"
+//                    }
+//                    post{
+//                        always {
+//                            dir("${REPORT_DIR}"){
+//                                archiveArtifacts artifacts: "doctest.txt"
+//                            }
+//                        }
+//                    }
+//                }
+                stage("Run MyPy Static Analysis") {
+                    when {
+                        equals expected: true, actual: params.TEST_RUN_MYPY
+                    }
+                    steps{
+                        dir("${REPORT_DIR}/mypy/html"){
+                            deleteDir()
+                            bat "dir"
+                        }
+                        script{
+                            tee("${pwd tmp: true}/logs/mypy.log") {
+                                try{
+                                    dir("source"){
+                                        bat "dir"
+                                        bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\ocr --html-report ${REPORT_DIR}\\mypy\\html"
+                                    }
+                                } catch (exc) {
+                                    echo "MyPy found some warnings"
+                                }
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            dir(pwd(tmp: true)){
+                                warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
+                            }
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                        }
+                    }
+                }
+            }
+
+        }
+        stage("Packaging") {
+            environment {
+                PATH = "${tool 'CMake_3.12'}\\;$PATH"
+            }
+            steps {
+                dir("source"){
+                    bat "pipenv run python setup.py bdist_wheel sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                }
+
+                dir("dist") {
+                    archiveArtifacts artifacts: "*.whl", fingerprint: true
+                    archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
                 }
             }
         }
