@@ -279,7 +279,7 @@ junit_filename                  = ${junit_filename}
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     environment {
-                        PATH = "${tool 'CMake_3.12'}\\;$PATH"
+                        PATH = "${tool 'cmake3.12'}\\;$PATH"
                     }
                     steps {
 
@@ -381,7 +381,7 @@ junit_filename                  = ${junit_filename}
         }
         stage("Packaging") {
             environment {
-                PATH = "${tool 'CMake_3.12'}\\;$PATH"
+                PATH = "${tool 'cmake3.12'}\\;$PATH"
             }
             steps {
                 dir("source"){
