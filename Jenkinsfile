@@ -332,8 +332,8 @@ junit_filename                  = ${junit_filename}
                         junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                     }
                     steps{
-                        dir("${WORKSPACE}\\build\\"){
-                            bat "dir /B"
+                        dir("${WORKSPACE}\\build\\lib\\"){
+                            bat "dir /s /B"
                             bat "${WORKSPACE}\\venv\\Scripts\\py.test ${WORKSPACE}/source/tests --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
                         }
                     }
