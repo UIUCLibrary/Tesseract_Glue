@@ -14,6 +14,7 @@ from setuptools.command.build_py import build_py
 import subprocess
 import typing
 from setuptools.command.build_ext import build_ext
+from distutils.cmd import Command
 import tarfile
 import zipfile
 
@@ -37,6 +38,30 @@ class Tool(typing.NamedTuple):
     url: str
     executable: typing.Dict[str, str]
 
+
+class CleanExt(Command):
+    description = "Clean up inline extension"
+    user_options = []
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        def filter_shared_libs(item: os.DirEntry):
+            shared_object_extensions = [".dll", ".pyd"]
+            base, ext = os.path.splitext(item.name)
+            if ext not in shared_object_extensions:
+                return False
+
+            return True
+        for pac in self.distribution.packages:
+            pkg_path = os.path.join(os.getcwd(), pac)
+            for file in filter(filter_shared_libs, os.scandir(pkg_path)):
+                print("Deleting {}".format(file.path))
+                os.remove(file.path)
 
 class BuildExt(build_ext):
     def __init__(self, dist):
@@ -72,6 +97,7 @@ class BuildExt(build_ext):
             self.configure_cmake(ext)
             self.build_cmake(ext)
             self.install_cmake(ext)
+            pass
         # super().run()
 
     def configure_cmake(self, ext):
@@ -187,6 +213,7 @@ class BuildExt(build_ext):
             for dll in filter(filter_share_libs, m):
                 dll_dest = os.path.join(dest_root, "ocr", dll.name)
                 shutil.move(dll.path, os.path.join(dll_dest))
+                ext.libraries.append(dll.name)
 
         generated_bin_directory = os.path.join(self.build_lib, "bin")
         generated_lib_directory = os.path.join(self.build_lib, "lib")
@@ -371,5 +398,6 @@ setup(
     cmdclass={
         # 'build_py': BuildPyCommand,
         "build_ext": BuildExt,
+        "clean_ext": CleanExt
     },
 )
