@@ -333,6 +333,7 @@ junit_filename                  = ${junit_filename}
                     }
                     steps{
                         dir("${WORKSPACE}\\build\\lib"){
+                            bat "dir /B"
                             bat "${WORKSPACE}\\venv\\Scripts\\py.test ${WORKSPACE}/source/tests --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
                         }
                     }
