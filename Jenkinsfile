@@ -327,6 +327,9 @@ junit_filename                  = ${junit_filename}
                                 deleteDir()
                             }
                         }
+                        cleanup{
+                            deleteDir()
+                        }
                     }
                 }
                 stage("Run Pytest Unit Tests"){
