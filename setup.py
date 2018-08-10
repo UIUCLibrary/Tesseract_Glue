@@ -78,18 +78,22 @@ class BuildExt(build_ext):
         os.makedirs(self.cmake_binary_dir, exist_ok=True)
         modded_env = self.get_modified_env_vars(ext)
         #
-        cmake_root = (os.path.abspath(os.path.dirname(__file__)))
+        source_root = \
+            (os.path.relpath(
+                os.path.abspath(os.path.dirname(__file__)),
+                start=self.cmake_binary_dir))
+
+        # source_root = (os.path.abspath(os.path.dirname(__file__)))
         python_root = sysconfig.get_paths()['data']
         install_prefix = os.path.abspath(self.build_lib)
         configure_command = [
-            self._cmake_path, cmake_root,
+            self._cmake_path, source_root,
             "-GVisual Studio 14 2015 Win64",  # TODO: configure dynamically
             "-DCMAKE_INSTALL_PREFIX={}".format(install_prefix),
             "-DPython3_ROOT_DIR={}".format(python_root),
             # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
             "-DBUILD_TESTING:BOOL=NO"
         ]
-
         configure_stage = subprocess.Popen(
             configure_command,
             env=modded_env,
