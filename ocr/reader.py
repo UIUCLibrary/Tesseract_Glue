@@ -1,5 +1,5 @@
 import abc
-from ocr import tesseractwrap
+from ocr import tesseractwrap  # type: ignore
 
 # TODO: remove hard coded data directory
 TESS_DATA = r"C:\Users\hborcher\PycharmProjects\ocr\build\tests\tessdata"
