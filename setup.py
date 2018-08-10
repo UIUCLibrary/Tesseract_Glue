@@ -1,3 +1,4 @@
+import itertools
 import shutil
 import sysconfig
 import urllib.request
@@ -79,12 +80,14 @@ class BuildExt(build_ext):
         #
         cmake_root = (os.path.abspath(os.path.dirname(__file__)))
         python_root = sysconfig.get_paths()['data']
-
+        install_prefix = os.path.abspath(self.build_lib)
         configure_command = [
             self._cmake_path, cmake_root,
             "-GVisual Studio 14 2015 Win64",  # TODO: configure dynamically
-            "-DCMAKE_INSTALL_PREFIX={}".format(os.path.abspath(self.build_lib)),
+            "-DCMAKE_INSTALL_PREFIX={}".format(install_prefix),
             "-DPython3_ROOT_DIR={}".format(python_root),
+            # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
+            "-DBUILD_TESTING:BOOL=NO"
         ]
 
         configure_stage = subprocess.Popen(
@@ -100,6 +103,7 @@ class BuildExt(build_ext):
         build_command = [
             self._cmake_path,
             "--build", ".",
+            # "--parallel", "{}".format(self.parallel),
             "--config", "Release",
         ]
 
@@ -111,8 +115,6 @@ class BuildExt(build_ext):
         build_stage.communicate()
 
     def install_cmake(self, ext):
-        pass
-        #    TODO: install to dest
 
         install_command = [
             self._cmake_path,
@@ -131,7 +133,8 @@ class BuildExt(build_ext):
         def filter_share_libs(item: os.DirEntry):
             basename, extension = os.path.splitext(item.name)
 
-            if not extension.endswith(".dll"):
+            if not extension.endswith(".dll") and \
+                    not extension.endswith(".pyd"):
                 return False
 
             return True
@@ -143,12 +146,20 @@ class BuildExt(build_ext):
         moved to the python module and the .lib files need to be deleted before
         python can create a wheel. 
         """
+        if self.inplace == 1:
+            dest_root = os.path.abspath(os.path.dirname(__file__))
+        else:
+            dest_root = self.build_lib
 
-        for dll in filter(
-                filter_share_libs,
-                os.scandir(os.path.join(self.build_lib, "bin"))):
-            dll_dest = os.path.join(self.build_lib, "ocr", dll.name)
-            shutil.move(dll.path, os.path.join(dll_dest))
+        install_file_paths = [
+            os.path.join(self.build_lib, "bin"),
+            os.path.join(self.build_lib, "ocr"),
+
+        ]
+        for m in itertools.chain(map(os.scandir, install_file_paths)):
+            for dll in filter(filter_share_libs, m):
+                dll_dest = os.path.join(dest_root, "ocr", dll.name)
+                shutil.move(dll.path, os.path.join(dll_dest))
 
         generated_bin_directory = os.path.join(self.build_lib, "bin")
         generated_lib_directory = os.path.join(self.build_lib, "lib")
@@ -217,11 +228,13 @@ class BuildExt(build_ext):
         for tool_name, tool in ext.tools.items():
             file_extension = self._get_file_extension(tool.url)
             download_dst = os.path.join(self.build_temp, "{}{}".format(tool_name, file_extension))
-            print("Downloading {}".format(tool_name))
-            self.download_file(tool.url, download_dst)
-            dst = os.path.join(self._get_tools_dir(), tool_name)
+            if not os.path.exists(download_dst):
+                print("Downloading {}".format(tool_name))
+                self.download_file(tool.url, download_dst)
 
-            self._extract_source(download_dst, dst)
+            dst = os.path.join(self._get_tools_dir(), tool_name)
+            if not os.path.exists(dst):
+                self._extract_source(download_dst, dst)
 
             tool_executables = {}
             for executable in self._find_executables(dst):
@@ -307,27 +320,15 @@ class DownloadCMakeExtension(CMakeExtension):
     def add_configure_command(self, callback):
         self.configuration_commands.append(callback)
 
+def install_cppan(build, ext):
+    cppan = ext.tools['CPPAN']
+    executable = cppan.executable['cppan']
+    subprocess.run([executable, ], cwd=build.build_temp)
 
-def find_tesseract_path(root)->str:
-    for root, dirs, files in os.walk(root):
-        for file_name in files:
-            if file_name == "cppan.yml":
-                return root
-    raise FileNotFoundError("cppan.yml not found")
+tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
 
-
-def run_cpan(build, ext):
-    cppan = ext.tools["CPPAN"]
-    cppan_exec = cppan.executable['cppan']
-    build_path = os.path.join(build.build_temp, "tesseract-binary")
-    os.makedirs(build_path , exist_ok=True)
-    shutil.copyfile("cppan.yml", os.path.join(build_path, "cppan.yml"))
-    subprocess.run([cppan_exec], shell=True, cwd=build_path)
-
-
-tesseract_extension = DownloadCMakeExtension("tesseract", TESSERACT_SOURCE_URL)
 tesseract_extension.add_required_tool("CPPAN", CPPAN_URL)
-tesseract_extension.add_configure_command(run_cpan)
+tesseract_extension.add_configure_command(install_cppan)
 
 setup(
     packages=['ocr'],
