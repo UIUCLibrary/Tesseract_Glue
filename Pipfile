@@ -3,7 +3,6 @@ url = "https://pypi.org/simple"
 verify_ssl = true
 name = "pypi"
 
-
 [dev-packages]
 mypy = "*"
 pytest = "*"
@@ -12,3 +11,4 @@ lxml = "*"
 flake8 = "*"
 sphinx = "*"
 coverage = "*"
+pylint = "*"
