@@ -415,7 +415,7 @@ junit_filename                  = ${junit_filename}
             }
             steps {
                 dir("source"){
-                    bat "pipenv run python setup.py bdist_wheel sdist -d ${WORKSPACE}\\dist bdist_wheel -d ${WORKSPACE}\\dist"
+                    bat "pipenv run python setup.py bdist_wheel sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
                 }
 
                 dir("dist") {
