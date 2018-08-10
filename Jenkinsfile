@@ -332,16 +332,21 @@ junit_filename                  = ${junit_filename}
                         junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                     }
                     steps{
-                        dir("${WORKSPACE}\\build\\lib\\"){
-                            bat "dir /s /B"
-                            bat "${WORKSPACE}\\venv\\Scripts\\py.test ${WORKSPACE}/source/tests --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
+                        dir("source"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py test"
+//                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
                         }
                     }
                     post {
-                        always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
-                            junit "reports/pytest/${junit_filename}"
+                        cleanup{
+                            dir("source"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean_ext"
+                            }
                         }
+//                        always {
+//                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+//                            junit "reports/pytest/${junit_filename}"
+//                        }
                     }
                 }
 //                stage("Run Doctest Tests"){
