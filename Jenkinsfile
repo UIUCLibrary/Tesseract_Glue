@@ -30,6 +30,7 @@ pipeline {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
 //        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
 //        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
         booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
@@ -319,6 +320,25 @@ junit_filename                  = ${junit_filename}
                             dir("${WORKSPACE}\\.tox\\PyTest"){
                                 deleteDir()
                             }
+                        }
+                    }
+                }
+                stage("Run Pytest Unit Tests"){
+                    when {
+                       equals expected: true, actual: params.TEST_RUN_PYTEST
+                    }
+                    environment{
+                        junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
+                    }
+                    steps{
+                        dir("source"){
+                            bat "pipenv run py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
+                        }
+                    }
+                    post {
+                        always {
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                            junit "reports/pytest/${junit_filename}"
                         }
                     }
                 }
