@@ -376,9 +376,13 @@ class DownloadCMakeExtension(CMakeExtension):
         self.configuration_commands.append(callback)
 
 def install_cppan(build, ext):
+    okay_codes = [0,1]
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
-    subprocess.run([executable, "--verbose"], cwd=build.build_temp)
+    result = subprocess.run([executable, "--verbose"], cwd=build.build_temp)
+    if result.returncode not in okay_codes:
+        raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
+    pass
 
 tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
 
