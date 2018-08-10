@@ -247,8 +247,12 @@ junit_filename                  = ${junit_filename}
                         tee("logs/build.log") {
                             dir("source"){
                                 bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
+
                             }
 
+                        }
+                        dir("build\\lib\\tests"){
+                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
                         }
                     }
                     post{
@@ -332,21 +336,15 @@ junit_filename                  = ${junit_filename}
                         junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                     }
                     steps{
-                        dir("source"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py test"
-//                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
+                        dir("build\\lib"){
+                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
                         }
                     }
                     post {
-                        cleanup{
-                            dir("source"){
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean_ext"
-                            }
+                        always {
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+                            junit "reports/pytest/${junit_filename}"
                         }
-//                        always {
-//                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
-//                            junit "reports/pytest/${junit_filename}"
-//                        }
                     }
                 }
 //                stage("Run Doctest Tests"){
