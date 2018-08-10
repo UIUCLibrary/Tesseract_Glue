@@ -89,7 +89,7 @@ class BuildExt(build_ext):
         # source_root = (os.path.abspath(os.path.dirname(__file__)))
         python_root = sysconfig.get_paths()['data']
         install_prefix = os.path.abspath(self.build_lib)
-        fetch_content_base_dir = os.path.join(self.build_temp, "thirdparty")
+        fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
         configure_command = [
             self._cmake_path, source_root,
             "-GVisual Studio 14 2015 Win64",  # TODO: configure dynamically
