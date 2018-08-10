@@ -245,7 +245,7 @@ junit_filename                  = ${junit_filename}
                     steps {
                         tee("logs/build.log") {
                             dir("source"){
-                                bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ${WORKSPACE}\\build\\lib"
+                                bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib"
                             }
 
                         }
