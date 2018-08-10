@@ -102,6 +102,12 @@ class BuildExt(build_ext):
 
         configure_stage.communicate()
 
+        if configure_stage.returncode != 0:
+            raise Exception(
+                "CMake failed at configuration stage with command \"{}\"".
+                    format(" ".join(configure_command))
+            )
+
     def build_cmake(self, ext):
 
         build_command = [
@@ -118,6 +124,12 @@ class BuildExt(build_ext):
 
         build_stage.communicate()
 
+        if build_stage.returncode != 0:
+            raise Exception(
+                "CMake failed at build stage with command \"{}\"".
+                    format(" ".join(build_command))
+            )
+
     def install_cmake(self, ext):
 
         install_command = [
@@ -133,6 +145,12 @@ class BuildExt(build_ext):
             cwd=self.cmake_binary_dir)
 
         install_stage.communicate()
+
+        if install_stage.returncode != 0:
+            raise Exception(
+                "CMake failed at build stage with command \"{}\"".
+                    format(" ".join(install_command))
+            )
 
         def filter_share_libs(item: os.DirEntry):
             basename, extension = os.path.splitext(item.name)
