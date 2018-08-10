@@ -78,10 +78,13 @@ class BuildExt(build_ext):
         os.makedirs(self.cmake_binary_dir, exist_ok=True)
         modded_env = self.get_modified_env_vars(ext)
         #
-        source_root = \
-            (os.path.relpath(
-                os.path.abspath(os.path.dirname(__file__)),
-                start=self.cmake_binary_dir))
+        try:
+            source_root = \
+                (os.path.relpath(
+                    os.path.abspath(os.path.dirname(__file__)),
+                    start=self.cmake_binary_dir))
+        except ValueError:
+            source_root = os.path.abspath(os.path.dirname(__file__))
 
         # source_root = (os.path.abspath(os.path.dirname(__file__)))
         python_root = sysconfig.get_paths()['data']
@@ -347,7 +350,7 @@ class DownloadCMakeExtension(CMakeExtension):
 def install_cppan(build, ext):
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
-    subprocess.run([executable, ], cwd=build.build_temp)
+    subprocess.run([executable, "--verbose"], cwd=build.build_temp)
 
 tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
 
