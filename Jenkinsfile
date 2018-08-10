@@ -314,7 +314,7 @@ junit_filename                  = ${junit_filename}
                                     }
                                 }
                             }
-                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/coverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+//                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/coverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                         }
                         failure {
                             echo "Tox test failed. Removing ${WORKSPACE}\\.tox\\PyTest"
