@@ -86,11 +86,13 @@ class BuildExt(build_ext):
         # source_root = (os.path.abspath(os.path.dirname(__file__)))
         python_root = sysconfig.get_paths()['data']
         install_prefix = os.path.abspath(self.build_lib)
+        fetch_content_base_dir = os.path.join(self.build_temp, "thirdparty")
         configure_command = [
             self._cmake_path, source_root,
             "-GVisual Studio 14 2015 Win64",  # TODO: configure dynamically
             "-DCMAKE_INSTALL_PREFIX={}".format(install_prefix),
             "-DPython3_ROOT_DIR={}".format(python_root),
+            "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
             # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
             "-DBUILD_TESTING:BOOL=NO"
         ]
