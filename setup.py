@@ -50,13 +50,14 @@ class CleanExt(Command):
         pass
 
     def run(self):
+
         def filter_shared_libs(item: os.DirEntry):
             shared_object_extensions = [".dll", ".pyd"]
             base, ext = os.path.splitext(item.name)
-            if ext not in shared_object_extensions:
-                return False
+            if ext in shared_object_extensions:
+                return True
+            return False
 
-            return True
         for pac in self.distribution.packages:
             pkg_path = os.path.join(os.getcwd(), pac)
             for file in filter(filter_shared_libs, os.scandir(pkg_path)):
