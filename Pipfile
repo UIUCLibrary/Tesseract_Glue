@@ -6,12 +6,9 @@ name = "pypi"
 [dev-packages]
 mypy = "*"
 pytest = "*"
-pytest-bdd = "*"
-pytest-cov = "*"
 tox = "*"
 lxml = "*"
 flake8 = "*"
 sphinx = "*"
 coverage = "*"
 pylint = "*"
-
