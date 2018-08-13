@@ -378,6 +378,29 @@ junit_filename                  = ${junit_filename}
 //                        }
 //                    }
 //                }
+                stage("Run Flake8 Static Analysis") {
+                    when {
+                        equals expected: true, actual: params.TEST_RUN_FLAKE8
+                    }
+                    steps{
+                        script{
+                            try{
+                                tee('reports/flake8.log') {
+                                    dir("source"){
+                                        bat "pipenv run flake8 ocr --format=pylint"
+                                    }
+                                }
+                            } catch (exc) {
+                                echo "flake8 found some warnings"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'reports/flake8.log']], unHealthy: ''
+                        }
+                    }
+                }
                 stage("Run MyPy Static Analysis") {
                     when {
                         equals expected: true, actual: params.TEST_RUN_MYPY
