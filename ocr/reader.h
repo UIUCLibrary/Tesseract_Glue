@@ -1,3 +1,5 @@
+#pragma once
+
 #include <baseapi.h>
 #include <string>
 
