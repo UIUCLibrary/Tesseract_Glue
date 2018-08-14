@@ -4,6 +4,7 @@ Feature: Engine
 
   Scenario: Uses an engine to read the data
     Given a directory contains the english tesseract data
+    And an engine is created
     And a directory contains an image containing english text
-    And an engine creates a reader object with the eng lang code
-    Then the reader object can get the text from the image
+    Then the engine has version information
+    And the engine can produce a reader object can get the text from the image
