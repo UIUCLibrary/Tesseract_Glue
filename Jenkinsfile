@@ -57,7 +57,6 @@ pipeline {
                 }
                 stage("Cleanup"){
                     steps {
-                        bat "dir"
                         dir("logs"){
                             deleteDir()
                         }
@@ -216,7 +215,7 @@ pipeline {
 //                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
 //                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
 //                        }
-                        bat "dir"
+                        bat "tree /A /F > ${WORKSPACE}/logs/tree.log"
                     }
                 }
             }
