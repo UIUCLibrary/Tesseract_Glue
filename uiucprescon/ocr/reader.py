@@ -30,11 +30,22 @@ class AbsReader(metaclass=abc.ABCMeta):
                                             self.language_code)
 
     @abc.abstractmethod
-    def read(self, file):
+    def read(self, file: str):
         pass
 
 
 class Reader(AbsReader):
+    """ A Reader should not be generated directly. Instead it can be
+    constructed from an Engine's get_reader() method"""
 
-    def read(self, file):
+    def read(self, file: str):
+        """ Generate text from an image
+
+        Args:
+            file: File path to an image
+
+        Returns:
+            Text extracted from an image
+
+        """
         return self._reader.get_ocr(file)
