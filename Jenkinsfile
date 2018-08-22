@@ -295,7 +295,7 @@ junit_filename                  = ${junit_filename}
                     steps {
 
                         dir("source"){
-                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy --verbose"
                             script{
                                 try{
                                     bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
