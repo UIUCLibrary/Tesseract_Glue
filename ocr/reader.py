@@ -3,6 +3,7 @@ import os
 
 from ocr import tesseractwrap  # type: ignore
 
+
 class AbsReader(metaclass=abc.ABCMeta):
 
     def __init__(self, language_code, tesseract_data_path) -> None:
@@ -27,8 +28,6 @@ class AbsReader(metaclass=abc.ABCMeta):
         self.language_code = language_code
         self._reader = tesseractwrap.Reader(self._tesseract_data_path,
                                             self.language_code)
-
-
 
     @abc.abstractmethod
     def read(self, file):
