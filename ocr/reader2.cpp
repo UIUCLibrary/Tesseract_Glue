@@ -3,12 +3,14 @@
 #include <iostream>
 #include <allheaders.h>
 
+using std::endl;
+using std::cerr;
+
 Reader2::Reader2(const std::string &tessdata, const std::string &lang):language(lang), tessdata(tessdata)
 {
     tess = new tesseract::TessBaseAPI();
-    std::cout << tess->Version() << std::endl;
     if (tess->Init(tessdata.c_str(), lang.c_str())){
-        std::cout << "OCRTesseract: Could not initialize tesseract." << std::endl;
+        cerr << "OCRTesseract: Could not initialize tesseract." << endl;
         this->good = false;
     }
     tess->SetPageSegMode(tesseract::PSM_AUTO_OSD);
