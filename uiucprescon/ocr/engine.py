@@ -1,6 +1,6 @@
 import abc
 from . import reader
-from ocr import tesseractwrap  # type: ignore
+from uiucprescon.ocr import tesseractwrap  # type: ignore
 
 
 class AbsEngine(metaclass=abc.ABCMeta):

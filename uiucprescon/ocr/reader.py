@@ -1,7 +1,7 @@
 import abc
 import os
 
-from ocr import tesseractwrap  # type: ignore
+from uiucprescon.ocr import tesseractwrap  # type: ignore
 
 
 class AbsReader(metaclass=abc.ABCMeta):

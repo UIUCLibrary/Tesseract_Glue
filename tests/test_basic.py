@@ -1,4 +1,4 @@
-import ocr
+from uiucprescon import ocr
 import types
 
 

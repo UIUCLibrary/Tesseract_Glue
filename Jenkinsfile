@@ -294,7 +294,7 @@ junit_filename                  = ${junit_filename}
                     steps {
 
                         dir("source"){
-                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy --verbose"
+                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
                             script{
                                 try{
                                     bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
@@ -342,7 +342,7 @@ junit_filename                  = ${junit_filename}
                     }
                     steps{
                         dir("build\\lib"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr --integration"
+                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=uiucprescon --integration"
                         }
                     }
                     post {
@@ -387,7 +387,7 @@ junit_filename                  = ${junit_filename}
                             try{
                                 tee('reports/flake8.log') {
                                     dir("source"){
-                                        bat "pipenv run flake8 ocr --format=pylint"
+                                        bat "pipenv run flake8 uiucprescon --format=pylint"
                                     }
                                 }
                             } catch (exc) {
@@ -415,7 +415,7 @@ junit_filename                  = ${junit_filename}
                                 try{
                                     dir("source"){
                                         bat "dir"
-                                        bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\ocr --html-report ${REPORT_DIR}\\mypy\\html"
+                                        bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${REPORT_DIR}\\mypy\\html"
                                     }
                                 } catch (exc) {
                                     echo "MyPy found some warnings"

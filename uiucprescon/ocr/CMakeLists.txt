@@ -30,6 +30,6 @@ target_link_libraries(tesseractwrap
 
 install(TARGETS
             tesseractwrap
-        RUNTIME DESTINATION ocr
-        LIBRARY DESTINATION ocr
+        RUNTIME DESTINATION uiucprescon/ocr
+        LIBRARY DESTINATION uiucprescon/ocr
         )

@@ -1,12 +1,14 @@
 import os
 
-import ocr
-from pytest_bdd import scenario, given, when, then
+from uiucprescon import ocr
+from pytest_bdd import scenario, given, then
 import re
+
 
 @scenario("engine.feature", 'Uses an engine to read the data')
 def test_engine_feature(tess_path):
     pass
+
 
 @given("a directory contains the english tesseract data")
 def tess_path(tessdata_eng):
@@ -47,4 +49,5 @@ def ocr_engine_has_version(ocr_engine):
     e = ocr_engine
     version = e.get_version()
     version_regex = re.compile("\d\.\d{2}\.\d{2}")
+    print(version)
     assert version_regex.match(version)
