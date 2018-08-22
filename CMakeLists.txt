@@ -10,9 +10,10 @@ find_package(CPPAN REQUIRED)
 include(FetchContent)
 
 FetchContent_Declare(libpybind11
-        GIT_REPOSITORY https://github.com/pybind/pybind11.git
+        URL https://github.com/pybind/pybind11/archive/v2.2.3.tar.gz
+#        GIT_REPOSITORY https://github.com/pybind/pybind11.git
 #        GIT_TAG 8edc147
-        GIT_TAG f7bc18f528bb35cd06c93d0a58c17e6eea3fa68c
+#        GIT_TAG f7bc18f528bb35cd06c93d0a58c17e6eea3fa68c
         )
 
 FetchContent_GetProperties(libpybind11)
