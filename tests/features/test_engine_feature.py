@@ -2,12 +2,11 @@ import os
 
 import ocr
 from pytest_bdd import scenario, given, when, then
-
+import re
 
 @scenario("engine.feature", 'Uses an engine to read the data')
-def test_engine_feature():
+def test_engine_feature(tess_path):
     pass
-
 
 @given("a directory contains the english tesseract data")
 def tess_path(tessdata_eng):
@@ -35,9 +34,10 @@ def ocr_engine(tess_path):
 @then("the engine can produce a reader object can get the text from the image")
 def read_ocr(ocr_engine, image_path):
     reader = ocr_engine.get_reader("eng")
-    print(reader)
+    # print(reader)
     data = reader.read(image_path)
     assert data
+    pass
     # raise NotImplementedError(
     #     u'STEP: Then the engine can produce an english reader object')
 
@@ -46,4 +46,5 @@ def read_ocr(ocr_engine, image_path):
 def ocr_engine_has_version(ocr_engine):
     e = ocr_engine
     version = e.get_version()
-    assert version
+    version_regex = re.compile("\d\.\d{2}\.\d{2}")
+    assert version_regex.match(version)
