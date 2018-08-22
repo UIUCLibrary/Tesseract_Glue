@@ -2,5 +2,7 @@ include LICENSE README.rst tox.ini Pipfile cppan.yml CMakeLists.txt
 recursive-include * CMakeLists.txt
 recursive-include ocr *.cpp *.h
 recursive-include tests *.py *.cpp
-recursive-exclude * __pycache__
-recursive-exclude * *.pyc
+recursive-include tests/features *.feature
+prune __pycache__
+prune *.pyc
+prune *.dll

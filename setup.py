@@ -6,7 +6,7 @@ import os
 import sys
 from distutils.version import StrictVersion
 from functools import lru_cache
-
+import platform
 from setuptools import setup, Extension
 import setuptools
 
@@ -117,9 +117,20 @@ class BuildExt(build_ext):
         python_root = sysconfig.get_paths()['data']
         install_prefix = os.path.abspath(self.build_lib)
         fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
+
+        try:
+            build_system = self.get_build_generator_name()
+        except KeyError as e:
+
+            message = "No known build system generator for the current " \
+                      "implementation of Python's compiler {}".format(e)
+
+            raise Exception(message)
+
+
         configure_command = [
             self._cmake_path, source_root,
-            "-GVisual Studio 14 2015 Win64",  # TODO: configure dynamically
+            "-G{}".format(build_system),
             "-DCMAKE_INSTALL_PREFIX={}".format(install_prefix),
             "-DPython3_ROOT_DIR={}".format(python_root),
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
@@ -139,6 +150,26 @@ class BuildExt(build_ext):
                 "CMake failed at configuration stage with command \"{}\"".
                     format(" ".join(configure_command))
             )
+
+    @staticmethod
+    def get_build_generator_name():
+        python_compiler = platform.python_compiler()
+
+        if "GCC" in python_compiler:
+            python_compiler = "GCC"
+
+        if "Clang" in python_compiler:
+            python_compiler = "Clang"
+
+        cmake_build_systems_lut = {
+            'MSC v.1900 64 bit (AMD64)': "Visual Studio 14 2015 Win64",
+            'MSC v.1900 32 bit (Intel)': "Visual Studio 14 2015",
+            'GCC': "Unix Makefiles",
+            'Clang': "Unix Makefiles",
+        }
+
+        return cmake_build_systems_lut[python_compiler]
+
 
     def build_cmake(self, ext):
 

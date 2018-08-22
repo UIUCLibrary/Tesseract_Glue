@@ -57,7 +57,6 @@ pipeline {
                 }
                 stage("Cleanup"){
                     steps {
-                        bat "dir"
                         dir("logs"){
                             deleteDir()
                         }
@@ -156,7 +155,7 @@ pipeline {
                             }
                         }
 
-                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
 
 
                         tee("logs/pippackages_venv_${NODE_NAME}.log") {
@@ -216,7 +215,7 @@ pipeline {
 //                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
 //                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
 //                        }
-                        bat "dir"
+                        bat "tree /A /F > ${WORKSPACE}/logs/tree.log"
                     }
                 }
             }
@@ -253,6 +252,8 @@ junit_filename                  = ${junit_filename}
                         }
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
+                            bat "copy ${WORKSPACE}\\source\\tests\\features\\*.py"
+                            bat "copy ${WORKSPACE}\\source\\tests\\features\\*.feature"
                         }
                     }
                     post{
@@ -293,10 +294,10 @@ junit_filename                  = ${junit_filename}
                     steps {
 
                         dir("source"){
-                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy --verbose"
                             script{
                                 try{
-                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
+                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
 //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
                                     bat "dir ${REPORT_DIR}"
 
@@ -341,7 +342,7 @@ junit_filename                  = ${junit_filename}
                     }
                     steps{
                         dir("build\\lib"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr"
+                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=ocr --integration"
                         }
                     }
                     post {
@@ -377,6 +378,29 @@ junit_filename                  = ${junit_filename}
 //                        }
 //                    }
 //                }
+                stage("Run Flake8 Static Analysis") {
+                    when {
+                        equals expected: true, actual: params.TEST_RUN_FLAKE8
+                    }
+                    steps{
+                        script{
+                            try{
+                                tee('reports/flake8.log') {
+                                    dir("source"){
+                                        bat "pipenv run flake8 ocr --format=pylint"
+                                    }
+                                }
+                            } catch (exc) {
+                                echo "flake8 found some warnings"
+                            }
+                        }
+                    }
+                    post {
+                        always {
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'reports/flake8.log']], unHealthy: ''
+                        }
+                    }
+                }
                 stage("Run MyPy Static Analysis") {
                     when {
                         equals expected: true, actual: params.TEST_RUN_MYPY
@@ -415,7 +439,7 @@ junit_filename                  = ${junit_filename}
             }
             steps {
                 dir("source"){
-                    bat "pipenv run python setup.py bdist_wheel sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
+                    bat "pipenv run python setup.py build -b ..\\build -t ..\\build\\temp sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
                 }
 
                 dir("dist") {
@@ -441,7 +465,7 @@ junit_filename                  = ${junit_filename}
                         }
                     }
                 }
-                bat "dir"
+                bat "tree /A /F"
 //                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
 //                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
 //                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"

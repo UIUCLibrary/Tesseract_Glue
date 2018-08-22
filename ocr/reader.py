@@ -1,19 +1,29 @@
 import abc
+import os
+
 from ocr import tesseractwrap  # type: ignore
 
-# TODO: remove hard coded data directory
-TESS_DATA = r"C:\Users\hborcher\PycharmProjects\ocr\build\tests\tessdata"
-
-
-# TODO: Create a configuration for looking up the location for tesseract data
-# This will most likely be a factory or a builder pattern
 
 class AbsReader(metaclass=abc.ABCMeta):
 
-    def __init__(self, language_code) -> None:
+    def __init__(self, language_code, tesseract_data_path) -> None:
         super().__init__()
 
-        self._tesseract_data_path = TESS_DATA
+        def is_lang_in_path(lang) ->bool:
+            data_file = "{}.traineddata".format(lang)
+            return os.path.exists(os.path.join(tesseract_data_path, data_file))
+
+        if not is_lang_in_path(language_code):
+            raise FileNotFoundError(
+                "No \"{}\" language file located in \"{}\"".format(
+                    language_code, tesseract_data_path))
+
+        if not is_lang_in_path("osd"):
+            raise FileNotFoundError(
+                "No \"{}\" language file located in \"{}\"".format(
+                    language_code, tesseract_data_path))
+
+        self._tesseract_data_path = tesseract_data_path
 
         self.language_code = language_code
         self._reader = tesseractwrap.Reader(self._tesseract_data_path,
@@ -25,5 +35,6 @@ class AbsReader(metaclass=abc.ABCMeta):
 
 
 class Reader(AbsReader):
+
     def read(self, file):
         return self._reader.get_ocr(file)
