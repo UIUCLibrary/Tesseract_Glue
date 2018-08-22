@@ -238,12 +238,12 @@ class BuildExt(build_ext):
 
         install_file_paths = [
             os.path.join(self.build_lib, "bin"),
-            os.path.join(self.build_lib, "ocr"),
+            os.path.join(self.build_lib, "uiucprescon", "ocr"),
 
         ]
         for m in itertools.chain(map(os.scandir, install_file_paths)):
             for dll in filter(filter_share_libs, m):
-                dll_dest = os.path.join(dest_root, "ocr", dll.name)
+                dll_dest = os.path.join(dest_root,"uiucprescon", "ocr", dll.name)
                 shutil.move(dll.path, os.path.join(dll_dest))
                 ext.libraries.append(dll.name)
 
@@ -421,7 +421,7 @@ tesseract_extension.add_required_tool("CPPAN", CPPAN_URL)
 tesseract_extension.add_configure_command(install_cppan)
 
 setup(
-    packages=['ocr'],
+    packages=['uiucprescon.ocr'],
     setup_requires=[
         'pytest-runner'
     ],
@@ -430,6 +430,7 @@ setup(
     tests_require=[
         'pytest',
     ],
+    namespace_packages=["uiucprescon"],
     ext_modules=[tesseract_extension],
     cmdclass={
         # 'build_py': BuildPyCommand,
