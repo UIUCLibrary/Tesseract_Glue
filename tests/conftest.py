@@ -54,15 +54,15 @@ def download_data(url, destination):
 def tessdata_eng(request):
 
     english_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "eng.traineddata")
-    osd_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "eng.traineddata")
+    osd_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "osd.traineddata")
 
     test_path = os.path.dirname(__file__)
     tessdata_path = os.path.join(test_path, "tessdata")
 
     if not os.path.exists(tessdata_path):
         os.makedirs(tessdata_path)
-    download_data(english_data_url, destination=tessdata_path)
     download_data(osd_data_url, destination=tessdata_path)
+    download_data(english_data_url, destination=tessdata_path)
 
     return tessdata_path
 
