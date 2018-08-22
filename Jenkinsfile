@@ -439,7 +439,6 @@ junit_filename                  = ${junit_filename}
             }
             steps {
                 dir("source"){
-//                TODO: pybind11 uses too long of file path
                     bat "pipenv run python setup.py build -b ..\\build -t ..\\build\\temp sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
                 }
 
