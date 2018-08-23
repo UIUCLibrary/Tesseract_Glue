@@ -180,6 +180,14 @@ pipeline {
                         }
                     }
                 }
+                stage("Logging into DevPi"){
+                    steps{
+                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        }
+                    }
+                }
                 stage("Setting variables used by the rest of the build"){
                     steps{
 
@@ -211,10 +219,7 @@ pipeline {
                         }
 
 
-//                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                        }
+
                         bat "tree /A /F > ${WORKSPACE}/logs/tree.log"
                     }
                 }
@@ -537,17 +542,18 @@ junit_filename                  = ${junit_filename}
                         }
                     }
                 }
-                bat "tree /A /F"
-//                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-//                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
-//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//                    }
-//
-//                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
-//                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
-//                }
+
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
+                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
+                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                    }
+
+                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
+                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
+                }
             }
+            bat "tree /A /F"
         }
     }
 }
