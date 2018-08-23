@@ -9,11 +9,11 @@ class AbsEngine(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def get_reader(self, lang: str) -> reader.AbsReader:
-        pass
+        raise NotImplementedError
 
     @abc.abstractmethod
     def get_version(self) -> str:
-        pass
+        raise NotImplementedError
 
 
 class Engine(AbsEngine):
