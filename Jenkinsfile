@@ -565,9 +565,9 @@ junit_filename                  = ${junit_filename}
                         bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
 
                         script {
-                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\"
+                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
                             if(devpi_test_return_code != 0){
-                                error "Devpi exit code for tar.gz was ${devpi_test_return_code}"
+                                error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
                             }
                         }
                         echo "Finished testing Source Distribution: .tar.gz"
@@ -589,9 +589,9 @@ junit_filename                  = ${junit_filename}
 //                        }
 //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                         script {
-                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\"
+                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
                             if(devpi_test_return_code != 0){
-                                error "Devpi exit code for zip was ${devpi_test_return_code}"
+                                error "DevPi exit code for zip was ${devpi_test_return_code}"
                             }
                         }
                         echo "Finished testing Source Distribution: .zip"
@@ -612,13 +612,13 @@ junit_filename                  = ${junit_filename}
                         skipDefaultCheckout(true)
                     }
                     stages{
-                        stage("Building devpi testing env"){
+                        stage("Building DevPi Testing venv"){
                             steps{
                                 bat "${tool 'CPython-3.6'} -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
-                        stage("DevPi testing Whl"){
+                        stage("DevPi Testing Whl"){
                             steps {
                                 echo "Testing Whl package in DevPi"
 
@@ -627,7 +627,7 @@ junit_filename                  = ${junit_filename}
                                 }
                                 bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                                 script{
-                                    def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s whl  --verbose"
+                                    def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s whl  --verbose --debug"
                                     if(devpi_test_return_code != 0){
                                         error "Devpi exit code for whl was ${devpi_test_return_code}"
                                     }
