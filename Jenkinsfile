@@ -521,7 +521,7 @@ junit_filename                  = ${junit_filename}
                 }
             }
         }
-        stage("Uploade to DevPi staging") {
+        stage("Upload to DevPi staging") {
             when {
                 allOf{
                     equals expected: true, actual: params.DEPLOY_DEVPI
@@ -532,14 +532,123 @@ junit_filename                  = ${junit_filename}
                 }
             }
             steps {
-                bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging"
+                bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
                 script {
-                    bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
+                    bat "venv\\Scripts\\devpi.exe upload --from-dir dist --clientdir ${WORKSPACE}\\certs\\"
                     try {
-                        bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${DOC_ZIP_FILENAME}"
+                        bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${DOC_ZIP_FILENAME} --clientdir ${WORKSPACE}\\certs\\"
                     } catch (exc) {
                         echo "Unable to upload to devpi with docs."
                     }
+                }
+            }
+        }
+        stage("Test DevPi packages") {
+            when {
+                allOf{
+                    equals expected: true, actual: params.DEPLOY_DEVPI
+                    anyOf {
+                        equals expected: "master", actual: env.BRANCH_NAME
+                        equals expected: "dev", actual: env.BRANCH_NAME
+                    }
+                }
+            }
+
+
+            parallel {
+                stage("Source Distribution: .tar.gz") {
+                    environment {
+                        PATH = "${tool 'cmake3.12'}\\;$PATH"
+                    }
+                    steps {
+                        echo "Testing Source tar.gz package in devpi"
+                        bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+
+                        script {
+                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\"
+                            if(devpi_test_return_code != 0){
+                                error "Devpi exit code for tar.gz was ${devpi_test_return_code}"
+                            }
+                        }
+                        echo "Finished testing Source Distribution: .tar.gz"
+                    }
+                    post {
+                        failure {
+                            echo "Tests for .tar.gz source on DevPi failed."
+                        }
+                    }
+
+                }
+                stage("Source Distribution: .zip") {
+                    environment {
+                        PATH = "${tool 'cmake3.12'}\\;$PATH"
+                    }
+                    steps {
+                        echo "Testing Source zip package in devpi"
+                        bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+//                        }
+//                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                        script {
+                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\"
+                            if(devpi_test_return_code != 0){
+                                error "Devpi exit code for zip was ${devpi_test_return_code}"
+                            }
+                        }
+                        echo "Finished testing Source Distribution: .zip"
+                    }
+                    post {
+                        failure {
+                            echo "Tests for .zip source on DevPi failed."
+                        }
+                    }
+                }
+                stage("Built Distribution: .whl") {
+                    agent {
+                        node {
+                            label "Windows && Python3"
+                        }
+                    }
+                    options {
+                        skipDefaultCheckout(true)
+                    }
+                    steps {
+                        echo "Testing Whl package in devpi"
+                        bat "${tool 'CPython-3.6'} -m venv venv"
+                        bat "venv\\Scripts\\pip.exe install tox devpi-client"
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        }
+                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                        script{
+                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s whl  --verbose"
+                            if(devpi_test_return_code != 0){
+                                error "Devpi exit code for whl was ${devpi_test_return_code}"
+                            }
+                        }
+                        echo "Finished testing Built Distribution: .whl"
+                    }
+                    post {
+                        failure {
+                            echo "Tests for whl on DevPi failed."
+                        }
+                    }
+                }
+            }
+            post {
+                success {
+                    echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
+                    bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                    bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} DS_Jenkins/${env.BRANCH_NAME}"
+//                    script {
+////                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+////                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+////                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
+//                        }
+
+//                    }
+                }
+                failure {
+                    echo "At least one package format on DevPi failed."
                 }
             }
         }
