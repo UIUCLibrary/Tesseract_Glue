@@ -407,9 +407,9 @@ junit_filename                  = ${junit_filename}
                                         publishCoverage adapters: [antPath("coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
                                     } catch(exc){
                                         echo "antPath failed"
-                                        bat "dir"
                                     }
                                 }
+                                bat "dir reports"
 //                                try{
 //                                    publishCoverage adapters: [jacoco("${WORKSPACE}/reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
 //                                } catch(exc) {
