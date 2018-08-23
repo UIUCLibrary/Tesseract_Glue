@@ -76,6 +76,11 @@ pipeline {
                             echo "Cleaned out reports directory"
                             bat "dir"
                         }
+                        dir("certs"){
+                            deleteDir()
+                            echo "Cleaned out certs directory"
+                            bat "dir"
+                        }
                     }
                     post{
                         failure {
@@ -182,9 +187,9 @@ pipeline {
                 }
                 stage("Logging into DevPi"){
                     steps{
-                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu"
+                        bat "venv\\Scripts\\devpi --clientdir ${WORKSPACE}\\certs\\ use https://devpi.library.illinois.edu"
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                            bat "venv\\Scripts\\devpi.exe ${WORKSPACE}\\certs\\ login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
                         }
                     }
                 }
@@ -528,6 +533,9 @@ junit_filename                  = ${junit_filename}
             dir("logs"){
                 deleteDir()
             }
+            dir("certs"){
+                deleteDir()
+            }
 
             script {
                 if(fileExists('source/setup.py')){
@@ -544,12 +552,8 @@ junit_filename                  = ${junit_filename}
                 }
 
                 if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${DEVPI_PASSWORD}"
-                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                    }
-
-                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION}"
+                    bat "venv\\Scripts\\devpi.exe --clientdir ${WORKSPACE}\\certs\\ use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe --clientdir ${WORKSPACE}\\certs\\ remove -y ${PKG_NAME}==${PKG_VERSION}"
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
             }
