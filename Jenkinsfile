@@ -325,8 +325,7 @@ junit_filename                  = ${junit_filename}
                                 // def project_name = alljob[0]
                                 dir("${WORKSPACE}/dist"){
                                     zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
-                                    bat "del ${DOC_ZIP_FILENAME}"
-                                } 
+                                }
                             }
                         }
                         failure{
