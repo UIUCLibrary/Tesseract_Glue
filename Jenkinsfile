@@ -343,6 +343,17 @@ junit_filename                  = ${junit_filename}
                         PATH = "${tool 'cmake3.12'}\\;$PATH"
                     }
                     stages{
+                        stage("Remove Previous Tox environment"){
+                            when{
+                                equals expected: true, actual: params.FRESH_WORKSPACE
+                            }
+                            steps{
+                                dir(".tox"){
+                                    deleteDir()
+                                }
+                            }
+
+                        }
                         stage("Configure Tox environment"){
                             steps{
                                 dir("source"){
