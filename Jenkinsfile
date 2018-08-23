@@ -404,7 +404,8 @@ junit_filename                  = ${junit_filename}
                             script {
                                 dir("reports"){
                                     try{
-                                        publishCoverage(autoDetectPath: '**/*.xml', adapters: [antPath("coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE'))
+//                                        publishCoverage(autoDetectPath: '**/*.xml', adapters: [antPath("coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE'))
+                                        publishCoverage adapters: [cobertura("reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
                                     } catch(exc){
                                         echo "antPath failed"
                                     }
