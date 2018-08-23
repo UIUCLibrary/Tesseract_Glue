@@ -342,20 +342,24 @@ junit_filename                  = ${junit_filename}
                     environment {
                         PATH = "${tool 'cmake3.12'}\\;$PATH"
                     }
-                    steps {
+                    stages{
+                        stage("Run Tox"){
+                            steps {
 
-                        bat "dir"
-                        dir("source"){
+                                bat "dir"
+                                dir("source"){
 
-                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
-                            script{
-                                try{
-                                    bat "pipenv run tox --workdir ..\\.tox\\PyTest"
-    //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
-                                } catch (exc) {
-                                    bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
+                                    bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                                    script{
+                                        try{
+                                            bat "pipenv run tox --workdir ..\\.tox\\PyTest"
+            //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
+                                        } catch (exc) {
+                                            bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
+                                        }
+
+                                    }
                                 }
-
                             }
                         }
 
