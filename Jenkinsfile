@@ -348,12 +348,12 @@ junit_filename                  = ${junit_filename}
                             bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
                             script{
                                 try{
-                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --workdir ..\\workdir"
+                                    bat "pipenv run tox --workdir ..\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest
 //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
                                     bat "dir ${REPORT_DIR}"
 
                                 } catch (exc) {
-                                    bat "pipenv run tox -vv --recreate --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --workdir ..\\workdir"
+                                    bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest
                                 }
                             }
                         }
