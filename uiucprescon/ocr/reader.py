@@ -31,7 +31,7 @@ class AbsReader(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def read(self, file: str):
-        pass
+        raise NotImplementedError
 
 
 class Reader(AbsReader):
