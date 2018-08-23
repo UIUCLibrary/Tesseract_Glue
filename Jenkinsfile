@@ -344,7 +344,7 @@ junit_filename                  = ${junit_filename}
                     }
                     steps {
 
-                        
+                        bat "dir"
                         bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
                         script{
                             try{
