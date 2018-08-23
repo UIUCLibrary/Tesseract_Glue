@@ -402,17 +402,20 @@ junit_filename                  = ${junit_filename}
                             junit "reports/pytest/${junit_filename}"
 //                            cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                             script {
-                                try{
-                                    publishCoverage adapters: [antPath("${WORKSPACE}/reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
-                                } catch(exc){
-                                    echo "antPath failed"
+                                dir("reports"){
+                                    try{
+                                        publishCoverage adapters: [antPath("coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
+                                    } catch(exc){
+                                        echo "antPath failed"
+                                        bat "dir"
+                                    }
                                 }
-                                try{
-                                    publishCoverage adapters: [jacoco("${WORKSPACE}/reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
-                                } catch(exc) {
-                                    echo "jacoco failed"
-                                    bat "dir ${WORKSPACE}/reports"
-                                }
+//                                try{
+//                                    publishCoverage adapters: [jacoco("${WORKSPACE}/reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
+//                                } catch(exc) {
+//                                    echo "jacoco failed"
+//                                    bat "dir ${WORKSPACE}/reports"
+//                                }
 
                             }
                             bat "del reports\\coverage.xml"
