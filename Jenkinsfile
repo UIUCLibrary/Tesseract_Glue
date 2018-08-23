@@ -534,9 +534,9 @@ junit_filename                  = ${junit_filename}
             steps {
                 bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
                 script {
-                    bat "venv\\Scripts\\devpi.exe upload --from-dir dist --clientdir ${WORKSPACE}\\certs\\"
+                    bat "venv\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --from-dir dist "
                     try {
-                        bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${DOC_ZIP_FILENAME} --clientdir ${WORKSPACE}\\certs\\"
+                        bat "venv\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --only-docs ${WORKSPACE}\\dist\\${DOC_ZIP_FILENAME}"
                     } catch (exc) {
                         echo "Unable to upload to devpi with docs."
                     }
