@@ -275,7 +275,20 @@ junit_filename                  = ${junit_filename}
                 }
                 stage("Building Documentation"){
                     steps{
-                        bat "echo building docs"
+                        echo "Building docs on ${env.NODE_NAME}"
+                        script{
+                            // Add a line to config file so auto docs look in the build folder
+                            def sphinx_config_file = "${WORKSPACE}/source/docs/source/conf.py"
+                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
+                            def readContent = readFile "${sphinx_config_file}"
+                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
+                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
+                        }
+                        tee('logs/build_sphinx.log') {
+                            dir("build/lib"){
+                                bat "${WORKSPACE}\\venv\\Scripts\\sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+                            }
+                        }
                     }
                 }
             }
