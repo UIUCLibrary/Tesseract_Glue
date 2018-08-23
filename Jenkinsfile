@@ -29,7 +29,7 @@ pipeline {
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
 //        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
-//        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
         booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
         booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
@@ -271,6 +271,11 @@ junit_filename                  = ${junit_filename}
                                 bat "dir /s /B"
                             }
                         }
+                    }
+                }
+                stage("Building Documentation"){
+                    steps{
+                        bat "echo building docs"
                     }
                 }
             }
