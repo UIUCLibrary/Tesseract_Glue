@@ -620,7 +620,7 @@ junit_filename                  = ${junit_filename}
                         }
                         stage("DevPi testing Whl"){
                             steps {
-                                echo "Testing Whl package in devpi"
+                                echo "Testing Whl package in DevPi"
 
                                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                                     bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
