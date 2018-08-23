@@ -27,8 +27,8 @@ class Engine(AbsEngine):
                 set.
 
         Returns:
-            Constructs a Reader object which can be used for extracting text from
-            and image.
+            Constructs a Reader object which can be used for extracting text
+            from and image.
 
         """
         ocr_reader = reader.Reader(lang, self.data_set_path)
