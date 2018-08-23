@@ -187,9 +187,9 @@ pipeline {
                 }
                 stage("Logging into DevPi"){
                     steps{
-                        bat "venv\\Scripts\\devpi --clientdir ${WORKSPACE}\\certs\\ use https://devpi.library.illinois.edu"
+                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}\\certs\\"
                         withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe ${WORKSPACE}\\certs\\ login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD} --clientdir ${WORKSPACE}\\certs\\"
                         }
                     }
                 }
@@ -552,8 +552,8 @@ junit_filename                  = ${junit_filename}
                 }
 
                 if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-                    bat "venv\\Scripts\\devpi.exe --clientdir ${WORKSPACE}\\certs\\ use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe --clientdir ${WORKSPACE}\\certs\\ remove -y ${PKG_NAME}==${PKG_VERSION}"
+                    bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION} --clientdir ${WORKSPACE}\\certs\\ "
                     echo "Devpi remove exited with code ${devpi_remove_return_code}."
                 }
             }
