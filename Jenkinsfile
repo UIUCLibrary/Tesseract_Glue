@@ -400,23 +400,17 @@ junit_filename                  = ${junit_filename}
                         always {
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                             junit "reports/pytest/${junit_filename}"
-                            cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                             script {
-                                dir("reports"){
-                                    try{
-//                                        publishCoverage(autoDetectPath: '**/*.xml', adapters: [antPath("coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE'))
-                                        publishCoverage adapters: [cobertura("reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
-                                    } catch(exc){
-                                        echo "antPath failed"
-                                    }
-                                }
-                                bat "dir reports"
                                 try{
-                                    publishCoverage adapters: [jacoco("reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
-                                } catch(exc) {
-                                    echo "jacoco failed"
+                                    publishCoverage
+                                        autoDetectPath: 'coverage*/*.xml'
+                                        adapters: [
+                                            cobertura(coberturaReportFile:"reports/coverage.xml")
+                                        ]
+                                } catch(exc){
+                                    echo "cobertura With Coverage API failed. Falling back to cobertura plugin"
+                                    cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                                 }
-
                             }
                             bat "del reports\\coverage.xml"
 
