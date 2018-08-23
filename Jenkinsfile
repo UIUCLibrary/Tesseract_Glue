@@ -29,7 +29,7 @@ pipeline {
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
 //        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
-//        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
         booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
         booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
@@ -273,6 +273,57 @@ junit_filename                  = ${junit_filename}
                         }
                     }
                 }
+                stage("Building Documentation"){
+                    steps{
+                        echo "Building docs on ${env.NODE_NAME}"
+                        script{
+                            // Add a line to config file so auto docs look in the build folder
+                            def sphinx_config_file = "${WORKSPACE}/source/docs/source/conf.py"
+                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
+                            def readContent = readFile "${sphinx_config_file}"
+                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
+                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
+                        }
+                        tee('logs/build_sphinx.log') {
+                            dir("build/lib"){
+                                bat "pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+                            }
+                        }
+                    }
+                    post{
+                        always {
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
+                            dir("logs"){
+                                script{
+                                    def log_files = findFiles glob: '**/*.log'
+                                    log_files.each { log_file ->
+                                        echo "Found ${log_file}"
+                                        archiveArtifacts artifacts: "${log_file}"
+                                        warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
+                                        bat "del ${log_file}"
+                                    }
+                                }
+                            }
+
+                            // archiveArtifacts artifacts: 'logs/build_sphinx.log'
+                        }
+                        success{
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
+                            script{
+                                // // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
+                                // def alljob = env.JOB_NAME.tokenize("/") as String[]
+                                // def project_name = alljob[0]
+                                dir("${WORKSPACE}/dist"){
+                                    zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                                    bat "del ${DOC_ZIP_FILENAME}"
+                                } 
+                            }
+                        }
+                        failure{
+                            echo "Failed to build Python package"
+                        }
+                    }
+                }
             }
         }
 
@@ -342,42 +393,56 @@ junit_filename                  = ${junit_filename}
                     }
                     steps{
                         dir("build\\lib"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/ --cov=uiucprescon --integration"
+                            bat "${WORKSPACE}\\venv\\Scripts\\py.test --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
                         }
                     }
                     post {
                         always {
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
                             junit "reports/pytest/${junit_filename}"
+                            script {
+                                try{
+                                    publishCoverage
+                                        autoDetectPath: 'coverage*/*.xml'
+                                        adapters: [
+                                            cobertura(coberturaReportFile:"reports/coverage.xml")
+                                        ]
+                                } catch(exc){
+                                    echo "cobertura With Coverage API failed. Falling back to cobertura plugin"
+                                    cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+                                }
+                            }
+                            bat "del reports\\coverage.xml"
+
                         }
                     }
                 }
-//                stage("Run Doctest Tests"){
-//                    when {
-//                       equals expected: true, actual: params.TEST_RUN_DOCTEST
-//                    }
-//                    steps {
-//                        dir("${REPORT_DIR}/doctests"){
-//                            echo "Cleaning doctest reports directory"
-//                            deleteDir()
-//                        }
-//                        dir("source"){
-//                            dir("${REPORT_DIR}/doctests"){
-//                                echo "Cleaning doctest reports directory"
-//                                deleteDir()
-//                            }
-//                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-//                        }
-//                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${REPORT_DIR}\\doctest.txt"
-//                    }
-//                    post{
-//                        always {
-//                            dir("${REPORT_DIR}"){
-//                                archiveArtifacts artifacts: "doctest.txt"
-//                            }
-//                        }
-//                    }
-//                }
+                stage("Run Doctest Tests"){
+                    when {
+                        equals expected: true, actual: params.TEST_RUN_DOCTEST
+                    }
+                    steps {
+                        dir("${REPORT_DIR}/doctests"){
+                            echo "Cleaning doctest reports directory"
+                            deleteDir()
+                        }
+                        dir("source"){
+                            dir("${REPORT_DIR}/doctests"){
+                                echo "Cleaning doctest reports directory"
+                                deleteDir()
+                            }
+                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                        }
+                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${REPORT_DIR}\\doctest.txt"
+                    }
+                    post{
+                        always {
+                            dir("${REPORT_DIR}"){
+                                archiveArtifacts artifacts: "doctest.txt"
+                            }
+                        }
+                    }
+                }
                 stage("Run Flake8 Static Analysis") {
                     when {
                         equals expected: true, actual: params.TEST_RUN_FLAKE8
@@ -451,6 +516,15 @@ junit_filename                  = ${junit_filename}
     }
     post {
         cleanup{
+            dir("build"){
+                deleteDir()
+            }
+            dir("dist"){
+                deleteDir()
+            }
+            dir("logs"){
+                deleteDir()
+            }
 
             script {
                 if(fileExists('source/setup.py')){

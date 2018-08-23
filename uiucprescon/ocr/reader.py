@@ -30,11 +30,27 @@ class AbsReader(metaclass=abc.ABCMeta):
                                             self.language_code)
 
     @abc.abstractmethod
-    def read(self, file):
-        pass
+    def read(self, file: str):
+        raise NotImplementedError
 
 
 class Reader(AbsReader):
+    """Reading the text from an image file
 
-    def read(self, file):
+    Note:
+        A Reader object should not be generated directly. Instead, it should be
+        constructed using the Engine class's :meth:`Engine.get_reader` method.
+
+    """
+
+    def read(self, file: str):
+        """Generate text from an image
+
+        Args:
+            file: File path to an image
+
+        Returns:
+            Text extracted from an image
+
+        """
         return self._reader.get_ocr(file)
