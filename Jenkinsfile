@@ -410,12 +410,11 @@ junit_filename                  = ${junit_filename}
                                     }
                                 }
                                 bat "dir reports"
-//                                try{
-//                                    publishCoverage adapters: [jacoco("${WORKSPACE}/reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
-//                                } catch(exc) {
-//                                    echo "jacoco failed"
-//                                    bat "dir ${WORKSPACE}/reports"
-//                                }
+                                try{
+                                    publishCoverage adapters: [jacoco("reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
+                                } catch(exc) {
+                                    echo "jacoco failed"
+                                }
 
                             }
                             bat "del reports\\coverage.xml"
