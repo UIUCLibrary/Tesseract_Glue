@@ -35,7 +35,7 @@ pipeline {
         booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
 
-//        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
 //        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         // choice(choices: 'None\nrelease', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
 //        string(name: 'URL_SUBFOLDER', defaultValue: "py3exiv2bind", description: 'The directory that the docs should be saved under')
@@ -517,7 +517,30 @@ junit_filename                  = ${junit_filename}
 
                 dir("dist") {
                     archiveArtifacts artifacts: "*.whl", fingerprint: true
+                    archiveArtifacts artifacts: "*.zip", fingerprint: true
                     archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                }
+            }
+        }
+        stage("Uploade to DevPi staging") {
+            when {
+                allOf{
+                    equals expected: true, actual: params.DEPLOY_DEVPI
+                    anyOf {
+                        equals expected: "master", actual: env.BRANCH_NAME
+                        equals expected: "dev", actual: env.BRANCH_NAME
+                    }
+                }
+            }
+            steps {
+                bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging"
+                script {
+                    bat "venv\\Scripts\\devpi.exe upload --from-dir dist"
+                    try {
+                        bat "venv\\Scripts\\devpi.exe upload --only-docs ${WORKSPACE}\\dist\\${DOC_ZIP_FILENAME}"
+                    } catch (exc) {
+                        echo "Unable to upload to devpi with docs."
+                    }
                 }
             }
         }
