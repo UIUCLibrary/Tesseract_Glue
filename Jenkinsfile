@@ -333,7 +333,7 @@ junit_filename                  = ${junit_filename}
                     agent{
                         node {
                             label "Windows && VS2015 && Python3 && longfilenames"
-                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/tox/source"
+                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/tox/"
                         }
                     }
                     when {
@@ -345,15 +345,18 @@ junit_filename                  = ${junit_filename}
                     steps {
 
                         bat "dir"
-                        bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
-                        script{
-                            try{
-                                bat "pipenv run tox --workdir ..\\.tox\\PyTest"
-//                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
-                            } catch (exc) {
-                                bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
+                        dir("source"){
+
+                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                            script{
+                                try{
+                                    bat "pipenv run tox --workdir ..\\.tox\\PyTest"
+    //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
+                                } catch (exc) {
+                                    bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
+                                }
+
                             }
-                    
                         }
 
                     }
@@ -378,7 +381,9 @@ junit_filename                  = ${junit_filename}
                             }
                         }
                         cleanup{
-                            deleteDir()
+                            dir("source"){
+                                deleteDir()
+                            }
                         }
                     }
                 }
