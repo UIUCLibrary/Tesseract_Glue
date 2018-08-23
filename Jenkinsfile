@@ -333,7 +333,7 @@ junit_filename                  = ${junit_filename}
                     agent{
                         node {
                             label "Windows && VS2015 && Python3 && longfilenames"
-                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/tox/"
+                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/tox/source"
                         }
                     }
                     when {
@@ -348,12 +348,12 @@ junit_filename                  = ${junit_filename}
                             bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
                             script{
                                 try{
-                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
+                                    bat "pipenv run tox --workdir ${WORKSPACE}\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --workdir ..\\workdir"
 //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
                                     bat "dir ${REPORT_DIR}"
 
                                 } catch (exc) {
-                                    bat "pipenv run tox -vv --recreate --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
+                                    bat "pipenv run tox -vv --recreate --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --workdir ..\\workdir"
                                 }
                             }
                         }
