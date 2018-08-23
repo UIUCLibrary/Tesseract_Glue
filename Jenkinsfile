@@ -344,35 +344,33 @@ junit_filename                  = ${junit_filename}
                     }
                     steps {
 
-                        dir("source"){
-                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
-                            script{
-                                try{
-                                    bat "pipenv run tox --workdir ..\\.tox\\PyTest -- -s --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
+                        
+                        bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                        script{
+                            try{
+                                bat "pipenv run tox --workdir ..\\.tox\\PyTest"
 //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
-                                    bat "dir ${REPORT_DIR}"
-
-                                } catch (exc) {
-                                    bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest"
-                                }
+                            } catch (exc) {
+                                bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
                             }
+                    
                         }
 
                     }
                     post {
-                        always{
-                            dir("${REPORT_DIR}"){
-                                bat "dir"
-                                script {
-                                    def xml_files = findFiles glob: "**/*.xml"
-                                    xml_files.each { junit_xml_file ->
-                                        echo "Found ${junit_xml_file}"
-                                        junit "${junit_xml_file}"
-                                    }
-                                }
-                            }
-//                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/coverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
-                        }
+//                         always{
+//                             dir("${REPORT_DIR}"){
+//                                 bat "dir"
+//                                 script {
+//                                     def xml_files = findFiles glob: "**/*.xml"
+//                                     xml_files.each { junit_xml_file ->
+//                                         echo "Found ${junit_xml_file}"
+//                                         junit "${junit_xml_file}"
+//                                     }
+//                                 }
+//                             }
+// //                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/coverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
+//                         }
                         failure {
                             echo "Tox test failed. Removing ${WORKSPACE}\\.tox\\PyTest"
                             dir("${WORKSPACE}\\.tox\\PyTest"){
