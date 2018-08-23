@@ -403,17 +403,19 @@ junit_filename                  = ${junit_filename}
 //                            cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                             script {
                                 try{
-                                    publishCoverage adapters: [jacoco("reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
-                                } catch(exc) {
-                                    echo "jacoco failed"
+                                    publishCoverage adapters: [antPath("${WORKSPACE}/reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
+                                } catch(exc){
+                                    echo "antPath failed"
                                 }
                                 try{
-                                    publishCoverage adapters: [antPath('reports/coverage.xml')], sourceFileResolver: sourceFiles('NEVER_STORE')
-                                } catch(exc){
+                                    publishCoverage adapters: [jacoco("${WORKSPACE}/reports/coverage.xml")], sourceFileResolver: sourceFiles('NEVER_STORE')
+                                } catch(exc) {
                                     echo "jacoco failed"
+                                    bat "dir ${WORKSPACE}/reports"
                                 }
+
                             }
-                            bat "del reports/coverage.xml"
+                            bat "del reports\\coverage.xml"
 
                         }
                     }
