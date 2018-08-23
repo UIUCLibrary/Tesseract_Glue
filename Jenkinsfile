@@ -402,32 +402,32 @@ junit_filename                  = ${junit_filename}
                         }
                     }
                 }
-//                stage("Run Doctest Tests"){
-//                    when {
-//                       equals expected: true, actual: params.TEST_RUN_DOCTEST
-//                    }
-//                    steps {
-//                        dir("${REPORT_DIR}/doctests"){
-//                            echo "Cleaning doctest reports directory"
-//                            deleteDir()
-//                        }
-//                        dir("source"){
-//                            dir("${REPORT_DIR}/doctests"){
-//                                echo "Cleaning doctest reports directory"
-//                                deleteDir()
-//                            }
-//                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
-//                        }
-//                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${REPORT_DIR}\\doctest.txt"
-//                    }
-//                    post{
-//                        always {
-//                            dir("${REPORT_DIR}"){
-//                                archiveArtifacts artifacts: "doctest.txt"
-//                            }
-//                        }
-//                    }
-//                }
+                stage("Run Doctest Tests"){
+                    when {
+                        equals expected: true, actual: params.TEST_RUN_DOCTEST
+                    }
+                    steps {
+                        dir("${REPORT_DIR}/doctests"){
+                            echo "Cleaning doctest reports directory"
+                            deleteDir()
+                        }
+                        dir("source"){
+                            dir("${REPORT_DIR}/doctests"){
+                                echo "Cleaning doctest reports directory"
+                                deleteDir()
+                            }
+                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                        }
+                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${REPORT_DIR}\\doctest.txt"
+                    }
+                    post{
+                        always {
+                            dir("${REPORT_DIR}"){
+                                archiveArtifacts artifacts: "doctest.txt"
+                            }
+                        }
+                    }
+                }
                 stage("Run Flake8 Static Analysis") {
                     when {
                         equals expected: true, actual: params.TEST_RUN_FLAKE8
