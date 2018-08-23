@@ -343,13 +343,19 @@ junit_filename                  = ${junit_filename}
                         PATH = "${tool 'cmake3.12'}\\;$PATH"
                     }
                     stages{
+                        stage("Configure Tox environment"){
+                            steps{
+                                dir("source"){
+                                    bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                                }
+                            }
+                        }
                         stage("Run Tox"){
                             steps {
 
-                                bat "dir"
                                 dir("source"){
 
-                                    bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+
                                     script{
                                         try{
                                             bat "pipenv run tox --workdir ..\\.tox\\PyTest"
