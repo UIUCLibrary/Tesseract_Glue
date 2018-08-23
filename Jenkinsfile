@@ -360,32 +360,6 @@ junit_filename                  = ${junit_filename}
                         }
 
                     }
-                    post {
-//                         always{
-//                             dir("${REPORT_DIR}"){
-//                                 bat "dir"
-//                                 script {
-//                                     def xml_files = findFiles glob: "**/*.xml"
-//                                     xml_files.each { junit_xml_file ->
-//                                         echo "Found ${junit_xml_file}"
-//                                         junit "${junit_xml_file}"
-//                                     }
-//                                 }
-//                             }
-// //                            publishHTML([allowMissing: true, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/coverage", reportFiles: 'index.html', reportName: 'Coverage', reportTitles: ''])
-//                         }
-                        failure {
-                            echo "Tox test failed. Removing ${WORKSPACE}\\.tox\\PyTest"
-                            dir("${WORKSPACE}\\.tox\\PyTest"){
-                                deleteDir()
-                            }
-                        }
-                        cleanup{
-                            dir("source"){
-                                deleteDir()
-                            }
-                        }
-                    }
                 }
                 stage("Run Pytest Unit Tests"){
                     when {
