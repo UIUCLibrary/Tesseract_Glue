@@ -20,11 +20,11 @@ class Engine(AbsEngine):
     """The engine for driving the ocr processing"""
 
     def get_reader(self, lang: str) -> reader.AbsReader:
-        """ Builder method for creating reader objects for a specific language
+        """Builder method for creating reader objects for a specific language
 
         Args:
             lang: letter code that represents the language for a tesseract data
-                set
+                set.
 
         Returns:
             Constructs a Reader object which can be used for extracting text from
@@ -35,5 +35,8 @@ class Engine(AbsEngine):
         return ocr_reader
 
     def get_version(self) -> str:
-        """ Check the version of Tesseract linked to"""
+        """Check the version of Tesseract that this python package is linked
+        to. An example value might be the string "3.05.02".
+
+        """
         return tesseractwrap.tesseract_version()

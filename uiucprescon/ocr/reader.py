@@ -35,11 +35,16 @@ class AbsReader(metaclass=abc.ABCMeta):
 
 
 class Reader(AbsReader):
-    """ A Reader should not be generated directly. Instead it can be
-    constructed from an Engine's get_reader() method"""
+    """Reading the text from an image file
+
+    Note:
+        A Reader object should not be generated directly. Instead, it should be
+        constructed using the Engine class's :meth:`Engine.get_reader` method.
+
+    """
 
     def read(self, file: str):
-        """ Generate text from an image
+        """Generate text from an image
 
         Args:
             file: File path to an image
