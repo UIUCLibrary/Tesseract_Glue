@@ -3,6 +3,7 @@ recursive-include * CMakeLists.txt
 recursive-include uiucprescon *.cpp *.h
 recursive-include tests *.py *.cpp
 recursive-include tests/features *.feature
-prune __pycache__
-prune *.pyc
-prune *.dll
+
+recursive-exclude * __pycache__
+recursive-exclude * *.pyc
+recursive-exclude * *.dll
