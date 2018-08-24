@@ -734,11 +734,11 @@ junit_filename                  = ${junit_filename}
                     }
                 }
 
-//                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-//                    bat "venv\\Scripts\\devpi.exe use https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-//                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION} --clientdir ${WORKSPACE}\\certs\\ "
-//                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
-//                }
+                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
+                    bat "venv\\Scripts\\devpi.exe use https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${PKG_NAME}==${PKG_VERSION} --clientdir ${WORKSPACE}\\certs\\ "
+                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
+                }
             }
             dir("certs"){
                 deleteDir()
