@@ -573,6 +573,8 @@ junit_filename                  = ${junit_filename}
                         stage("Building DevPi Testing venv for tar.gz"){
                             steps{
                                 echo "installing devpi test env"
+                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
                         stage("Testing devpi tar.gz package "){
@@ -616,6 +618,8 @@ junit_filename                  = ${junit_filename}
                         stage("Building DevPi Testing venv for zip"){
                             steps{
                                 echo "installing devpi test env"
+                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
                         stage("Testing devpi zip package "){
