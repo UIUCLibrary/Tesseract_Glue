@@ -556,54 +556,93 @@ junit_filename                  = ${junit_filename}
 
 
             parallel {
-//                stage("Source Distribution: .tar.gz") {
-//                    environment {
-//                        PATH = "${tool 'cmake3.12'};$PATH"
-//                    }
-//                    steps {
-//                        echo "Testing Source tar.gz package in devpi"
-//                        bat "set"
-//                        bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-//
-//                        script {
-//                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-//                            if(devpi_test_return_code != 0){
-//                                error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
-//                            }
-//                        }
-//                        echo "Finished testing Source Distribution: .tar.gz"
-//                    }
-//                    post {
-//                        failure {
-//                            echo "Tests for .tar.gz source on DevPi failed."
-//                        }
-//                    }
-//
-//                }
-//                stage("Source Distribution: .zip") {
-//                    environment {
-//                        PATH = "${tool 'cmake3.12'};$PATH"
-//                    }
-//                    steps {
-//                        echo "Testing Source zip package in DevPi"
-//                        bat "set"
-//                        bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-////                        }
-////                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-//                        script {
-//                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-//                            if(devpi_test_return_code != 0){
-//                                error "DevPi exit code for zip was ${devpi_test_return_code}"
-//                            }
-//                        }
-//                        echo "Finished testing Source Distribution: .zip"
-//                    }
-//                    post {
-//                        failure {
-//                            echo "Tests for .zip source on DevPi failed."
-//                        }
-//                    }
-//                }
+                stage("Source Distribution: .tar.gz") {
+                    agent {
+                        node {
+                            label "Windows && Python3"
+//                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
+                        }
+                    }
+                    options {
+                        skipDefaultCheckout(true)
+                    }
+                    environment {
+                        PATH = "${tool 'cmake3.12'};$PATH"
+                    }
+                    stages {
+                        stage("Building DevPi Testing venv for tar.gz"){
+                            steps{
+                                echo "installing devpi test env"
+                            }
+                        }
+                        stage("Testing devpi tar.gz package "){
+                            steps {
+                                echo "Testing Source tar.gz package in devpi"
+                                bat "set"
+                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+
+                                script {
+                                    def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
+                                    if(devpi_test_return_code != 0){
+                                        error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
+                                    }
+                                }
+                                echo "Finished testing Source Distribution: .tar.gz"
+                            }
+                            post {
+                                failure {
+                                    echo "Tests for .tar.gz source on DevPi failed."
+                                }
+                            }
+                        }
+                    }
+
+                }
+                stage("Source Distribution: .zip") {
+                     agent {
+                        node {
+                            label "Windows && Python3"
+//                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
+                        }
+                    }
+                    options {
+                        skipDefaultCheckout(true)
+                    }
+
+                    environment {
+                        PATH = "${tool 'cmake3.12'};$PATH"
+                    }
+                    stages{
+                        stage("Building DevPi Testing venv for zip"){
+                            steps{
+                                echo "installing devpi test env"
+                            }
+                        }
+                        stage("Testing devpi zip package "){
+
+
+                            steps {
+                                echo "Testing Source zip package in DevPi"
+                                bat "set"
+                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+        //                        }
+        //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
+                                script {
+                                    def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
+                                    if(devpi_test_return_code != 0){
+                                        error "DevPi exit code for zip was ${devpi_test_return_code}"
+                                    }
+                                }
+                                echo "Finished testing Source Distribution: .zip"
+                            }
+                            post {
+                                failure {
+                                    echo "Tests for .zip source on DevPi failed."
+                                }
+                            }
+                        }
+                    }
+                }
                 stage("Built Distribution: .whl") {
                     agent {
                         node {
