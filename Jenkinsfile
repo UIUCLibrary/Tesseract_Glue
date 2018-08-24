@@ -558,10 +558,11 @@ junit_filename                  = ${junit_filename}
             parallel {
                 stage("Source Distribution: .tar.gz") {
                     environment {
-                        PATH = "${tool 'cmake3.12'}\\;$PATH"
+                        PATH = "${tool 'cmake3.12'};$PATH"
                     }
                     steps {
                         echo "Testing Source tar.gz package in devpi"
+                        bat "set"
                         bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
 
                         script {
@@ -581,10 +582,11 @@ junit_filename                  = ${junit_filename}
                 }
                 stage("Source Distribution: .zip") {
                     environment {
-                        PATH = "${tool 'cmake3.12'}\\;$PATH"
+                        PATH = "${tool 'cmake3.12'};$PATH"
                     }
                     steps {
                         echo "Testing Source zip package in DevPi"
+                        bat "set"
                         bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
 //                        }
 //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
