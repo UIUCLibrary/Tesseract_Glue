@@ -644,7 +644,7 @@ junit_filename                  = ${junit_filename}
 //                            echo "Tests for whl on DevPi failed."
 //                        }
 //                    }
-                }
+//                }
             }
             post {
                 success {
