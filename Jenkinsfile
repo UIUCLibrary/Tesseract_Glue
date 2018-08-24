@@ -606,11 +606,11 @@ junit_filename                  = ${junit_filename}
                     agent {
                         node {
                             label "Windows && Python3"
+                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
                         }
                     }
                     options {
                         skipDefaultCheckout(true)
-                        customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
                     }
                     stages{
                         stage("Building DevPi Testing venv"){
