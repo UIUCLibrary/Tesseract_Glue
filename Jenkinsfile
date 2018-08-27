@@ -559,7 +559,7 @@ junit_filename                  = ${junit_filename}
                 stage("Source Distribution: .tar.gz") {
                     agent {
                         node {
-                            label "Windows && Python3"
+                            label "Windows && Python3 && VS2015"
 //                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
                         }
                     }
@@ -603,7 +603,7 @@ junit_filename                  = ${junit_filename}
                 stage("Source Distribution: .zip") {
                      agent {
                         node {
-                            label "Windows && Python3"
+                            label "Windows && Python3 && VS2015"
 //                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
                         }
                     }
