@@ -262,8 +262,8 @@ junit_filename                  = ${junit_filename}
                         }
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
-                            bat "copy ${WORKSPACE}\\source\\tests\\features\\*.py"
-                            bat "copy ${WORKSPACE}\\source\\tests\\features\\*.feature"
+                            bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.py"
+                            bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.feature"
                         }
                     }
                     post{
