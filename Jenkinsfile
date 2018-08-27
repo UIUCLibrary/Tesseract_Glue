@@ -579,9 +579,9 @@ junit_filename                  = ${junit_filename}
                         }
                         stage("Testing devpi tar.gz package "){
                             steps {
-                                echo "Testing Source tar.gz package in devpi"
+                                echo "Testing Source tar.gz package in DevPi"
                                 bat "set"
-                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+//                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
 
                                 script {
                                     def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
@@ -628,7 +628,7 @@ junit_filename                  = ${junit_filename}
                             steps {
                                 echo "Testing Source zip package in DevPi"
                                 bat "set"
-                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+//                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
         //                        }
         //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                                 script {
