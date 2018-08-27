@@ -425,6 +425,11 @@ junit_filename                  = ${junit_filename}
                             bat "del reports\\coverage.xml"
 
                         }
+                        failure{
+                            dir("build"){
+                                bat "tree /A /F"
+                            }
+                        }
                     }
                 }
                 stage("Run Doctest Tests"){
