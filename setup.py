@@ -81,8 +81,9 @@ class BuildExt(build_ext):
 
     def run(self):
         for ext in self.extensions:
-            self.cmake_binary_dir = os.path.abspath(os.path.join(self.build_temp, "{}-binary".format(ext.name)))
-            os.makedirs(self.cmake_binary_dir, exist_ok=True)
+            self.cmake_binary_dir = self.build_temp
+            # self.cmake_binary_dir = os.path.abspath(os.path.join(self.build_temp, "{}-binary".format(ext.name)))
+            # os.makedirs(self.cmake_binary_dir, exist_ok=True)
             self.get_required_tools(ext)
             tools = [t.executable for t in ext.tools.values()]
 
@@ -179,6 +180,9 @@ class BuildExt(build_ext):
             # "--parallel", "{}".format(self.parallel),
             "--config", "Release",
         ]
+
+        length_of_build_temp = "Length is {}".format(len(os.path.abspath(self._cmake_path)))
+        print(length_of_build_temp, file=sys.stderr)
 
         build_stage = subprocess.Popen(
             build_command,
@@ -341,7 +345,6 @@ class BuildExt(build_ext):
         for command in ext.configuration_commands:
             command(self, ext)
 
-
     def _get_tools_dir(self):
         """ Returns directory to store any helper tools"""
 
@@ -406,14 +409,17 @@ class DownloadCMakeExtension(CMakeExtension):
     def add_configure_command(self, callback):
         self.configuration_commands.append(callback)
 
+
 def install_cppan(build, ext):
     okay_codes = [0,1]
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
     result = subprocess.run([executable, "--verbose"], cwd=build.build_temp)
+
     if result.returncode not in okay_codes:
         raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
     pass
+
 
 tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
 
