@@ -447,7 +447,10 @@ def install_cppan(build, ext):
     executable = cppan.executable['cppan']
     shutil.copyfile("cppan.yml", os.path.join(build.build_temp, "cppan.yml"))
     print("Running downloaded cppan for the first time")
-    result = subprocess.run([executable, "--settings", "cppan.yml", "--verbose"], cwd=build.build_temp)
+    result = subprocess.run(
+        [executable],
+        # [executable, "--settings", "cppan.yml", "--verbose", "--dir", os.path.abspath(build.build_temp)],
+        cwd=build.build_temp)
 
     if result.stdout:
         print(result.stdout)
