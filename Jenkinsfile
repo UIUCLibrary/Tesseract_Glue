@@ -868,7 +868,9 @@ junit_filename                  = ${junit_filename}
                 deleteDir()
             }
             bat "tree /A /F > ${WORKSPACE}/logs/tree_postclean.log"
-            archiveArtifacts artifacts: "${WORKSPACE}/logs/tree_postclean.log"
+            dir("${WORKSPACE}/logs"){
+                archiveArtifacts artifacts: "tree_postclean.log"
+            }
         }
     }
 }
