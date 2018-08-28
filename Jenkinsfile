@@ -259,9 +259,7 @@ junit_filename                  = ${junit_filename}
                                 lock("cppan_${NODE_NAME}"){
                                     bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
                                 }
-
                             }
-
                         }
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -836,15 +834,15 @@ junit_filename                  = ${junit_filename}
     }
     post {
         cleanup{
-            dir("build"){
-                deleteDir()
-            }
-            dir("dist"){
-                deleteDir()
-            }
-            dir("logs"){
-                deleteDir()
-            }
+//            dir("build"){
+//                deleteDir()
+//            }
+//            dir("dist"){
+//                deleteDir()
+//            }
+//            dir("logs"){
+//                deleteDir()
+//            }
 
             script {
                 if(fileExists('source/setup.py')){
