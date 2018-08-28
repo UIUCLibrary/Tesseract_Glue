@@ -288,7 +288,7 @@ junit_filename                  = ${junit_filename}
                         failure{
                             bat "set > ${WORKSPACE}/logs/env_vars.log"
                             bat "tree /A /F > ${WORKSPACE}/logs/tree_postbuild_failed.log"
-                            bat "tree %userprofile%  /A /F >  ${WORKSPACE}/logs/tree_home_postbuild_failed.log"
+                            bat "tree ${user.home} /A /F >  ${WORKSPACE}/logs/tree_home_postbuild_failed.log"
 
                         }
                     }
