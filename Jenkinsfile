@@ -611,6 +611,17 @@ junit_filename                  = ${junit_filename}
                             post {
                                 failure {
                                     echo "Tests for .tar.gz source on DevPi failed."
+                                    bat "set > devpi_targz_env.log"
+                                }
+                                cleanup{
+                                    script{
+                                        def log_files = findFiles glob: '**/*.log'
+                                        log_files.each { log_file ->
+                                            echo "Found ${log_file}"
+                                            archiveArtifacts artifacts: "${log_file}"
+                                            bat "del ${log_file}"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -644,7 +655,6 @@ junit_filename                  = ${junit_filename}
 
                             steps {
                                 echo "Testing Source zip package in DevPi"
-                                bat "set"
 //                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
         //                        }
         //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
@@ -660,7 +670,18 @@ junit_filename                  = ${junit_filename}
                             }
                             post {
                                 failure {
+                                    bat "set > devpi_zip_env.log"
                                     echo "Tests for .zip source on DevPi failed."
+                                }
+                                cleanup{
+                                    script{
+                                        def log_files = findFiles glob: '**/*.log'
+                                        log_files.each { log_file ->
+                                            echo "Found ${log_file}"
+                                            archiveArtifacts artifacts: "${log_file}"
+                                            bat "del ${log_file}"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -704,6 +725,17 @@ junit_filename                  = ${junit_filename}
                     post {
                         failure {
                             echo "Tests for whl on DevPi failed."
+                            bat "set > devpi_whl_env.log"
+                        }
+                        cleanup{
+                            script{
+                                def log_files = findFiles glob: '**/*.log'
+                                log_files.each { log_file ->
+                                    echo "Found ${log_file}"
+                                    archiveArtifacts artifacts: "${log_file}"
+                                    bat "del ${log_file}"
+                                }
+                            }
                         }
                     }
                 }
