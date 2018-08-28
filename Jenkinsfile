@@ -289,6 +289,13 @@ junit_filename                  = ${junit_filename}
                             bat "set > ${WORKSPACE}/logs/env_vars.log"
                             bat "tree /A /F > ${WORKSPACE}/logs/tree_postbuild_failed.log"
                             bat "tree ${user.home} /A /F >  ${WORKSPACE}/logs/tree_home_postbuild_failed.log"
+                            script{
+                                def cppan_files = findFiles glob: '**/cppan.yml'
+                                cppan_files.each { cppan_file ->
+                                    echo "Found ${cppan_file}"
+                                    archiveArtifacts artifacts: "${cppan_file}"
+                                }
+                            }
 
                         }
                     }
