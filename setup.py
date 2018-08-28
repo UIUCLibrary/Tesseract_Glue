@@ -160,10 +160,11 @@ class BuildExt(build_ext):
         configure_stage.communicate()
 
         if configure_stage.returncode != 0:
-            raise CMakeException(
-                "CMake failed at configuration stage with command \"{}\"".
-                    format(" ".join(configure_command))
-            )
+            command_string = " ".join(configure_command)
+            error_message = "CMake failed at configuration stage with " \
+                            "command \"{}\"".format(command_string)
+
+            raise CMakeException(error_message)
 
     @staticmethod
     def get_build_generator_name():
