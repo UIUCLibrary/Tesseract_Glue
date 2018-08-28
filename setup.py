@@ -134,6 +134,7 @@ class BuildExt(build_ext):
             "-G{}".format(build_system),
             "-DCMAKE_INSTALL_PREFIX={}".format(install_prefix),
             "-DPython3_ROOT_DIR={}".format(python_root),
+            "-DCMAKE_BUILD_TYPE=Release",
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
             # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
             "-DBUILD_TESTING:BOOL=NO"
