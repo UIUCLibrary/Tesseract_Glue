@@ -451,6 +451,6 @@ setup(
     cmdclass={
         # 'build_py': BuildPyCommand,
         "build_ext": BuildExt,
-        "clean_ext": CleanExt
+        # "clean_ext": CleanExt
     },
 )
