@@ -254,6 +254,7 @@ junit_filename                  = ${junit_filename}
                     }
                     steps {
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
+                        bat "set"
                         tee("logs/build.log") {
                             dir("source"){
                                 lock("cppan_${NODE_NAME}"){
@@ -286,6 +287,7 @@ junit_filename                  = ${junit_filename}
 
                         }
                         failure{
+                            echo "${WORKSPACE}"
                             echo "locating cppan.yml files"
                             script{
                                 def cppan_files = findFiles glob: '**/cppan.yml'
