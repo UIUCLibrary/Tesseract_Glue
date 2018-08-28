@@ -100,13 +100,12 @@ class BuildExt(build_ext):
             # source_root = self.locate_cmake_source_root(download_root)
             # self.cmake_source_dir = source_root
 
-
             try:
                 self.install_depends(ext)
                 self.configure_cmake(ext)
             except CMakeException:
                 clean_cppan_cache(self, ext)
-                print("Trying again")
+                print("Trying again", file=sys.stderr)
                 self.configure_cmake(ext)
 
             self.build_cmake(ext)
@@ -448,7 +447,7 @@ def install_cppan(build, ext):
     executable = cppan.executable['cppan']
     shutil.copyfile("cppan.yml", os.path.join(build.build_temp, "cppan.yml"))
     print("Running downloaded cppan for the first time")
-    result = subprocess.run([executable, "--verbose"], cwd=build.build_temp)
+    result = subprocess.run([executable, "--settings", "cppan.yml", "--verbose"], cwd=build.build_temp)
 
     if result.stdout:
         print(result.stdout)
