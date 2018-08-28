@@ -1,6 +1,6 @@
 import os
 import pytest
-import ocr
+from uiucprescon import ocr
 
 
 @pytest.mark.integration

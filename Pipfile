@@ -6,6 +6,7 @@ name = "pypi"
 [dev-packages]
 mypy = "*"
 pytest = "*"
+pytest-cov = "*"
 tox = "*"
 lxml = "*"
 flake8 = "*"

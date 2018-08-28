@@ -81,8 +81,9 @@ class BuildExt(build_ext):
 
     def run(self):
         for ext in self.extensions:
-            self.cmake_binary_dir = os.path.abspath(os.path.join(self.build_temp, "{}-binary".format(ext.name)))
-            os.makedirs(self.cmake_binary_dir, exist_ok=True)
+            self.cmake_binary_dir = self.build_temp
+            # self.cmake_binary_dir = os.path.abspath(os.path.join(self.build_temp, "{}-binary".format(ext.name)))
+            # os.makedirs(self.cmake_binary_dir, exist_ok=True)
             self.get_required_tools(ext)
             tools = [t.executable for t in ext.tools.values()]
 
@@ -180,6 +181,9 @@ class BuildExt(build_ext):
             "--config", "Release",
         ]
 
+        length_of_build_temp = "Length is {}".format(len(os.path.abspath(self._cmake_path)))
+        print(length_of_build_temp, file=sys.stderr)
+
         build_stage = subprocess.Popen(
             build_command,
             env=self.get_modified_env_vars(ext),
@@ -238,12 +242,12 @@ class BuildExt(build_ext):
 
         install_file_paths = [
             os.path.join(self.build_lib, "bin"),
-            os.path.join(self.build_lib, "ocr"),
+            os.path.join(self.build_lib, "uiucprescon", "ocr"),
 
         ]
         for m in itertools.chain(map(os.scandir, install_file_paths)):
             for dll in filter(filter_share_libs, m):
-                dll_dest = os.path.join(dest_root, "ocr", dll.name)
+                dll_dest = os.path.join(dest_root,"uiucprescon", "ocr", dll.name)
                 shutil.move(dll.path, os.path.join(dll_dest))
                 ext.libraries.append(dll.name)
 
@@ -341,7 +345,6 @@ class BuildExt(build_ext):
         for command in ext.configuration_commands:
             command(self, ext)
 
-
     def _get_tools_dir(self):
         """ Returns directory to store any helper tools"""
 
@@ -406,14 +409,17 @@ class DownloadCMakeExtension(CMakeExtension):
     def add_configure_command(self, callback):
         self.configuration_commands.append(callback)
 
+
 def install_cppan(build, ext):
     okay_codes = [0,1]
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
     result = subprocess.run([executable, "--verbose"], cwd=build.build_temp)
+
     if result.returncode not in okay_codes:
         raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
     pass
+
 
 tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
 
@@ -421,7 +427,7 @@ tesseract_extension.add_required_tool("CPPAN", CPPAN_URL)
 tesseract_extension.add_configure_command(install_cppan)
 
 setup(
-    packages=['ocr'],
+    packages=['uiucprescon.ocr'],
     setup_requires=[
         'pytest-runner'
     ],
@@ -430,6 +436,7 @@ setup(
     tests_require=[
         'pytest',
     ],
+    namespace_packages=["uiucprescon"],
     ext_modules=[tesseract_extension],
     cmdclass={
         # 'build_py': BuildPyCommand,
