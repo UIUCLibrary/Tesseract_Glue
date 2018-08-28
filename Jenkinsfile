@@ -90,7 +90,7 @@ pipeline {
                 }
                 stage("Installing required system level dependencies"){
                     steps{
-                        lock("system_python"){
+                        lock("system_python_${NODE_NAME}"){
                             bat "${tool 'CPython-3.6'} -m pip install --upgrade pip --quiet"
                             bat "${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
                         }
