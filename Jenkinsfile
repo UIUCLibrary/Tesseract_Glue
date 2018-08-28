@@ -225,7 +225,7 @@ pipeline {
 
 
 
-                        bat "tree /A /F > ${WORKSPACE}/logs/tree.log"
+                        bat "tree /A /F > ${WORKSPACE}/logs/tree_postconfig.log"
                     }
                 }
             }
@@ -253,6 +253,7 @@ junit_filename                  = ${junit_filename}
                         PATH = "${tool 'cmake3.12'}\\;$PATH"
                     }
                     steps {
+                        bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
                         tee("logs/build.log") {
                             dir("source"){
                                 bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
@@ -270,7 +271,7 @@ junit_filename                  = ${junit_filename}
                         }
                     }
                     post{
-                        always{
+                        cleanup{
                             script{
                                 def log_files = findFiles glob: '**/*.log'
                                 log_files.each { log_file ->
@@ -280,9 +281,11 @@ junit_filename                  = ${junit_filename}
                                     bat "del ${log_file}"
                                 }
                             }
-                            dir("build"){
-                                bat "dir /s /B"
-                            }
+
+                        }
+                        failure{
+                            bat "set"
+                            bat "tree /A /F > ${WORKSPACE}/logs/tree_postbuild_failed.log"
                         }
                     }
                 }
