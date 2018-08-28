@@ -377,16 +377,16 @@ junit_filename                  = ${junit_filename}
                             steps {
 
                                 dir("source"){
+                                    lock("cppan_${NODE_NAME}"){
+                                        script{
+                                            try{
+                                                bat "pipenv run tox --workdir ..\\.tox\\PyTest"
+                //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
+                                            } catch (exc) {
+                                                bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
+                                            }
 
-
-                                    script{
-                                        try{
-                                            bat "pipenv run tox --workdir ..\\.tox\\PyTest"
-            //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
-                                        } catch (exc) {
-                                            bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
                                         }
-
                                     }
                                 }
                             }
@@ -519,7 +519,9 @@ junit_filename                  = ${junit_filename}
             }
             steps {
                 dir("source"){
-                    bat "pipenv run python setup.py build -b ..\\build -t ..\\build\\temp sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
+                    lock("cppan_${NODE_NAME}"){
+                        bat "pipenv run python setup.py build -b ..\\build -t ..\\build\\temp sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
+                    }
                 }
 
                 dir("dist") {
@@ -588,13 +590,13 @@ junit_filename                  = ${junit_filename}
                         stage("Testing devpi tar.gz package "){
                             steps {
                                 echo "Testing Source tar.gz package in DevPi"
-                                bat "set"
-//                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
 
                                 script {
-                                    def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-                                    if(devpi_test_return_code != 0){
-                                        error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
+                                    lock("cppan_${NODE_NAME}"){
+                                        def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
+                                        if(devpi_test_return_code != 0){
+                                            error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
+                                        }
                                     }
                                 }
                                 echo "Finished testing Source Distribution: .tar.gz"
@@ -625,7 +627,7 @@ junit_filename                  = ${junit_filename}
                     stages{
                         stage("Building DevPi Testing venv for zip"){
                             steps{
-                                echo "installing devpi test env"
+                                echo "installing DevPi test env"
                                 bat "${tool 'CPython-3.6'} -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
@@ -640,9 +642,11 @@ junit_filename                  = ${junit_filename}
         //                        }
         //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                                 script {
-                                    def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-                                    if(devpi_test_return_code != 0){
-                                        error "DevPi exit code for zip was ${devpi_test_return_code}"
+                                    lock("cppan_${NODE_NAME}"){
+                                        def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
+                                        if(devpi_test_return_code != 0){
+                                            error "DevPi exit code for zip was ${devpi_test_return_code}"
+                                        }
                                     }
                                 }
                                 echo "Finished testing Source Distribution: .zip"
