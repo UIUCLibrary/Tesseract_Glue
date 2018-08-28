@@ -433,6 +433,8 @@ def clean_cppan_cache(build, ext):
     if result.stderr:
         print(result.stderr)
 
+    print(result.returncode)
+
     if result.returncode not in okay_codes:
         raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
     print("Cleaning cppan cache -- Done")
