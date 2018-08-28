@@ -101,12 +101,13 @@ class BuildExt(build_ext):
             # self.cmake_source_dir = source_root
 
             self.install_depends(ext)
+
             try:
                 self.configure_cmake(ext)
-            except CMakeExtension:
-
+            except CMakeException:
                 clean_cppan_cache(self, ext)
                 self.configure_cmake(ext)
+
             self.build_cmake(ext)
             self.install_cmake(ext)
             pass
