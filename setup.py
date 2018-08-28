@@ -106,6 +106,7 @@ class BuildExt(build_ext):
                 self.configure_cmake(ext)
             except CMakeException:
                 clean_cppan_cache(self, ext)
+                print("Trying again")
                 self.configure_cmake(ext)
 
             self.build_cmake(ext)
