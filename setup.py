@@ -1,3 +1,4 @@
+from pathlib import Path
 import itertools
 import shutil
 import sysconfig
@@ -445,12 +446,13 @@ def install_cppan(build, ext):
     okay_codes = [0,1]
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
+    shutil.copyfile(executable, os.path.join(str(Path.home()), "cppan.exe"))
     shutil.copyfile("cppan.yml", os.path.join(build.build_temp, "cppan.yml"))
     print("Running downloaded cppan for the first time")
     result = subprocess.run(
         [executable],
         # [executable, "--settings", "cppan.yml", "--verbose", "--dir", os.path.abspath(build.build_temp)],
-        cwd=build.build_temp)
+        cwd=str(Path.home()))
 
     if result.stdout:
         print(result.stdout)

@@ -256,10 +256,10 @@ junit_filename                  = ${junit_filename}
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
                         tee("logs/build.log") {
                             dir("source"){
-                                bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ${WORKSPACE}\\build\\temp\\"
-
+                                lock("cppan_${NODE_NAME}"){
+                                    bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
+                                }
                             }
-
                         }
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -284,9 +284,18 @@ junit_filename                  = ${junit_filename}
 
                         }
                         failure{
+                            echo "${WORKSPACE}"
+                            echo "locating cppan.yml files"
+                            script{
+                                def cppan_files = findFiles glob: '**/cppan.yml'
+                                cppan_files.each { cppan_file ->
+                                    echo "Found ${cppan_file}"
+                                    archiveArtifacts artifacts: "${cppan_file}"
+                                }
+                            }
                             bat "set > ${WORKSPACE}/logs/env_vars.log"
                             bat "tree /A /F > ${WORKSPACE}/logs/tree_postbuild_failed.log"
-                            bat "tree %userprofile%  /A /F >  ${WORKSPACE}/logs/tree_home_postbuild_failed.log"
+                            bat "tree ${user.home} /A /F >  ${WORKSPACE}/logs/tree_home_postbuild_failed.log"
 
                         }
                     }
@@ -592,7 +601,7 @@ junit_filename                  = ${junit_filename}
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
-                        stage("Testing devpi tar.gz package "){
+                        stage("DevPi testing tar.gz package "){
                             steps {
                                 echo "Testing Source tar.gz package in DevPi"
 
@@ -609,6 +618,17 @@ junit_filename                  = ${junit_filename}
                             post {
                                 failure {
                                     echo "Tests for .tar.gz source on DevPi failed."
+                                    bat "set > devpi_targz_env.log"
+                                }
+                                cleanup{
+                                    script{
+                                        def log_files = findFiles glob: '**/*.log'
+                                        log_files.each { log_file ->
+                                            echo "Found ${log_file}"
+                                            archiveArtifacts artifacts: "${log_file}"
+                                            bat "del ${log_file}"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -637,12 +657,11 @@ junit_filename                  = ${junit_filename}
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
-                        stage("Testing devpi zip package "){
+                        stage("DevPi testing zip package"){
 
 
                             steps {
                                 echo "Testing Source zip package in DevPi"
-                                bat "set"
 //                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
         //                        }
         //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
@@ -658,7 +677,18 @@ junit_filename                  = ${junit_filename}
                             }
                             post {
                                 failure {
+                                    bat "set > devpi_zip_env.log"
                                     echo "Tests for .zip source on DevPi failed."
+                                }
+                                cleanup{
+                                    script{
+                                        def log_files = findFiles glob: '**/*.log'
+                                        log_files.each { log_file ->
+                                            echo "Found ${log_file}"
+                                            archiveArtifacts artifacts: "${log_file}"
+                                            bat "del ${log_file}"
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -702,6 +732,17 @@ junit_filename                  = ${junit_filename}
                     post {
                         failure {
                             echo "Tests for whl on DevPi failed."
+                            bat "set > devpi_whl_env.log"
+                        }
+                        cleanup{
+                            script{
+                                def log_files = findFiles glob: '**/*.log'
+                                log_files.each { log_file ->
+                                    echo "Found ${log_file}"
+                                    archiveArtifacts artifacts: "${log_file}"
+                                    bat "del ${log_file}"
+                                }
+                            }
                         }
                     }
                 }
@@ -793,15 +834,15 @@ junit_filename                  = ${junit_filename}
     }
     post {
         cleanup{
-            dir("build"){
-                deleteDir()
-            }
-            dir("dist"){
-                deleteDir()
-            }
-            dir("logs"){
-                deleteDir()
-            }
+//            dir("build"){
+//                deleteDir()
+//            }
+//            dir("dist"){
+//                deleteDir()
+//            }
+//            dir("logs"){
+//                deleteDir()
+//            }
 
             script {
                 if(fileExists('source/setup.py')){
@@ -826,7 +867,10 @@ junit_filename                  = ${junit_filename}
             dir("certs"){
                 deleteDir()
             }
-            bat "tree /A /F"
+            bat "tree /A /F > ${WORKSPACE}/logs/tree_postclean.log"
+            dir("${WORKSPACE}/logs"){
+                archiveArtifacts artifacts: "tree_postclean.log"
+            }
         }
     }
 }
