@@ -415,11 +415,20 @@ def install_cppan(build, ext):
     okay_codes = [0,1]
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
+    shutil.copyfile("cppan.yml", os.path.join(build.build_temp, "cppan.yml"))
+    print("Running downloaded cppan for the first time")
     result = subprocess.run([executable, "--verbose"], cwd=build.build_temp)
+
+    if result.stdout:
+        print(result.stdout)
+
+    if result.stderr:
+        print(result.stderr)
 
     if result.returncode not in okay_codes:
         raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
     pass
+    print("Running downloaded cppan for the first time -- Done")
 
 
 tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
