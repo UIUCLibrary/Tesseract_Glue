@@ -257,7 +257,7 @@ junit_filename                  = ${junit_filename}
                         tee("logs/build.log") {
                             dir("source"){
                                 lock("cppan_${NODE_NAME}"){
-                                    bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ${WORKSPACE}\\build\\temp\\"
+                                    bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
                                 }
 
                             }
