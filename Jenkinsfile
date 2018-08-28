@@ -36,10 +36,10 @@ pipeline {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
 
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-//        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
+        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         // choice(choices: 'None\nrelease', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
-//        string(name: 'URL_SUBFOLDER', defaultValue: "py3exiv2bind", description: 'The directory that the docs should be saved under')
-//        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
+        string(name: 'DEPLOY_DOCS_URL_SUBFOLDER', defaultValue: "ocr", description: 'The directory that the docs should be saved under')
+        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
     }
     stages {
         stage("Configure") {
@@ -712,6 +712,72 @@ junit_filename                  = ${junit_filename}
                 }
                 failure {
                     echo "At least one package format on DevPi failed."
+                }
+            }
+        }
+        stage("Deploy"){
+            parallel {
+                stage("Deploy Online Documentation") {
+                    when{
+                        equals expected: true, actual: params.DEPLOY_DOCS
+                    }
+                    steps{
+                        dir("build/docs/html/"){
+                            script{
+                                try{
+                                    timeout(30) {
+                                        input 'Update project documentation?'
+                                    }
+                                    sshPublisher(
+                                        publishers: [
+                                            sshPublisherDesc(
+                                                configName: 'apache-ns - lib-dccuser-updater',
+                                                sshLabel: [label: 'Linux'],
+                                                transfers: [sshTransfer(excludes: '',
+                                                execCommand: '',
+                                                execTimeout: 120000,
+                                                flatten: false,
+                                                makeEmptyDirs: false,
+                                                noDefaultExcludes: false,
+                                                patternSeparator: '[, ]+',
+                                                remoteDirectory: "${params.DEPLOY_DOCS_URL_SUBFOLDER}",
+                                                remoteDirectorySDF: false,
+                                                removePrefix: '',
+                                                sourceFiles: '**')],
+                                            usePromotionTimestamp: false,
+                                            useWorkspaceInPromotion: false,
+                                            verbose: true
+                                            )
+                                        ]
+                                    )
+                                } catch(exc){
+                                    echo "User response timed out. Documentation not published."
+                                }
+                            }
+                        }
+                    }
+                }
+                stage("Deploy to DevPi Production") {
+                    when {
+                        allOf{
+                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                            branch "master"
+                        }
+                    }
+                    steps {
+                        script {
+                            try{
+                                timeout(30) {
+                                    input "Release ${PKG_NAME} ${PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${PKG_NAME}/${PKG_VERSION}) to DevPi Production? "
+                                }
+
+                                bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                                bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} production/release --clientdir ${WORKSPACE}\\certs\\"
+                            } catch(err){
+                                echo "User response timed out. Packages not deployed to DevPi Production."
+                            }
+                        }
+                    }
                 }
             }
         }
