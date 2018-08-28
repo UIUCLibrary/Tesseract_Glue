@@ -33,6 +33,10 @@ if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
     sys.exit(1)
 
 
+class CMakeException(RuntimeError):
+    pass
+
+
 class Tool(typing.NamedTuple):
     name: str
     url: str
@@ -95,8 +99,15 @@ class BuildExt(build_ext):
             # download_root = self.get_source(ext)
             # source_root = self.locate_cmake_source_root(download_root)
             # self.cmake_source_dir = source_root
-            self.install_depends(ext)
-            self.configure_cmake(ext)
+
+            try:
+                self.install_depends(ext)
+                self.configure_cmake(ext)
+            except CMakeException:
+                clean_cppan_cache(self, ext)
+                print("Trying again", file=sys.stderr)
+                self.configure_cmake(ext)
+
             self.build_cmake(ext)
             self.install_cmake(ext)
             pass
@@ -126,7 +137,7 @@ class BuildExt(build_ext):
             message = "No known build system generator for the current " \
                       "implementation of Python's compiler {}".format(e)
 
-            raise Exception(message)
+            raise CMakeException(message)
 
 
         configure_command = [
@@ -134,10 +145,12 @@ class BuildExt(build_ext):
             "-G{}".format(build_system),
             "-DCMAKE_INSTALL_PREFIX={}".format(install_prefix),
             "-DPython3_ROOT_DIR={}".format(python_root),
+            "-DCMAKE_BUILD_TYPE=Release",
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
             # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
             "-DBUILD_TESTING:BOOL=NO"
         ]
+
         configure_stage = subprocess.Popen(
             configure_command,
             env=modded_env,
@@ -147,10 +160,11 @@ class BuildExt(build_ext):
         configure_stage.communicate()
 
         if configure_stage.returncode != 0:
-            raise Exception(
-                "CMake failed at configuration stage with command \"{}\"".
-                    format(" ".join(configure_command))
-            )
+            command_string = " ".join(configure_command)
+            error_message = "CMake failed at configuration stage with " \
+                            "command \"{}\"".format(command_string)
+
+            raise CMakeException(error_message)
 
     @staticmethod
     def get_build_generator_name():
@@ -180,9 +194,6 @@ class BuildExt(build_ext):
             # "--parallel", "{}".format(self.parallel),
             "--config", "Release",
         ]
-
-        length_of_build_temp = "Length is {}".format(len(os.path.abspath(self._cmake_path)))
-        print(length_of_build_temp, file=sys.stderr)
 
         build_stage = subprocess.Popen(
             build_command,
@@ -214,7 +225,7 @@ class BuildExt(build_ext):
         install_stage.communicate()
 
         if install_stage.returncode != 0:
-            raise Exception(
+            raise CMakeException(
                 "CMake failed at build stage with command \"{}\"".
                     format(" ".join(install_command))
             )
@@ -410,15 +421,47 @@ class DownloadCMakeExtension(CMakeExtension):
         self.configuration_commands.append(callback)
 
 
+def clean_cppan_cache(build, ext):
+    okay_codes = [0,1]
+    cppan = ext.tools['CPPAN']
+    executable = cppan.executable['cppan']
+    print("Cleaning cppan cache")
+    result = subprocess.run([executable, "--clear-cache"], cwd=build.build_temp)
+    if result.stdout:
+        print(result.stdout)
+
+    if result.stderr:
+        print(result.stderr)
+
+    print(result.returncode)
+
+    if result.returncode not in okay_codes:
+        raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
+    print("Cleaning cppan cache -- Done")
+    pass
+
+
 def install_cppan(build, ext):
     okay_codes = [0,1]
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
-    result = subprocess.run([executable, "--verbose"], cwd=build.build_temp)
+    shutil.copyfile("cppan.yml", os.path.join(build.build_temp, "cppan.yml"))
+    print("Running downloaded cppan for the first time")
+    result = subprocess.run(
+        [executable],
+        # [executable, "--settings", "cppan.yml", "--verbose", "--dir", os.path.abspath(build.build_temp)],
+        cwd=build.build_temp)
+
+    if result.stdout:
+        print(result.stdout)
+
+    if result.stderr:
+        print(result.stderr)
 
     if result.returncode not in okay_codes:
         raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
     pass
+    print("Running downloaded cppan for the first time -- Done")
 
 
 tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
@@ -441,6 +484,6 @@ setup(
     cmdclass={
         # 'build_py': BuildPyCommand,
         "build_ext": BuildExt,
-        "clean_ext": CleanExt
+        # "clean_ext": CleanExt
     },
 )
