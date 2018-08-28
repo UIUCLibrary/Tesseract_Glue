@@ -256,7 +256,7 @@ junit_filename                  = ${junit_filename}
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
                         tee("logs/build.log") {
                             dir("source"){
-                                bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
+                                bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ${WORKSPACE}\\build\\temp\\"
 
                             }
 
@@ -284,7 +284,7 @@ junit_filename                  = ${junit_filename}
 
                         }
                         failure{
-                            bat "set"
+                            bat "set > ${WORKSPACE}/logs/env_vars.log"
                             bat "tree /A /F > ${WORKSPACE}/logs/tree_postbuild_failed.log"
                         }
                     }
