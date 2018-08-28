@@ -594,7 +594,7 @@ junit_filename                  = ${junit_filename}
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
-                        stage("Testing devpi tar.gz package "){
+                        stage("DevPi testing tar.gz package "){
                             steps {
                                 echo "Testing Source tar.gz package in DevPi"
 
@@ -639,7 +639,7 @@ junit_filename                  = ${junit_filename}
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
-                        stage("Testing devpi zip package "){
+                        stage("DevPi testing zip package"){
 
 
                             steps {
