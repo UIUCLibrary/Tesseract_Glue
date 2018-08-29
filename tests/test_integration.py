@@ -1,9 +1,33 @@
 import os
+import shutil
+import urllib.request
+from tempfile import TemporaryDirectory
+
 import pytest
 from uiucprescon import ocr
-from .conftest import download_data
 
 TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/3.04.00/"
+
+
+def download_data(url, destination):
+    with TemporaryDirectory() as download_path:
+        base_name = os.path.basename(url)
+        destination_file = os.path.join(destination, base_name)
+
+        if os.path.exists(destination_file):
+            return
+
+        # if not os.path.exists()
+        print("Downloading {}".format(url))
+        test_file_path = os.path.join(download_path, base_name)
+
+        urllib.request.urlretrieve(url, filename=test_file_path)
+        if not os.path.exists(test_file_path):
+            raise FileNotFoundError(
+                "Failure to download file from {}".format(url))
+
+        shutil.move(test_file_path, destination)
+
 
 @pytest.mark.integration
 def test_reader_with_data(tessdata_eng, sample_images):
