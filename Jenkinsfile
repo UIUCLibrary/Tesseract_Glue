@@ -369,7 +369,7 @@ junit_filename                  = ${junit_filename}
                         PATH = "${tool 'cmake3.12'}\\;$PATH"
                     }
                     stages{
-                        stage("Remove Previous Tox environment"){
+                        stage("Removing Previous Tox Environment"){
                             when{
                                 equals expected: true, actual: params.FRESH_WORKSPACE
                             }
@@ -380,7 +380,7 @@ junit_filename                  = ${junit_filename}
                             }
 
                         }
-                        stage("Configure Tox environment"){
+                        stage("Configuring Tox Environment"){
                             steps{
                                 dir("source"){
                                     bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
@@ -596,15 +596,12 @@ junit_filename                  = ${junit_filename}
                     stages {
                         stage("Building DevPi Testing venv for tar.gz"){
                             steps{
-                                echo "installing devpi test env"
                                 bat "${tool 'CPython-3.6'} -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
-                        stage("DevPi testing tar.gz package "){
+                        stage("DevPi Testing tar.gz Package "){
                             steps {
-                                echo "Testing Source tar.gz package in DevPi"
-
                                 script {
                                     lock("cppan_${NODE_NAME}"){
                                         def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
@@ -613,7 +610,6 @@ junit_filename                  = ${junit_filename}
                                         }
                                     }
                                 }
-                                echo "Finished testing Source Distribution: .tar.gz"
                             }
                             post {
                                 failure {
@@ -650,21 +646,17 @@ junit_filename                  = ${junit_filename}
                         PATH = "${tool 'cmake3.12'};$PATH"
                     }
                     stages{
-                        stage("Building DevPi Testing venv for zip"){
+                        stage("Building DevPi Testing venv for Zip"){
                             steps{
                                 echo "installing DevPi test env"
                                 bat "${tool 'CPython-3.6'} -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
-                        stage("DevPi testing zip package"){
+                        stage("DevPi Testing zip Package"){
 
 
                             steps {
-                                echo "Testing Source zip package in DevPi"
-//                                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-        //                        }
-        //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                                 script {
                                     lock("cppan_${NODE_NAME}"){
                                         def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
@@ -673,7 +665,6 @@ junit_filename                  = ${junit_filename}
                                         }
                                     }
                                 }
-                                echo "Finished testing Source Distribution: .zip"
                             }
                             post {
                                 failure {
@@ -713,7 +704,6 @@ junit_filename                  = ${junit_filename}
                         }
                         stage("DevPi Testing Whl"){
                             steps {
-                                echo "Testing Whl package in DevPi"
 
                                 withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
                                     bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
