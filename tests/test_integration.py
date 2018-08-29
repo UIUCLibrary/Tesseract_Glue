@@ -1,7 +1,9 @@
 import os
 import pytest
 from uiucprescon import ocr
-from .conftest import TESSDATA_SOURCE_URL, download_data
+from .conftest import download_data
+
+TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/3.04.00/"
 
 @pytest.mark.integration
 def test_reader_with_data(tessdata_eng, sample_images):
