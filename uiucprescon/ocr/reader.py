@@ -20,8 +20,7 @@ class AbsReader(metaclass=abc.ABCMeta):
 
         if not is_lang_in_path("osd"):
             raise FileNotFoundError(
-                "No \"{}\" language file located in \"{}\"".format(
-                    language_code, tesseract_data_path))
+                "osd file not located in \"{}\"".format(tesseract_data_path))
 
         self._tesseract_data_path = tesseract_data_path
 
