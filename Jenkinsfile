@@ -588,7 +588,7 @@ junit_filename                  = ${junit_filename}
                     }
                     options {
                         skipDefaultCheckout(true)
-                        retry(2)
+
                     }
                     environment {
                         PATH = "${tool 'cmake3.12'};$PATH"
@@ -604,12 +604,15 @@ junit_filename                  = ${junit_filename}
                         stage("DevPi testing tar.gz package "){
                             steps {
                                 echo "Testing Source tar.gz package in DevPi"
+                                retry(2){
 
-                                script {
-                                    lock("cppan_${NODE_NAME}"){
-                                        def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-                                        if(devpi_test_return_code != 0){
-                                            error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
+
+                                    script {
+                                        lock("cppan_${NODE_NAME}"){
+                                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
+                                            if(devpi_test_return_code != 0){
+                                                error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
+                                            }
                                         }
                                     }
                                 }
@@ -644,7 +647,7 @@ junit_filename                  = ${junit_filename}
                     }
                     options {
                         skipDefaultCheckout(true)
-                        retry(2)
+
                     }
 
                     environment {
@@ -667,12 +670,15 @@ junit_filename                  = ${junit_filename}
         //                        }
         //                        bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
                                 script {
-                                    lock("cppan_${NODE_NAME}"){
-                                        def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-                                        if(devpi_test_return_code != 0){
-                                            error "DevPi exit code for zip was ${devpi_test_return_code}"
+                                    retry(2){
+                                        lock("cppan_${NODE_NAME}"){
+                                            def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
+                                            if(devpi_test_return_code != 0){
+                                                error "DevPi exit code for zip was ${devpi_test_return_code}"
+                                            }
                                         }
                                     }
+
                                 }
                                 echo "Finished testing Source Distribution: .zip"
                             }
