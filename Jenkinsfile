@@ -588,6 +588,7 @@ junit_filename                  = ${junit_filename}
                     }
                     options {
                         skipDefaultCheckout(true)
+                        retry(2)
                     }
                     environment {
                         PATH = "${tool 'cmake3.12'};$PATH"
@@ -643,6 +644,7 @@ junit_filename                  = ${junit_filename}
                     }
                     options {
                         skipDefaultCheckout(true)
+                        retry(2)
                     }
 
                     environment {
@@ -702,6 +704,7 @@ junit_filename                  = ${junit_filename}
                     }
                     options {
                         skipDefaultCheckout(true)
+                        retry(2)
                     }
                     stages{
                         stage("Building DevPi Testing venv"){
