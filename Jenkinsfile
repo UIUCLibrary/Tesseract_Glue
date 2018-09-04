@@ -91,8 +91,7 @@ pipeline {
                 stage("Installing required system level dependencies"){
                     steps{
                         lock("system_python_${NODE_NAME}"){
-                            bat "${tool 'CPython-3.6'} -m pip install --upgrade pip --quiet"
-                            bat "${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
+                            bat "${tool 'CPython-3.6'} -m pip install --upgrade pip --quiet && ${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
                         }
                         tee("logs/pippackages_system_${NODE_NAME}.log") {
                             bat "${tool 'CPython-3.6'} -m pip list"
@@ -750,12 +749,12 @@ junit_filename                  = ${junit_filename}
             post {
                 success {
                     echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
-                    bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+//                    bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                    bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
                     bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} DS_Jenkins/${env.BRANCH_NAME} --clientdir ${WORKSPACE}\\certs\\"
 //                    script {
 ////                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
 ////                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-////                            bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging"
 //                        }
 
 //                    }
