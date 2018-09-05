@@ -58,6 +58,7 @@ pipeline {
                 }
                 stage("Cleanup"){
                     steps {
+                        bat "set"
                         dir("logs"){
                             deleteDir()
                         }
