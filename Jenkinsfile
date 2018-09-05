@@ -188,7 +188,7 @@ pipeline {
                 stage("Logging into DevPi"){
                     steps{
                         bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}\\certs\\"
-                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PASSWORD} --clientdir ${WORKSPACE}\\certs\\"
+                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${credentials('devpi-login')} --clientdir ${WORKSPACE}\\certs\\"
 //                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
 //                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD} --clientdir ${WORKSPACE}\\certs\\"
 //                        }
