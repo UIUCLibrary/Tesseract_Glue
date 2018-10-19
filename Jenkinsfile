@@ -124,25 +124,13 @@ pipeline {
                     steps {
                         dir("source"){
                             bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
-                            tee("logs/pippackages_pipenv_${NODE_NAME}.log") {
-                               bat "${tool 'CPython-3.6'} -m pipenv run pip list"
-                            }
+                            bat "${tool 'CPython-3.6'} -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
+                         
                         }
-
-
                     }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_pipenv_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                        success{
+                            archiveArtifacts artifacts: "logs/pippackages_pipenv_${NODE_NAME}.log"
                         }
                     }
                 }
@@ -163,23 +151,27 @@ pipeline {
                         bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
 
 
-                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
-                            bat "venv\\Scripts\\pip.exe list"
-                        }
+                        // tee("logs/pippackages_venv_${NODE_NAME}.log") {
+                        
+                        // }
                     }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                        success{
+                            bat "venv\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
+                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
+                        // always{
+                            // dir("logs"){
+                            //     script{
+                            //         def log_files = findFiles glob: '**/pippackages_venv_*.log'
+                            //         log_files.each { log_file ->
+                            //             echo "Found ${log_file}"
+                            //             archiveArtifacts artifacts: "${log_file}"
+                            //             bat "del ${log_file}"
+                            //         }
+                            //     }
+                            // }
+                        // }
                         failure {
                             deleteDir()
                         }
@@ -258,13 +250,14 @@ junit_filename                  = ${junit_filename}
                     }
                     steps {
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
-                        tee("logs/build.log") {
+                        // tee("logs/build.log") {
                             dir("source"){
                                 lock("cppan_${NODE_NAME}"){
-                                    bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
+                                    powershell "& ${VENV_PYTHON} setup.py build -b ../build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/lib --build-temp ../build/temp | tee ${WORKSPACE}\\logs\\build.log"
+                                    // bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
                                 }
                             }
-                        }
+                        // }
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
 
@@ -324,19 +317,20 @@ junit_filename                  = ${junit_filename}
                     post{
                         always {
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                            // dir("logs"){
+                            //     script{
+                            //         def log_files = findFiles glob: '**/*.log'
+                            //         log_files.each { log_file ->
+                            //             echo "Found ${log_file}"
+                            //             archiveArtifacts artifacts: "${log_file}"
+                            //             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
+                            //             bat "del ${log_file}"
+                            //         }
+                            //     }
+                            // }
 
-                            // archiveArtifacts artifacts: 'logs/build_sphinx.log'
+                            archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
+                            
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -351,6 +345,14 @@ junit_filename                  = ${junit_filename}
                         }
                         failure{
                             echo "Failed to build Python package"
+                        }
+                        cleanup{
+                            script{
+                                if(fileExists("logs/build_sphinx.log")){
+                                    bat "del logs/build_sphinx.log"
+                                }
+                            }
+                            
                         }
                     }
                 }
