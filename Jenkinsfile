@@ -297,18 +297,6 @@ junit_filename                  = ${junit_filename}
                     post{
                         always {
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
-                            // dir("logs"){
-                            //     script{
-                            //         def log_files = findFiles glob: '**/*.log'
-                            //         log_files.each { log_file ->
-                            //             echo "Found ${log_file}"
-                            //             archiveArtifacts artifacts: "${log_file}"
-                            //             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
-                            //             bat "del ${log_file}"
-                            //         }
-                            //     }
-                            // }
-
                             archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
 
                         }
@@ -318,8 +306,13 @@ junit_filename                  = ${junit_filename}
                                 // // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
                                 // def alljob = env.JOB_NAME.tokenize("/") as String[]
                                 // def project_name = alljob[0]
-                                dir("${WORKSPACE}/dist"){
-                                    zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                                // dir("${WORKSPACE}/dist"){
+                                //     zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                                // }
+                                script{
+                                    zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                                    // }
+                                    stash includes: 'build/docs/html/**', name: 'docs'
                                 }
                             }
                         }
@@ -805,15 +798,7 @@ junit_filename                  = ${junit_filename}
     }
     post {
         cleanup{
-//            dir("build"){
-//                deleteDir()
-//            }
-//            dir("dist"){
-//                deleteDir()
-//            }
-//            dir("logs"){
-//                deleteDir()
-//            }
+
 
             script {
                 if(fileExists('source/setup.py')){
@@ -838,10 +823,16 @@ junit_filename                  = ${junit_filename}
             dir("certs"){
                 deleteDir()
             }
-            bat "tree /A /F > ${WORKSPACE}/logs/tree_postclean.log"
-            dir("${WORKSPACE}/logs"){
-                archiveArtifacts artifacts: "tree_postclean.log"
+            dir("build"){
+                deleteDir()
             }
+            dir("dist"){
+                deleteDir()
+            }
+            dir("logs"){
+                deleteDir()
+            }
+            bat "tree /A /F"
         }
     }
 }
