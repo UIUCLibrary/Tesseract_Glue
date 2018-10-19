@@ -176,7 +176,7 @@ pipeline {
 
                         script {
                             // Set up the reports directory variable
-                            // REPORT_DIR = "${WORKSPACE}\\reports"
+                            
                             dir("source"){
                                 PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
                                 PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
@@ -211,7 +211,6 @@ pipeline {
                 always{
                     echo """Name                            = ${PKG_NAME}
 Version                         = ${PKG_VERSION}
-Report Directory                = ${WORKSPACE}\\pipenv\\
 documentation zip file          = ${DOC_ZIP_FILENAME}
 Python virtual environment path = ${VENV_ROOT}
 VirtualEnv Python executable    = ${VENV_PYTHON}
