@@ -491,22 +491,51 @@ junit_filename                  = ${junit_filename}
                             bat "dir"
                         }
                         script{
-                            tee("logs/mypy.log") {
-                                try{
-                                    dir("source"){
-                                        bat "dir"
-                                        bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${REPORT_DIR}\\mypy\\html"
-                                    }
-                                } catch (exc) {
-                                    echo "MyPy found some warnings"
+                            // tee("logs/mypy.log") {
+                            try{
+                                dir("source"){
+                                    bat "dir"
+                                    bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${REPORT_DIR}\\mypy\\html --cobertura-xml-report ${WORKSPACE}\\reports\\mypy > ${WORKSPACE}\\logs\\mypy.log"
                                 }
+                            } catch (exc) {
+                                echo "MyPy found some warnings"
                             }
+                            dir("${WORKSPACE}/reports/mypy"){
+                                if(fileExists("mypy_cobertura.xml")){
+                                    bat "del mypy_cobertura.xml"
+                                }
+                                
+                                bat "ren cobertura.xml mypy_cobertura.xml"
+                            }
+                            // }
                         }
                     }
                     post {
                         always {
+                            cobertura(
+                                autoUpdateHealth: false,
+                                autoUpdateStability: false,
+                                coberturaReportFile: 'reports/mypy/mypy_cobertura.xml',
+                                // conditionalCoverageTargets: '70, 0, 0',
+                                enableNewApi: false,
+                                failUnhealthy: false,
+                                failUnstable: false,
+                                lineCoverageTargets: '80, 0, 0',
+                                maxNumberOfBuilds: 0,
+                                methodCoverageTargets: '80, 0, 0',
+                                onlyStable: false,
+                                sourceEncoding: 'ASCII',
+                                zoomCoverageChart: false
+                            )
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                        }
+                        cleanup{
+                            script{
+                                if(fileExists('reports/mypy/mypy_cobertura.xml')){
+                                    bat "del reports\\mypy\\mypy_cobertura.xml"
+                                }
+                            }
                         }
                     }
                 }
