@@ -247,17 +247,15 @@ junit_filename                  = ${junit_filename}
                         }
                     }
                     post{
+                        always{
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
+                        }
                         cleanup{
                             script{
-                                def log_files = findFiles glob: '**/*.log'
-                                log_files.each { log_file ->
-                                    echo "Found ${log_file}"
-                                    archiveArtifacts artifacts: "${log_file}"
-                                    warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
-                                    bat "del ${log_file}"
+                                if(fileExists("logs\\build.log")){
+                                    bat "del logs\\build.log"
                                 }
                             }
-
                         }
                         failure{
                             echo "${WORKSPACE}"
