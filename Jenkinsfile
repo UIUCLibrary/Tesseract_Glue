@@ -4,7 +4,6 @@ def PKG_NAME = "unknown"
 def PKG_VERSION = "unknown"
 def DOC_ZIP_FILENAME = "doc.zip"
 def junit_filename = "junit.xml"
-def REPORT_DIR = ""
 def VENV_ROOT = ""
 def VENV_PYTHON = ""
 def VENV_PIP = ""
@@ -177,7 +176,7 @@ pipeline {
 
                         script {
                             // Set up the reports directory variable
-                            REPORT_DIR = "${WORKSPACE}\\reports"
+                            // REPORT_DIR = "${WORKSPACE}\\reports"
                             dir("source"){
                                 PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
                                 PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
@@ -212,7 +211,7 @@ pipeline {
                 always{
                     echo """Name                            = ${PKG_NAME}
 Version                         = ${PKG_VERSION}
-Report Directory                = ${REPORT_DIR}
+Report Directory                = ${WORKSPACE}\\pipenv\\
 documentation zip file          = ${DOC_ZIP_FILENAME}
 Python virtual environment path = ${VENV_ROOT}
 VirtualEnv Python executable    = ${VENV_PYTHON}
@@ -375,7 +374,7 @@ junit_filename                  = ${junit_filename}
                                         script{
                                             try{
                                                 bat "pipenv run tox --workdir ..\\.tox\\PyTest"
-                //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
+                //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${WORKSPACE}\\pipenv\\\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}\\pipenv\\/coverage/ --cov=ocr"
                                             } catch (exc) {
                                                 bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
                                             }
@@ -431,24 +430,21 @@ junit_filename                  = ${junit_filename}
                         equals expected: true, actual: params.TEST_RUN_DOCTEST
                     }
                     steps {
-                        dir("${REPORT_DIR}/doctests"){
+                        dir("${WORKSPACE}/reports/doctests"){
                             echo "Cleaning doctest reports directory"
                             deleteDir()
                         }
                         dir("source"){
-                            dir("${REPORT_DIR}/doctests"){
-                                echo "Cleaning doctest reports directory"
-                                deleteDir()
-                            }
+                            
                             bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
                         }
-                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${REPORT_DIR}\\doctest.txt"
+                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${WORKSPACE}\\reports\\doctest.txt"
                     }
                     post{
                         always {
-                            dir("${REPORT_DIR}"){
-                                archiveArtifacts artifacts: "doctest.txt"
-                            }
+                            
+                            archiveArtifacts artifacts: "reports/doctest.txt"
+                            
                         }
                     }
                 }
@@ -480,7 +476,7 @@ junit_filename                  = ${junit_filename}
                         equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     steps{
-                        dir("${REPORT_DIR}/mypy/html"){
+                        dir("reports/mypy/html"){
                             deleteDir()
                             bat "dir"
                         }
@@ -489,7 +485,7 @@ junit_filename                  = ${junit_filename}
                             try{
                                 dir("source"){
                                     bat "dir"
-                                    bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${REPORT_DIR}\\mypy\\html --cobertura-xml-report ${WORKSPACE}\\reports\\mypy > ${WORKSPACE}\\logs\\mypy.log"
+                                    bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${WORKSPACE}\\reports\\mypy\\html --cobertura-xml-report ${WORKSPACE}\\reports\\mypy > ${WORKSPACE}\\logs\\mypy.log"
                                 }
                             } catch (exc) {
                                 echo "MyPy found some warnings"
@@ -522,7 +518,7 @@ junit_filename                  = ${junit_filename}
                                 zoomCoverageChart: false
                             )
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                         }
                         cleanup{
                             script{
