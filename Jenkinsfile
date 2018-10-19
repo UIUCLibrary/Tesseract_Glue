@@ -288,7 +288,7 @@ junit_filename                  = ${junit_filename}
                             echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
                             writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
                         }
-                        
+
                         dir("build/lib"){
                             powershell "& pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees | tee ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
@@ -491,7 +491,7 @@ junit_filename                  = ${junit_filename}
                                 if(fileExists("mypy_cobertura.xml")){
                                     bat "del mypy_cobertura.xml"
                                 }
-                                
+
                                 bat "ren cobertura.xml mypy_cobertura.xml"
                             }
                             // }
