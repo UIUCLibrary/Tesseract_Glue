@@ -467,11 +467,11 @@ junit_filename                  = ${junit_filename}
                     steps{
                         script{
                             try{
-                                tee('reports/flake8.log') {
-                                    dir("source"){
-                                        powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
-                                    }
+                                // tee('reports/flake8.log') {
+                                dir("source"){
+                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
                                 }
+                                // }
                             } catch (exc) {
                                 echo "flake8 found some warnings"
                             }
