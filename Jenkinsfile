@@ -578,6 +578,7 @@ junit_filename                  = ${junit_filename}
                     }
                     environment {
                         PATH = "${tool 'cmake3.12'};$PATH"
+                        CL = "/MP"
                     }
                     stages {
                         stage("Building DevPi Testing venv for tar.gz"){
@@ -630,6 +631,7 @@ junit_filename                  = ${junit_filename}
 
                     environment {
                         PATH = "${tool 'cmake3.12'};$PATH"
+                        CL = "/MP"
                     }
                     stages{
                         stage("Building DevPi Testing venv for Zip"){
