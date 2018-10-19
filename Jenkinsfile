@@ -287,11 +287,12 @@ junit_filename                  = ${junit_filename}
                             echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
                             writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
                         }
-                        tee('logs/build_sphinx.log') {
-                            dir("build/lib"){
-                                bat "pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
-                            }
+                        // tee('logs/build_sphinx.log') {
+                        dir("build/lib"){
+                            powershell "& pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees | tee ${WORKSPACE}\\logs\\build_sphinx.log"
+                            // bat "pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
                         }
+                        // }
                     }
                     post{
                         always {
