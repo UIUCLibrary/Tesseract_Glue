@@ -1,3 +1,5 @@
+@Library("devpi") _
+
 def PKG_NAME = "unknown"
 def PKG_VERSION = "unknown"
 def DOC_ZIP_FILENAME = "doc.zip"
@@ -467,7 +469,7 @@ junit_filename                  = ${junit_filename}
                             try{
                                 tee('reports/flake8.log') {
                                     dir("source"){
-                                        bat "pipenv run flake8 uiucprescon --format=pylint"
+                                        powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
                                     }
                                 }
                             } catch (exc) {
