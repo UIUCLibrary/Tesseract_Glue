@@ -101,7 +101,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Installing required system level dependencies"){
+                stage("Installing Required System Level Dependencies"){
                     steps{
                         lock("system_python_${NODE_NAME}"){
                             bat "${tool 'CPython-3.6'} -m pip install pip --upgrade --quiet && ${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
@@ -137,7 +137,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Creating virtualenv for building"){
+                stage("Creating Virtualenv for Building"){
                     steps {
                         bat "${tool 'CPython-3.6'} -m venv venv"
 
@@ -171,7 +171,7 @@ pipeline {
                         bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PSWD} --clientdir ${WORKSPACE}\\certs\\"
                     }
                 }
-                stage("Setting variables used by the rest of the build"){
+                stage("Setting Variables Used by the Rest of the Build"){
                     steps{
 
                         script {
