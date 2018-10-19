@@ -818,7 +818,11 @@ junit_filename                  = ${junit_filename}
             dir("logs"){
                 deleteDir()
             }
-            bat "tree /A /F"
+            bat "tree /A /F > final_tree.log"
+            archiveArtifacts artifacts: "final_tree.log", allowEmptyArchive: true
+            bat "del final_tree.log"
+
+
         }
     }
 }
