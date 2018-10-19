@@ -89,27 +89,17 @@ pipeline {
                     }
                 }
                 stage("Installing required system level dependencies"){
-                    options{
-                        lock("system_python_${NODE_NAME}")
-                    }
                     steps{
-                        bat "${tool 'CPython-3.6'} -m pip install pip==18.0 --quiet && ${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
-                        tee("logs/pippackages_system_${NODE_NAME}.log") {
-                            bat "${tool 'CPython-3.6'} -m pip list"
+                        lock("system_python_${NODE_NAME}"){
+                            bat "${tool 'CPython-3.6'} -m pip install pip --upgrade --quiet && ${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
                         }
+
+                        bat "${tool 'CPython-3.6'} -m pip list > logs/pippackages_system_${NODE_NAME}.log"
+
                     }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_system_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                        success{
+                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
                         failure {
                             deleteDir()
@@ -125,7 +115,7 @@ pipeline {
                         dir("source"){
                             bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
                             bat "${tool 'CPython-3.6'} -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
-                         
+
                         }
                     }
                     post{
@@ -152,7 +142,7 @@ pipeline {
 
 
                         // tee("logs/pippackages_venv_${NODE_NAME}.log") {
-                        
+
                         // }
                     }
                     post{
@@ -160,18 +150,6 @@ pipeline {
                             bat "venv\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
                             archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
-                        // always{
-                            // dir("logs"){
-                            //     script{
-                            //         def log_files = findFiles glob: '**/pippackages_venv_*.log'
-                            //         log_files.each { log_file ->
-                            //             echo "Found ${log_file}"
-                            //             archiveArtifacts artifacts: "${log_file}"
-                            //             bat "del ${log_file}"
-                            //         }
-                            //     }
-                            // }
-                        // }
                         failure {
                             deleteDir()
                         }
@@ -330,7 +308,7 @@ junit_filename                  = ${junit_filename}
                             // }
 
                             archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
-                            
+
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -352,7 +330,7 @@ junit_filename                  = ${junit_filename}
                                     bat "del logs/build_sphinx.log"
                                 }
                             }
-                            
+
                         }
                     }
                 }
