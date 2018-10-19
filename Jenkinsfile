@@ -539,12 +539,6 @@ junit_filename                  = ${junit_filename}
                         bat "pipenv run python setup.py build -b ..\\build -t ..\\build\\temp sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
                     }
                 }
-
-                // dir("dist") {
-                //     archiveArtifacts artifacts: "*.whl", fingerprint: true
-                //     archiveArtifacts artifacts: "*.zip", fingerprint: true
-                //     archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
-                // }
             }
             post{
                 success{
@@ -626,10 +620,6 @@ junit_filename                  = ${junit_filename}
                                             pkgVersion: "${PKG_VERSION}",
                                             pkgRegex: "tar.gz"
                                         )
-                                        // def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-                                        // if(devpi_test_return_code != 0){
-                                        //     error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
-                                        // }
                                     }
                                 }
                             }
@@ -720,18 +710,6 @@ junit_filename                  = ${junit_filename}
                         bat "venv\\Scripts\\devpi.exe push --index ${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${PKG_NAME}==${PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
                         }
                     }
-//                     bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-// //                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-// //                        }
-//                     withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-// //                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-//                         bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD} --clientdir ${WORKSPACE}\\certs\\"
-//                         bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-//                     }
-//                     bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} DS_Jenkins/${env.BRANCH_NAME} --clientdir ${WORKSPACE}\\certs\\"
-//                    script {
-
-//                    }
                 }
                 failure {
                     echo "At least one package format on DevPi failed."
