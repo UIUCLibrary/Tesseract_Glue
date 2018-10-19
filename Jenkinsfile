@@ -151,13 +151,7 @@ pipeline {
                             }
                         }
 
-                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
-
-
-                        // tee("logs/pippackages_venv_${NODE_NAME}.log") {
-
-                        // }
-                    }
+                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"                    }
                     post{
                         success{
                             bat "venv\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
@@ -175,9 +169,6 @@ pipeline {
                     steps{
                         bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}\\certs\\"
                         bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PSWD} --clientdir ${WORKSPACE}\\certs\\"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD} --clientdir ${WORKSPACE}\\certs\\"
-//                        }
                     }
                 }
                 stage("Setting variables used by the rest of the build"){
@@ -297,12 +288,10 @@ junit_filename                  = ${junit_filename}
                             echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
                             writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
                         }
-                        // tee('logs/build_sphinx.log') {
+                        
                         dir("build/lib"){
                             powershell "& pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees | tee ${WORKSPACE}\\logs\\build_sphinx.log"
-                            // bat "pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
                         }
-                        // }
                     }
                     post{
                         always {
@@ -321,7 +310,6 @@ junit_filename                  = ${junit_filename}
                                 // }
                                 script{
                                     zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
-                                    // }
                                     stash includes: 'build/docs/html/**', name: 'docs'
                                 }
                             }
@@ -585,6 +573,8 @@ junit_filename                  = ${junit_filename}
                 }
             }
             steps {
+                unstash "dist"
+                unstash "docs"
                 bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
                 script {
                     bat "venv\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --from-dir dist "
