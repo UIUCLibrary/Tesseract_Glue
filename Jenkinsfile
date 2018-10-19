@@ -351,6 +351,8 @@ junit_filename                  = ${junit_filename}
                     }
                     environment {
                         PATH = "${tool 'cmake3.12'}\\;$PATH"
+                        CL = "/MP"
+
                     }
                     stages{
                         stage("Removing Previous Tox Environment"){
