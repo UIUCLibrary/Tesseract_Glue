@@ -1,11 +1,22 @@
+@Library("devpi") _
+
 def PKG_NAME = "unknown"
 def PKG_VERSION = "unknown"
 def DOC_ZIP_FILENAME = "doc.zip"
 def junit_filename = "junit.xml"
-def REPORT_DIR = ""
 def VENV_ROOT = ""
 def VENV_PYTHON = ""
 def VENV_PIP = ""
+
+def remove_files(artifacts){
+    script{
+        def files = findFiles glob: "${artifacts}"
+        files.each { file_name ->
+            bat "del ${file_name}"
+        }
+    }
+}
+
 
 pipeline {
     agent {
@@ -20,6 +31,7 @@ pipeline {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
+        preserveStashes()
     }
     environment {
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
@@ -59,27 +71,28 @@ pipeline {
                     steps {
                         dir("logs"){
                             deleteDir()
+                            bat "dir > nul"
                         }
                         dir("build"){
                             deleteDir()
                             echo "Cleaned out build directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
                         dir("dist"){
                             deleteDir()
                             echo "Cleaned out dist directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
 
                         dir("reports"){
                             deleteDir()
                             echo "Cleaned out reports directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
                         dir("certs"){
                             deleteDir()
                             echo "Cleaned out certs directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
                     }
                     post{
@@ -89,28 +102,17 @@ pipeline {
                     }
                 }
                 stage("Installing required system level dependencies"){
-                    options{
-                        lock("system_python_${env.NODE_NAME}") 
-                    }
                     steps{
-                        bat "${tool 'CPython-3.6'} -m pip install pip==18.0 --quiet"
-                        bat "${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
-                        tee("logs/pippackages_system_${env.NODE_NAME}.log") {
-                            bat "${tool 'CPython-3.6'} -m pip list"
+                        lock("system_python_${NODE_NAME}"){
+                            bat "${tool 'CPython-3.6'} -m pip install pip --upgrade --quiet && ${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
                         }
+
+                        bat "${tool 'CPython-3.6'} -m pip list > logs/pippackages_system_${NODE_NAME}.log"
+
                     }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_system_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                        success{
+                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
                         failure {
                             deleteDir()
@@ -125,25 +127,13 @@ pipeline {
                     steps {
                         dir("source"){
                             bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
-                            tee("logs/pippackages_pipenv_${NODE_NAME}.log") {
-                               bat "${tool 'CPython-3.6'} -m pipenv run pip list"
-                            }
+                            bat "${tool 'CPython-3.6'} -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
+
                         }
-
-
                     }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_pipenv_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                        success{
+                            archiveArtifacts artifacts: "logs/pippackages_pipenv_${NODE_NAME}.log"
                         }
                     }
                 }
@@ -161,25 +151,11 @@ pipeline {
                             }
                         }
 
-                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
-
-
-                        tee("logs/pippackages_venv_${NODE_NAME}.log") {
-                            bat "venv\\Scripts\\pip.exe list"
-                        }
-                    }
+                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"                    }
                     post{
-                        always{
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/pippackages_venv_*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                        success{
+                            bat "venv\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
+                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
                         failure {
                             deleteDir()
@@ -187,11 +163,12 @@ pipeline {
                     }
                 }
                 stage("Logging into DevPi"){
+                    environment{
+                        DEVPI_PSWD = credentials('devpi-login')
+                    }
                     steps{
                         bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}\\certs\\"
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                            bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD} --clientdir ${WORKSPACE}\\certs\\"
-                        }
+                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PSWD} --clientdir ${WORKSPACE}\\certs\\"
                     }
                 }
                 stage("Setting variables used by the rest of the build"){
@@ -199,7 +176,7 @@ pipeline {
 
                         script {
                             // Set up the reports directory variable
-                            REPORT_DIR = "${WORKSPACE}\\reports"
+                            
                             dir("source"){
                                 PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
                                 PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
@@ -234,7 +211,6 @@ pipeline {
                 always{
                     echo """Name                            = ${PKG_NAME}
 Version                         = ${PKG_VERSION}
-Report Directory                = ${REPORT_DIR}
 documentation zip file          = ${DOC_ZIP_FILENAME}
 Python virtual environment path = ${VENV_ROOT}
 VirtualEnv Python executable    = ${VENV_PYTHON}
@@ -255,13 +231,14 @@ junit_filename                  = ${junit_filename}
                     }
                     steps {
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
-                        tee("logs/build.log") {
+                        // tee("logs/build.log") {
                             dir("source"){
                                 lock("cppan_${NODE_NAME}"){
-                                    bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
+                                    powershell "& ${VENV_PYTHON} setup.py build -b ${WORKSPACE}\\build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/lib --build-temp ${WORKSPACE}\\build\\temp | tee ${WORKSPACE}\\logs\\build.log"
+                                    // bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
                                 }
                             }
-                        }
+                        // }
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
 
@@ -272,17 +249,15 @@ junit_filename                  = ${junit_filename}
                         }
                     }
                     post{
+                        always{
+                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
+                        }
                         cleanup{
                             script{
-                                def log_files = findFiles glob: '**/*.log'
-                                log_files.each { log_file ->
-                                    echo "Found ${log_file}"
-                                    archiveArtifacts artifacts: "${log_file}"
-                                    warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
-                                    bat "del ${log_file}"
+                                if(fileExists("logs\\build.log")){
+                                    bat "del logs\\build.log"
                                 }
                             }
-
                         }
                         failure{
                             echo "${WORKSPACE}"
@@ -312,28 +287,16 @@ junit_filename                  = ${junit_filename}
                             echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
                             writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
                         }
-                        tee('logs/build_sphinx.log') {
-                            dir("build/lib"){
-                                bat "pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
-                            }
+
+                        dir("build/lib"){
+                            powershell "& pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees | tee ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
                     }
                     post{
                         always {
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
-                            dir("logs"){
-                                script{
-                                    def log_files = findFiles glob: '**/*.log'
-                                    log_files.each { log_file ->
-                                        echo "Found ${log_file}"
-                                        archiveArtifacts artifacts: "${log_file}"
-                                        warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "${log_file}"]]
-                                        bat "del ${log_file}"
-                                    }
-                                }
-                            }
+                            archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
 
-                            // archiveArtifacts artifacts: 'logs/build_sphinx.log'
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -341,13 +304,25 @@ junit_filename                  = ${junit_filename}
                                 // // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
                                 // def alljob = env.JOB_NAME.tokenize("/") as String[]
                                 // def project_name = alljob[0]
-                                dir("${WORKSPACE}/dist"){
-                                    zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                                // dir("${WORKSPACE}/dist"){
+                                //     zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${DOC_ZIP_FILENAME}"
+                                // }
+                                script{
+                                    zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                                    stash includes: 'build/docs/html/**', name: 'docs'
                                 }
                             }
                         }
                         failure{
                             echo "Failed to build Python package"
+                        }
+                        cleanup{
+                            script{
+                                if(fileExists("logs/build_sphinx.log")){
+                                    bat "del logs\\build_sphinx.log"
+                                }
+                            }
+
                         }
                     }
                 }
@@ -368,6 +343,8 @@ junit_filename                  = ${junit_filename}
                     }
                     environment {
                         PATH = "${tool 'cmake3.12'}\\;$PATH"
+                        CL = "/MP"
+
                     }
                     stages{
                         stage("Removing Previous Tox Environment"){
@@ -396,7 +373,7 @@ junit_filename                  = ${junit_filename}
                                         script{
                                             try{
                                                 bat "pipenv run tox --workdir ..\\.tox\\PyTest"
-                //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${REPORT_DIR}\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${REPORT_DIR}/coverage/ --cov=ocr"
+                //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${WORKSPACE}\\pipenv\\\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}\\pipenv\\/coverage/ --cov=ocr"
                                             } catch (exc) {
                                                 bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
                                             }
@@ -452,24 +429,18 @@ junit_filename                  = ${junit_filename}
                         equals expected: true, actual: params.TEST_RUN_DOCTEST
                     }
                     steps {
-                        dir("${REPORT_DIR}/doctests"){
+                        dir("${WORKSPACE}/reports/doctests"){
                             echo "Cleaning doctest reports directory"
                             deleteDir()
                         }
                         dir("source"){
-                            dir("${REPORT_DIR}/doctests"){
-                                echo "Cleaning doctest reports directory"
-                                deleteDir()
-                            }
                             bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
                         }
-                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${REPORT_DIR}\\doctest.txt"
+                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${WORKSPACE}\\reports\\doctest.txt"
                     }
                     post{
                         always {
-                            dir("${REPORT_DIR}"){
-                                archiveArtifacts artifacts: "doctest.txt"
-                            }
+                            archiveArtifacts allowEmptyArchive: true, artifacts: "reports/doctest.txt"
                         }
                     }
                 }
@@ -480,11 +451,11 @@ junit_filename                  = ${junit_filename}
                     steps{
                         script{
                             try{
-                                tee('reports/flake8.log') {
-                                    dir("source"){
-                                        bat "pipenv run flake8 uiucprescon --format=pylint"
-                                    }
+                                // tee('reports/flake8.log') {
+                                dir("source"){
+                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
                                 }
+                                // }
                             } catch (exc) {
                                 echo "flake8 found some warnings"
                             }
@@ -501,27 +472,56 @@ junit_filename                  = ${junit_filename}
                         equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     steps{
-                        dir("${REPORT_DIR}/mypy/html"){
+                        dir("reports/mypy/html"){
                             deleteDir()
                             bat "dir"
                         }
                         script{
-                            tee("logs/mypy.log") {
-                                try{
-                                    dir("source"){
-                                        bat "dir"
-                                        bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${REPORT_DIR}\\mypy\\html"
-                                    }
-                                } catch (exc) {
-                                    echo "MyPy found some warnings"
+                            // tee("logs/mypy.log") {
+                            try{
+                                dir("source"){
+                                    bat "dir"
+                                    bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${WORKSPACE}\\reports\\mypy\\html --cobertura-xml-report ${WORKSPACE}\\reports\\mypy > ${WORKSPACE}\\logs\\mypy.log"
                                 }
+                            } catch (exc) {
+                                echo "MyPy found some warnings"
                             }
+                            dir("${WORKSPACE}/reports/mypy"){
+                                if(fileExists("mypy_cobertura.xml")){
+                                    bat "del mypy_cobertura.xml"
+                                }
+
+                                bat "ren cobertura.xml mypy_cobertura.xml"
+                            }
+                            // }
                         }
                     }
                     post {
                         always {
+                            cobertura(
+                                autoUpdateHealth: false,
+                                autoUpdateStability: false,
+                                coberturaReportFile: 'reports/mypy/mypy_cobertura.xml',
+                                // conditionalCoverageTargets: '70, 0, 0',
+                                enableNewApi: false,
+                                failUnhealthy: false,
+                                failUnstable: false,
+                                lineCoverageTargets: '80, 0, 0',
+                                maxNumberOfBuilds: 0,
+                                methodCoverageTargets: '80, 0, 0',
+                                onlyStable: false,
+                                sourceEncoding: 'ASCII',
+                                zoomCoverageChart: false
+                            )
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "${REPORT_DIR}/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                        }
+                        cleanup{
+                            script{
+                                if(fileExists('reports/mypy/mypy_cobertura.xml')){
+                                    bat "del reports\\mypy\\mypy_cobertura.xml"
+                                }
+                            }
                         }
                     }
                 }
@@ -538,11 +538,14 @@ junit_filename                  = ${junit_filename}
                         bat "pipenv run python setup.py build -b ..\\build -t ..\\build\\temp sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
                     }
                 }
-
-                dir("dist") {
-                    archiveArtifacts artifacts: "*.whl", fingerprint: true
-                    archiveArtifacts artifacts: "*.zip", fingerprint: true
-                    archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+            }
+            post{
+                success{
+                    archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+                    stash includes: 'dist/*.*', name: "dist"
+                }
+                cleanup{
+                    remove_files("dist/*.whl,dist/*.tar.gz,dist/*.zip")
                 }
             }
         }
@@ -557,6 +560,8 @@ junit_filename                  = ${junit_filename}
                 }
             }
             steps {
+                unstash "dist"
+                unstash "docs"
                 bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
                 script {
                     bat "venv\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --from-dir dist "
@@ -593,6 +598,7 @@ junit_filename                  = ${junit_filename}
                     }
                     environment {
                         PATH = "${tool 'cmake3.12'};$PATH"
+                        CL = "/MP"
                     }
                     stages {
                         stage("Building DevPi Testing venv for tar.gz"){
@@ -605,26 +611,14 @@ junit_filename                  = ${junit_filename}
                             steps {
                                 script {
                                     lock("cppan_${NODE_NAME}"){
-                                        def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s tar.gz  --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-                                        if(devpi_test_return_code != 0){
-                                            error "DevPi exit code for tar.gz was ${devpi_test_return_code}"
-                                        }
-                                    }
-                                }
-                            }
-                            post {
-                                failure {
-                                    echo "Tests for .tar.gz source on DevPi failed."
-                                    bat "set > devpi_targz_env.log"
-                                }
-                                cleanup{
-                                    script{
-                                        def log_files = findFiles glob: '**/*.log'
-                                        log_files.each { log_file ->
-                                            echo "Found ${log_file}"
-                                            archiveArtifacts artifacts: "${log_file}"
-                                            bat "del ${log_file}"
-                                        }
+                                        devpiTest(
+                                            devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                            url: "https://devpi.library.illinois.edu",
+                                            index: "${env.BRANCH_NAME}_staging",
+                                            pkgName: "${PKG_NAME}",
+                                            pkgVersion: "${PKG_VERSION}",
+                                            pkgRegex: "tar.gz"
+                                        )
                                     }
                                 }
                             }
@@ -645,6 +639,7 @@ junit_filename                  = ${junit_filename}
 
                     environment {
                         PATH = "${tool 'cmake3.12'};$PATH"
+                        CL = "/MP"
                     }
                     stages{
                         stage("Building DevPi Testing venv for Zip"){
@@ -655,31 +650,17 @@ junit_filename                  = ${junit_filename}
                             }
                         }
                         stage("DevPi Testing zip Package"){
-
-
                             steps {
                                 script {
                                     lock("cppan_${NODE_NAME}"){
-                                        def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s zip --verbose --clientdir ${WORKSPACE}\\certs\\ --debug"
-                                        if(devpi_test_return_code != 0){
-                                            error "DevPi exit code for zip was ${devpi_test_return_code}"
-                                        }
-                                    }
-                                }
-                            }
-                            post {
-                                failure {
-                                    bat "set > devpi_zip_env.log"
-                                    echo "Tests for .zip source on DevPi failed."
-                                }
-                                cleanup{
-                                    script{
-                                        def log_files = findFiles glob: '**/*.log'
-                                        log_files.each { log_file ->
-                                            echo "Found ${log_file}"
-                                            archiveArtifacts artifacts: "${log_file}"
-                                            bat "del ${log_file}"
-                                        }
+                                        devpiTest(
+                                            devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                            url: "https://devpi.library.illinois.edu",
+                                            index: "${env.BRANCH_NAME}_staging",
+                                            pkgName: "${PKG_NAME}",
+                                            pkgVersion: "${PKG_VERSION}",
+                                            pkgRegex: "zip"
+                                        )
                                     }
                                 }
                             }
@@ -705,34 +686,15 @@ junit_filename                  = ${junit_filename}
                         }
                         stage("DevPi Testing Whl"){
                             steps {
-
-                                withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                                    bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                                }
-                                bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                                script{
-                                    def devpi_test_return_code = bat returnStatus: true, script: "venv\\Scripts\\devpi.exe test --index https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging ${PKG_NAME} -s whl  --verbose --debug"
-                                    if(devpi_test_return_code != 0){
-                                        error "Devpi exit code for whl was ${devpi_test_return_code}"
-                                    }
-                                }
+                                devpiTest(
+                                    devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                    url: "https://devpi.library.illinois.edu",
+                                    index: "${env.BRANCH_NAME}_staging",
+                                    pkgName: "${PKG_NAME}",
+                                    pkgVersion: "${PKG_VERSION}",
+                                    pkgRegex: "whl"
+                                )
                                 echo "Finished testing Built Distribution: .whl"
-                            }
-                        }
-                    }
-                    post {
-                        failure {
-                            echo "Tests for whl on DevPi failed."
-                            bat "set > devpi_whl_env.log"
-                        }
-                        cleanup{
-                            script{
-                                def log_files = findFiles glob: '**/*.log'
-                                log_files.each { log_file ->
-                                    echo "Found ${log_file}"
-                                    archiveArtifacts artifacts: "${log_file}"
-                                    bat "del ${log_file}"
-                                }
                             }
                         }
                     }
@@ -741,18 +703,12 @@ junit_filename                  = ${junit_filename}
             post {
                 success {
                     echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
-                    bat "venv\\Scripts\\devpi.exe use http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-//                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                        }
-                    withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-//                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD} --clientdir ${WORKSPACE}\\certs\\"
-                        bat "venv\\Scripts\\devpi.exe use /${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                    script {
+                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
+                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
+                        bat "venv\\Scripts\\devpi.exe push --index ${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${PKG_NAME}==${PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
+                        }
                     }
-                    bat "venv\\Scripts\\devpi.exe push ${PKG_NAME}==${PKG_VERSION} DS_Jenkins/${env.BRANCH_NAME} --clientdir ${WORKSPACE}\\certs\\"
-//                    script {
-
-//                    }
                 }
                 failure {
                     echo "At least one package format on DevPi failed."
@@ -828,15 +784,7 @@ junit_filename                  = ${junit_filename}
     }
     post {
         cleanup{
-//            dir("build"){
-//                deleteDir()
-//            }
-//            dir("dist"){
-//                deleteDir()
-//            }
-//            dir("logs"){
-//                deleteDir()
-//            }
+
 
             script {
                 if(fileExists('source/setup.py')){
@@ -861,10 +809,20 @@ junit_filename                  = ${junit_filename}
             dir("certs"){
                 deleteDir()
             }
-            bat "tree /A /F > ${WORKSPACE}/logs/tree_postclean.log"
-            dir("${WORKSPACE}/logs"){
-                archiveArtifacts artifacts: "tree_postclean.log"
+            dir("build"){
+                deleteDir()
             }
+            dir("dist"){
+                deleteDir()
+            }
+            dir("logs"){
+                deleteDir()
+            }
+            bat "tree /A /F > final_tree.log"
+            archiveArtifacts artifacts: "final_tree.log", allowEmptyArchive: true
+            bat "del final_tree.log"
+
+
         }
     }
 }
