@@ -328,7 +328,7 @@ junit_filename                  = ${junit_filename}
                         cleanup{
                             script{
                                 if(fileExists("logs/build_sphinx.log")){
-                                    bat "del logs/build_sphinx.log"
+                                    bat "del logs\\build_sphinx.log"
                                 }
                             }
 
