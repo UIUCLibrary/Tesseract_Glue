@@ -9,6 +9,16 @@ def VENV_ROOT = ""
 def VENV_PYTHON = ""
 def VENV_PIP = ""
 
+def remove_files(artifacts){
+    script{
+        def files = findFiles glob: "${artifacts}"
+        files.each { file_name ->
+            bat "del ${file_name}"
+        }
+    }
+}
+
+
 pipeline {
     agent {
         label "Windows && VS2015 && Python3 && longfilenames"
@@ -548,10 +558,19 @@ junit_filename                  = ${junit_filename}
                     }
                 }
 
-                dir("dist") {
-                    archiveArtifacts artifacts: "*.whl", fingerprint: true
-                    archiveArtifacts artifacts: "*.zip", fingerprint: true
-                    archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                // dir("dist") {
+                //     archiveArtifacts artifacts: "*.whl", fingerprint: true
+                //     archiveArtifacts artifacts: "*.zip", fingerprint: true
+                //     archiveArtifacts artifacts: "*.tar.gz", fingerprint: true
+                // }
+            }
+            post{
+                success{
+                    archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+                    stash includes: 'dist/*.*', name: "dist"
+                }
+                cleanup{
+                    remove_files("dist/*.whl,dist/*.tar.gz,dist/*.zip")
                 }
             }
         }
