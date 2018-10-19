@@ -59,27 +59,28 @@ pipeline {
                     steps {
                         dir("logs"){
                             deleteDir()
+                            bat "dir > nul"
                         }
                         dir("build"){
                             deleteDir()
                             echo "Cleaned out build directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
                         dir("dist"){
                             deleteDir()
                             echo "Cleaned out dist directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
 
                         dir("reports"){
                             deleteDir()
                             echo "Cleaned out reports directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
                         dir("certs"){
                             deleteDir()
                             echo "Cleaned out certs directory"
-                            bat "dir"
+                            bat "dir > nul"
                         }
                     }
                     post{
