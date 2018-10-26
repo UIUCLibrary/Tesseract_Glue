@@ -70,18 +70,20 @@ class CleanExt(Command):
                 os.remove(file.path)
 
 class BuildExt(build_ext):
+    user_options = build_ext.user_options + [
+        ('cmake-exec=', None, "Location of the CMake executable. "
+                              "Defaults of CMake located on path")
+    ]
+
     def __init__(self, dist):
         super().__init__(dist)
         self.cmake_source_dir = None
         self.cmake_binary_dir = None
         self._env_vars = None
-        self._cmake_path = self._get_cmake_path()
 
-    def _get_cmake_path(self):
-        cmake = shutil.which("cmake")
-        if cmake:
-            return cmake
-        raise FileNotFoundError("CMake not found on path")
+    def initialize_options(self):
+        super().initialize_options()
+        self.cmake_exec = shutil.which("cmake")
 
 
     def run(self):
@@ -117,14 +119,15 @@ class BuildExt(build_ext):
     def configure_cmake(self, ext):
         os.makedirs(self.cmake_binary_dir, exist_ok=True)
         modded_env = self.get_modified_env_vars(ext)
+        source_dir = os.path.abspath(os.path.dirname(__file__))
         #
-        try:
-            source_root = \
-                (os.path.relpath(
-                    os.path.abspath(os.path.dirname(__file__)),
-                    start=self.cmake_binary_dir))
-        except ValueError:
-            source_root = os.path.abspath(os.path.dirname(__file__))
+        # try:
+        #     source_root = \
+        #         (os.path.relpath(
+        #             os.path.abspath(os.path.dirname(__file__)),
+        #             start=self.cmake_binary_dir))
+        # except ValueError:
+        #     source_root = os.path.abspath(os.path.dirname(__file__))
 
         # source_root = (os.path.abspath(os.path.dirname(__file__)))
         python_root = sysconfig.get_paths()['data']
@@ -140,32 +143,35 @@ class BuildExt(build_ext):
 
             raise CMakeException(message)
 
-
+        print(source_dir)
         configure_command = [
-            self._cmake_path, source_root,
+            self.cmake_exec,
+            f"-H{source_dir}",
+            f"-B{self.build_temp}",
             "-G{}".format(build_system),
-            "-DCMAKE_INSTALL_PREFIX={}".format(install_prefix),
+            f"-DCMAKE_INSTALL_PREFIX={install_prefix}",
             "-DPython3_ROOT_DIR={}".format(python_root),
             "-DCMAKE_BUILD_TYPE=Release",
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
             # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
             "-DBUILD_TESTING:BOOL=NO"
         ]
+        self.spawn(configure_command)
 
-        configure_stage = subprocess.Popen(
-            configure_command,
-            env=modded_env,
-            cwd=self.cmake_binary_dir
-        )
+        # configure_stage = subprocess.Popen(
+        #     configure_command,
+        #     env=modded_env,
+        #     cwd=self.cmake_binary_dir
+        # )
 
-        configure_stage.communicate()
-
-        if configure_stage.returncode != 0:
-            command_string = " ".join(configure_command)
-            error_message = "CMake failed at configuration stage with " \
-                            "command \"{}\"".format(command_string)
-
-            raise CMakeException(error_message)
+        # configure_stage.communicate()
+        #
+        # if configure_stage.returncode != 0:
+        #     command_string = " ".join(configure_command)
+        #     error_message = "CMake failed at configuration stage with " \
+        #                     "command \"{}\"".format(command_string)
+        #
+        #     raise CMakeException(error_message)
 
     @staticmethod
     def get_build_generator_name():
@@ -190,29 +196,29 @@ class BuildExt(build_ext):
     def build_cmake(self, ext):
 
         build_command = [
-            self._cmake_path,
-            "--build", ".",
+            self.cmake_exec,
+            "--build", self.build_temp,
             # "--parallel", "{}".format(self.parallel),
             "--config", "Release",
         ]
+        if self.parallel:
+            build_command.extend(["-j", str(self.parallel)])
 
-        build_stage = subprocess.Popen(
-            build_command,
-            env=self.get_modified_env_vars(ext),
-            cwd=self.cmake_binary_dir)
+        # build_stage = subprocess.Popen(
+        #     build_command,
+        #     env=self.get_modified_env_vars(ext),
+        #     cwd=self.cmake_binary_dir)
 
-        build_stage.communicate()
+        if "Visual Studio" in self.get_build_generator_name():
+            build_command += ["--", "/verbosity:minimal"]
 
-        if build_stage.returncode != 0:
-            raise Exception(
-                "CMake failed at build stage with command \"{}\"".
-                    format(" ".join(build_command))
-            )
+        self.spawn(build_command)
+
 
     def install_cmake(self, ext):
 
         install_command = [
-            self._cmake_path,
+            self.cmake_exec,
             "--build", ".",
             "--config", "Release",
             "--target", "install"
