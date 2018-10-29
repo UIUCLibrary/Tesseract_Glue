@@ -626,47 +626,47 @@ junit_filename                  = ${junit_filename}
                     }
 
                 }
-                stage("Source Distribution: .zip") {
-                     agent {
-                        node {
-                            label "Windows && Python3 && VS2015"
-//                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
-                        }
-                    }
-                    options {
-                        skipDefaultCheckout(true)
-                    }
-
-                    environment {
-                        PATH = "${tool 'cmake3.12'};$PATH"
-                        CL = "/MP"
-                    }
-                    stages{
-                        stage("Building DevPi Testing venv for Zip"){
-                            steps{
-                                echo "installing DevPi test env"
-                                bat "${tool 'CPython-3.6'} -m venv venv"
-                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
-                            }
-                        }
-                        stage("DevPi Testing zip Package"){
-                            steps {
-                                script {
-                                    lock("cppan_${NODE_NAME}"){
-                                        devpiTest(
-                                            devpiExecutable: "venv\\Scripts\\devpi.exe",
-                                            url: "https://devpi.library.illinois.edu",
-                                            index: "${env.BRANCH_NAME}_staging",
-                                            pkgName: "${PKG_NAME}",
-                                            pkgVersion: "${PKG_VERSION}",
-                                            pkgRegex: "zip"
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+//                stage("Source Distribution: .zip") {
+//                     agent {
+//                        node {
+//                            label "Windows && Python3 && VS2015"
+////                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/devpi_testing/"
+//                        }
+//                    }
+//                    options {
+//                        skipDefaultCheckout(true)
+//                    }
+//
+//                    environment {
+//                        PATH = "${tool 'cmake3.12'};$PATH"
+//                        CL = "/MP"
+//                    }
+//                    stages{
+//                        stage("Building DevPi Testing venv for Zip"){
+//                            steps{
+//                                echo "installing DevPi test env"
+//                                bat "${tool 'CPython-3.6'} -m venv venv"
+//                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
+//                            }
+//                        }
+//                        stage("DevPi Testing zip Package"){
+//                            steps {
+//                                script {
+//                                    lock("cppan_${NODE_NAME}"){
+//                                        devpiTest(
+//                                            devpiExecutable: "venv\\Scripts\\devpi.exe",
+//                                            url: "https://devpi.library.illinois.edu",
+//                                            index: "${env.BRANCH_NAME}_staging",
+//                                            pkgName: "${PKG_NAME}",
+//                                            pkgVersion: "${PKG_VERSION}",
+//                                            pkgRegex: "zip"
+//                                        )
+//                                    }
+//                                }
+//                            }
+//                        }
+//                    }
+//                }
                 stage("Built Distribution: .whl") {
                     agent {
                         node {
