@@ -270,18 +270,27 @@ class BuildExt(build_ext):
             dest_root = self.build_lib
 
         install_file_paths = [
-            os.path.join(self.build_lib, "bin"),
-            os.path.join(self.build_lib, "uiucprescon", "ocr"),
+            os.path.normpath(os.path.join(self.build_lib, "bin")),
+            os.path.normpath(os.path.join(self.build_lib, "uiucprescon", "ocr")),
 
         ]
+
+        for path in install_file_paths:
+            if not os.path.exists(path):
+                os.makedirs(path)
+
         for m in itertools.chain(map(os.scandir, install_file_paths)):
             for dll in filter(filter_share_libs, m):
                 dll_dest = os.path.join(dest_root,"uiucprescon", "ocr", dll.name)
+                # print("HERE {}".format(dll_dest), file=sys.stderr)
+                if not os.path.exists(dll_dest):
+                    os.makedirs(dll_dest)
+
                 shutil.move(dll.path, os.path.join(dll_dest))
                 ext.libraries.append(dll.name)
 
-        generated_bin_directory = os.path.join(self.build_lib, "bin")
-        generated_lib_directory = os.path.join(self.build_lib, "lib")
+        generated_bin_directory = os.path.normpath(os.path.join(self.build_lib, "bin"))
+        generated_lib_directory = os.path.normpath(os.path.join(self.build_lib, "lib"))
         generated_dirs = [generated_bin_directory, generated_lib_directory]
 
         for generated_dir in generated_dirs:
