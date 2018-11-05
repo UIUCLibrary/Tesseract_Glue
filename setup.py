@@ -152,7 +152,7 @@ class BuildExt(build_ext):
             f"-B{self.build_temp}",
             "-G{}".format(build_system),
             f"-DCMAKE_INSTALL_PREFIX={install_prefix}",
-            "-DPython3_ROOT_DIR:PATH={}".format(sys.base_prefix),
+            # "-DPython3_ROOT_DIR:PATH={}".format(sys.base_prefix),
             f"-DPYTHON_EXECUTABLE:FILEPATH={sys.executable}",
             # f"-DPython3_INCLUDE_DIR:FILEPATH={include_path}",
             f"-DPYTHON_INCLUDE_DIR:FILEPATH={include_path}",
@@ -165,22 +165,22 @@ class BuildExt(build_ext):
             # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
             "-DBUILD_TESTING:BOOL=NO"
         ]
-        # self.spawn(configure_command)
+        self.spawn(configure_command)
 
-        configure_stage = subprocess.Popen(
-            configure_command,
-            env=modded_env,
-            cwd=self.cmake_binary_dir
-        )
-
-        configure_stage.communicate()
-
-        if configure_stage.returncode != 0:
-            command_string = " ".join(configure_command)
-            error_message = "CMake failed at configuration stage with " \
-                            "command \"{}\"".format(command_string)
-
-            raise CMakeException(error_message)
+        # configure_stage = subprocess.Popen(
+        #     configure_command,
+        #     env=modded_env,
+        #     cwd=self.cmake_binary_dir
+        # )
+        #
+        # configure_stage.communicate()
+        #
+        # if configure_stage.returncode != 0:
+        #     command_string = " ".join(configure_command)
+        #     error_message = "CMake failed at configuration stage with " \
+        #                     "command \"{}\"".format(command_string)
+        #
+        #     raise CMakeException(error_message)
 
     @staticmethod
     def get_build_generator_name():
@@ -270,18 +270,27 @@ class BuildExt(build_ext):
             dest_root = self.build_lib
 
         install_file_paths = [
-            os.path.join(self.build_lib, "bin"),
-            os.path.join(self.build_lib, "uiucprescon", "ocr"),
+            os.path.normpath(os.path.join(self.build_lib, "bin")),
+            os.path.normpath(os.path.join(self.build_lib, "uiucprescon", "ocr")),
 
         ]
+
+        for path in install_file_paths:
+            if not os.path.exists(path):
+                os.makedirs(path)
+
         for m in itertools.chain(map(os.scandir, install_file_paths)):
             for dll in filter(filter_share_libs, m):
                 dll_dest = os.path.join(dest_root,"uiucprescon", "ocr", dll.name)
+                # print("HERE {}".format(dll_dest), file=sys.stderr)
+                # if not os.path.exists(dll_dest):
+                #     os.makedirs(dll_dest)
+
                 shutil.move(dll.path, os.path.join(dll_dest))
                 ext.libraries.append(dll.name)
 
-        generated_bin_directory = os.path.join(self.build_lib, "bin")
-        generated_lib_directory = os.path.join(self.build_lib, "lib")
+        generated_bin_directory = os.path.normpath(os.path.join(self.build_lib, "bin"))
+        generated_lib_directory = os.path.normpath(os.path.join(self.build_lib, "lib"))
         generated_dirs = [generated_bin_directory, generated_lib_directory]
 
         for generated_dir in generated_dirs:
