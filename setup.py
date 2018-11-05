@@ -130,8 +130,10 @@ class BuildExt(build_ext):
         #     source_root = os.path.abspath(os.path.dirname(__file__))
 
         # source_root = (os.path.abspath(os.path.dirname(__file__)))
-        python_root = sysconfig.get_paths()['data']
-        install_prefix = os.path.abspath(self.build_lib)
+        # python_root = os.path.abspath(os.path.join(self.include_dirs[0], ".."))
+
+        # python_root = sysconfig.get_paths()['data']
+        install_prefix = os.path.normpath(self.build_lib)
         fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
 
         try:
@@ -142,15 +144,22 @@ class BuildExt(build_ext):
                       "implementation of Python's compiler {}".format(e)
 
             raise CMakeException(message)
-
-        print(source_dir)
+        include_path = os.path.join(sys.base_prefix, "include")
+        lib_path = os.path.join(sys.base_prefix, "Scripts", "python3.dll")
         configure_command = [
             self.cmake_exec,
             f"-H{source_dir}",
             f"-B{self.build_temp}",
             "-G{}".format(build_system),
             f"-DCMAKE_INSTALL_PREFIX={install_prefix}",
-            "-DPython3_ROOT_DIR={}".format(python_root),
+            "-DPython3_ROOT_DIR:PATH={}".format(sys.base_prefix),
+            f"-DPYTHON_EXECUTABLE:FILEPATH={sys.executable}",
+            # f"-DPython3_INCLUDE_DIR:FILEPATH={include_path}",
+            f"-DPYTHON_INCLUDE_DIR:FILEPATH={include_path}",
+            # f"-DPython3_LIBRARY_RELEASE:FILEPATH={lib_path}",
+            # f"-DPython3_RUNTIME_LIBRARY_RELEASE:FILEPATH={lib_path}",
+            f"-DPYTHON_LIBRARY:FILEPATH={lib_path}",
+            # "-DPython3_FIND_REGISTRY=NEVER",
             "-DCMAKE_BUILD_TYPE=Release",
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
             # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
@@ -186,6 +195,8 @@ class BuildExt(build_ext):
         cmake_build_systems_lut = {
             'MSC v.1900 64 bit (AMD64)': "Visual Studio 14 2015 Win64",
             'MSC v.1900 32 bit (Intel)': "Visual Studio 14 2015",
+            'MSC v.1915 64 bit (AMD64)': "Visual Studio 14 2015 Win64",
+            'MSC v.1915 32 bit (Intel)': "Visual Studio 14 2015",
             'GCC': "Unix Makefiles",
             'Clang': "Unix Makefiles",
         }
