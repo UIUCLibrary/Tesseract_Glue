@@ -253,11 +253,21 @@ junit_filename                  = ${junit_filename}
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
                         }
                         cleanup{
-                            script{
-                                if(fileExists("logs\\build.log")){
-                                    bat "del logs\\build.log"
-                                }
-                            }
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'logs/build.log', type: 'INCLUDE'],
+                                        [pattern: "logs/tree_postbuild_failed.log", type: 'INCLUDE'],
+                                        [pattern: "logs/tree_home_postbuild_failed.log", type: 'INCLUDE'],
+                                        [pattern: "logs/env_vars.log", type: 'INCLUDE'],
+                                    ],
+                                notFailBuild: true
+                                )
+
+                            // script{
+                            //     if(fileExists("logs\\build.log")){
+                            //         bat "del logs\\build.log"
+                            //     }
+                            // }
                         }
                         failure{
                             echo "${WORKSPACE}"
@@ -269,9 +279,9 @@ junit_filename                  = ${junit_filename}
                                     archiveArtifacts artifacts: "${cppan_file}"
                                 }
                             }
-                            bat "set > ${WORKSPACE}/logs/env_vars.log"
-                            bat "tree /A /F > ${WORKSPACE}/logs/tree_postbuild_failed.log"
-                            bat "tree ${user.home} /A /F >  ${WORKSPACE}/logs/tree_home_postbuild_failed.log"
+                            bat "set > logs/env_vars.log"
+                            bat "tree /A /F > \\logs\\tree_postbuild_failed.log"
+                            bat "tree ${user.home} /A /F > \\logs\\tree_home_postbuild_failed.log"
 
                         }
                     }
