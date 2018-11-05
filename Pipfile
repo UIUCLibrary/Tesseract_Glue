@@ -4,7 +4,7 @@ verify_ssl = true
 name = "pypi"
 
 [dev-packages]
-mypy = "*"
+mypy = ">=0.641"
 pytest = "*"
 pytest-cov = "*"
 tox = "*"
