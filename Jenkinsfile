@@ -279,9 +279,8 @@ junit_filename                  = ${junit_filename}
                                     archiveArtifacts artifacts: "${cppan_file}"
                                 }
                             }
-                            bat "set > logs/env_vars.log"
-                            bat "tree /A /F > \\logs\\tree_postbuild_failed.log"
-                            bat "tree ${user.home} /A /F > \\logs\\tree_home_postbuild_failed.log"
+                            bat "set > logs\\env_vars.log"
+                            bat "tree /A /F > logs\\tree_postbuild_failed.log"
 
                         }
                     }
