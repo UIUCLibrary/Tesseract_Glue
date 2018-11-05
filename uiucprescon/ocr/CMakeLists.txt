@@ -12,8 +12,8 @@ target_link_libraries(glue PUBLIC
 )
 
 
-Python3_add_library(tesseractwrap MODULE tesseractwrap.cpp)
-
+#Python3_add_library(tesseractwrap MODULE tesseractwrap.cpp)
+PYTHON_ADD_MODULE(tesseractwrap tesseractwrap.cpp)
 if(PYTHON_EXTENSION_OUTPUT)
     message(STATUS "Changin to ${PYTHON_EXTENSION_OUTPUT}")
     set_target_properties(tesseractwrap PROPERTIES
