@@ -136,7 +136,7 @@ class BuildExt(build_ext):
         install_prefix = os.path.normpath(self.build_lib)
         fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
 
-        cppan = ext.tools['CCPAN']
+        cppan = ext.tools['CPPAN']
         cppan_executable = cppan.executable['cppan']
 
         try:
