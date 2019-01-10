@@ -544,7 +544,7 @@ junit_filename                  = ${junit_filename}
             steps {
                 dir("source"){
                     lock("cppan_${NODE_NAME}"){
-                        bat "pipenv run python setup.py build -b ..\\build -t ..\\build\\temp sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
+                        bat "pipenv run python setup.py build -b ..\\build  sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
                     }
                 }
             }
