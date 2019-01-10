@@ -104,10 +104,10 @@ pipeline {
                 stage("Installing Required System Level Dependencies"){
                     steps{
                         lock("system_python_${NODE_NAME}"){
-                            bat "${tool 'CPython-3.6'} -m pip install pip --upgrade --quiet && ${tool 'CPython-3.6'} -m pip install --upgrade pipenv --quiet"
+                            bat "${tool 'CPython-3.6'}\\python.exe -m pip install pip --upgrade --quiet && ${tool 'CPython-3.6'}\\python.exe -m pip install --upgrade pipenv --quiet"
                         }
 
-                        bat "${tool 'CPython-3.6'} -m pip list > logs/pippackages_system_${NODE_NAME}.log"
+                        bat "${tool 'CPython-3.6'}\\python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
 
                     }
                     post{
@@ -126,8 +126,8 @@ pipeline {
                     }
                     steps {
                         dir("source"){
-                            bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
-                            bat "${tool 'CPython-3.6'} -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
+                            bat "${tool 'CPython-3.6'}\\python.exe -m pipenv install --dev --deploy"
+                            bat "${tool 'CPython-3.6'}\\python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
 
                         }
                     }
@@ -139,14 +139,14 @@ pipeline {
                 }
                 stage("Creating Virtualenv for Building"){
                     steps {
-                        bat "${tool 'CPython-3.6'} -m venv venv"
+                        bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
 
                         script {
                             try {
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip"
                             }
                             catch (exc) {
-                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
                             }
                         }
@@ -178,8 +178,8 @@ pipeline {
                             // Set up the reports directory variable
                             
                             dir("source"){
-                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}  setup.py --name").trim()
-                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'} setup.py --version").trim()
+                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python.exe  setup.py --name").trim()
+                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python.exe setup.py --version").trim()
                             }
                         }
 
@@ -370,7 +370,7 @@ junit_filename                  = ${junit_filename}
                         stage("Configuring Tox Environment"){
                             steps{
                                 dir("source"){
-                                    bat "${tool 'CPython-3.6'} -m pipenv install --dev --deploy"
+                                    bat "${tool 'CPython-3.6'}\\python.exe -m pipenv install --dev --deploy"
                                 }
                             }
                         }
@@ -612,7 +612,7 @@ junit_filename                  = ${junit_filename}
                     stages {
                         stage("Building DevPi Testing venv for tar.gz"){
                             steps{
-                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
@@ -689,7 +689,7 @@ junit_filename                  = ${junit_filename}
                     stages{
                         stage("Building DevPi Testing venv"){
                             steps{
-                                bat "${tool 'CPython-3.6'} -m venv venv"
+                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
                                 bat "venv\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
