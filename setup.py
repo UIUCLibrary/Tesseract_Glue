@@ -136,6 +136,9 @@ class BuildExt(build_ext):
         install_prefix = os.path.normpath(self.build_lib)
         fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
 
+        cppan = ext.tools['CCPAN']
+        cppan_executable = cppan.executable['cppan']
+
         try:
             build_system = self.get_build_generator_name()
         except KeyError as e:
@@ -154,6 +157,7 @@ class BuildExt(build_ext):
             f"-DCMAKE_INSTALL_PREFIX={install_prefix}",
             # "-DPython3_ROOT_DIR:PATH={}".format(sys.base_prefix),
             f"-DPYTHON_EXECUTABLE:FILEPATH={sys.executable}",
+            f"-DCPPAN_EXECUTABLE:FILEPATH={cppan_executable}",
             # f"-DPython3_INCLUDE_DIR:FILEPATH={include_path}",
             f"-DPYTHON_INCLUDE_DIR:FILEPATH={include_path}",
             # f"-DPython3_LIBRARY_RELEASE:FILEPATH={lib_path}",
