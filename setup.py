@@ -476,8 +476,11 @@ def install_cppan(build, ext):
     okay_codes = [0,1]
     cppan = ext.tools['CPPAN']
     executable = cppan.executable['cppan']
-    shutil.copyfile(executable, os.path.join(str(Path.home()), "cppan.exe"))
+    installed_cppan = os.path.join(str(Path.home()), "cppan.exe")
+    shutil.copyfile(executable, installed_cppan)
     shutil.copyfile("cppan.yml", os.path.join(build.build_temp, "cppan.yml"))
+    ext.tools['CPPAN'].executable['cppan'] = installed_cppan
+    
     print("Running downloaded cppan for the first time")
     result = subprocess.run(
         [executable],
