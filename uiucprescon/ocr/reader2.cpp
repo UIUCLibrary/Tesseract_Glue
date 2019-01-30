@@ -1,7 +1,7 @@
 #include "reader2.h"
 #include <string>
 #include <iostream>
-#include <allheaders.h>
+#include <leptonica/allheaders.h>
 
 using std::endl;
 using std::cerr;

@@ -3,8 +3,8 @@
 // FIXME: These headers should not be root path.
 // They should be located in the header directory of their package.
 // For example: tesseract/baseapi.h and leptonica/allheaders.h
-#include <baseapi.h>
-#include <allheaders.h>
+#include <tesseract/baseapi.h>
+#include <leptonica/allheaders.h>
 
 #include "glue.h"
 

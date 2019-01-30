@@ -1,15 +1,19 @@
-cppan_add_package(
-    pvt.cppan.demo.google.tesseract.libtesseract
-)
-cppan_execute()
+#cppan_add_package(
+#    pvt.cppan.demo.google.tesseract.libtesseract
+#)
+#cppan_execute()
 
 add_library(glue OBJECT glue.cpp reader.cpp reader2.cpp utils.cpp)
 target_include_directories(glue PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-
+#
 target_link_libraries(glue PUBLIC
-    pvt.cppan.demo.google.tesseract.libtesseract
-#    pvt.cppan.demo.danbloomberg.leptonica
-)
+        libtesseract
+        libleptonica
+        )
+
+#    pvt.cppan.demo.google.tesseract.libtesseract
+##    pvt.cppan.demo.danbloomberg.leptonica
+#)
 
 
 #Python3_add_library(tesseractwrap MODULE tesseractwrap.cpp)
