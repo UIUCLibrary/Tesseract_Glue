@@ -12,7 +12,7 @@ def test_version():
 
     e = ocr.Engine("")
     version = e.get_version()
-    version_regex = re.compile("\d\.\d{2}\.\d{2}")
+    version_regex = re.compile("[0-9][.][0-9]{1,2}[.][0-9]{1,2}")
     print(version)
     assert version_regex.match(version)
 
