@@ -1,29 +1,20 @@
-from pathlib import Path
-import itertools
+import setuptools
+from setuptools import setup, Extension
+from setuptools.command.build_ext import build_ext
+
+# import itertools
 import shutil
-import sysconfig
-import urllib.request
 import os
 import sys
 from distutils.version import StrictVersion
-from functools import lru_cache
-import platform
-from setuptools import setup, Extension
-import setuptools
+from distutils.file_util import copy_file
 
-from setuptools.command.build_py import build_py
-import subprocess
-import typing
-from setuptools.command.build_ext import build_ext
-from distutils.cmd import Command
+import urllib.request
+import platform
+# import subprocess
+from typing import List, Tuple, Union
 import tarfile
 import zipfile
-
-
-TESSERACT_SOURCE_URL = \
-    "https://github.com/tesseract-ocr/tesseract/archive/4.0.0-beta.3.tar.gz"
-
-CPPAN_URL = "https://cppan.org/client/cppan-master-Windows-client.zip"
 
 if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
     print('your setuptools version does not support using setup.cfg. '
@@ -37,37 +28,6 @@ if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
 class CMakeException(RuntimeError):
     pass
 
-
-class Tool(typing.NamedTuple):
-    name: str
-    url: str
-    executable: typing.Dict[str, str]
-
-
-class CleanExt(Command):
-    description = "Clean up inline extension"
-    user_options = []
-
-    def initialize_options(self):
-        pass
-
-    def finalize_options(self):
-        pass
-
-    def run(self):
-
-        def filter_shared_libs(item: os.DirEntry):
-            shared_object_extensions = [".dll", ".pyd"]
-            base, ext = os.path.splitext(item.name)
-            if ext in shared_object_extensions:
-                return True
-            return False
-
-        for pac in self.distribution.packages:
-            pkg_path = os.path.join(os.getcwd(), pac)
-            for file in filter(filter_shared_libs, os.scandir(pkg_path)):
-                print("Deleting {}".format(file.path))
-                os.remove(file.path)
 
 class BuildExt(build_ext):
     user_options = build_ext.user_options + [
@@ -85,59 +45,37 @@ class BuildExt(build_ext):
         super().initialize_options()
         self.cmake_exec = shutil.which("cmake")
 
+    def get_ext_filename(self, fullname):
+        ext = self.ext_map[fullname]
+        if isinstance(ext, CMakeDependency):
+            return f"{fullname}.dll"
+        else:
+            return super().get_ext_filename(fullname)
 
     def run(self):
+
         for ext in self.extensions:
+            if ext.url:
+                self.get_source(ext)
+                pass
+            if ext.prefix_name is None:
+                ext.prefix_name = ext.name
+            ext.cmake_binary_dir = os.path.join(self.build_temp, "{}-build".format(ext.name))
             self.cmake_binary_dir = self.build_temp
-            # self.cmake_binary_dir = os.path.abspath(os.path.join(self.build_temp, "{}-binary".format(ext.name)))
-            # os.makedirs(self.cmake_binary_dir, exist_ok=True)
-            self.get_required_tools(ext)
-            tools = [t.executable for t in ext.tools.values()]
+            os.makedirs(ext.cmake_binary_dir, exist_ok=True)
 
-            executables = set()
-            for i in [e.keys() for e in tools]:
-                for y in i:
-                    executables.add(y)
-            print("Tools available: {}".format(", ".join(executables)))
-            # download_root = self.get_source(ext)
-            # source_root = self.locate_cmake_source_root(download_root)
-            # self.cmake_source_dir = source_root
-
-            try:
-                self.install_depends(ext)
-                self.configure_cmake(ext)
-            except CMakeException:
-                clean_cppan_cache(self, ext)
-                print("Trying again", file=sys.stderr)
-                self.configure_cmake(ext)
-
+            self.configure_cmake(ext)
             self.build_cmake(ext)
             self.install_cmake(ext)
-            pass
-        # super().run()
+            self.copy_extensions_to_lib(ext)
+
+            if self.inplace:
+                self.copy_extensions_to_src(ext)
 
     def configure_cmake(self, ext):
-        os.makedirs(self.cmake_binary_dir, exist_ok=True)
-        modded_env = self.get_modified_env_vars(ext)
-        source_dir = os.path.abspath(os.path.dirname(__file__))
-        #
-        # try:
-        #     source_root = \
-        #         (os.path.relpath(
-        #             os.path.abspath(os.path.dirname(__file__)),
-        #             start=self.cmake_binary_dir))
-        # except ValueError:
-        #     source_root = os.path.abspath(os.path.dirname(__file__))
 
-        # source_root = (os.path.abspath(os.path.dirname(__file__)))
-        # python_root = os.path.abspath(os.path.join(self.include_dirs[0], ".."))
-
-        # python_root = sysconfig.get_paths()['data']
-        install_prefix = os.path.normpath(self.build_lib)
+        ext.cmake_install_prefix = self.get_install_prefix(ext)
         fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
-
-        cppan = ext.tools['CPPAN']
-        cppan_executable = cppan.executable['cppan']
 
         try:
             build_system = self.get_build_generator_name()
@@ -147,44 +85,73 @@ class BuildExt(build_ext):
                       "implementation of Python's compiler {}".format(e)
 
             raise CMakeException(message)
-        include_path = os.path.join(sys.base_prefix, "include")
-        lib_path = os.path.join(sys.base_prefix, "Scripts", "python3.dll")
+
         configure_command = [
             self.cmake_exec,
-            f"-H{source_dir}",
-            f"-B{self.build_temp}",
-            "-G{}".format(build_system),
-            f"-DCMAKE_INSTALL_PREFIX={install_prefix}",
-            # "-DPython3_ROOT_DIR:PATH={}".format(sys.base_prefix),
-            f"-DPYTHON_EXECUTABLE:FILEPATH={sys.executable}",
-            f"-DCPPAN_EXECUTABLE:FILEPATH={cppan_executable}",
-            # f"-DPython3_INCLUDE_DIR:FILEPATH={include_path}",
-            f"-DPYTHON_INCLUDE_DIR:FILEPATH={include_path}",
-            # f"-DPython3_LIBRARY_RELEASE:FILEPATH={lib_path}",
-            # f"-DPython3_RUNTIME_LIBRARY_RELEASE:FILEPATH={lib_path}",
-            f"-DPYTHON_LIBRARY:FILEPATH={lib_path}",
-            # "-DPython3_FIND_REGISTRY=NEVER",
+            f"-S{os.path.abspath(ext.cmake_source_dir)}",
+            f"-B{os.path.abspath(ext.cmake_binary_dir)}",
+            f"-DCMAKE_INSTALL_PREFIX={os.path.abspath(ext.cmake_install_prefix)}",
+            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
+            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}",
+            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}",
+            "-G", build_system,
+        ]
+        for k, v in ext.cmake_args:
+            # To delay any evaluation
+            if callable(v):
+                v = v()
+            configure_command.append(f"{k}={v}")
+        configure_command += [
             "-DCMAKE_BUILD_TYPE=Release",
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
-            # "-DPYTHON_EXTENSION_OUTPUT={}".format(os.path.splitext(self.get_ext_filename(ext.name))[0]),
-            "-DBUILD_TESTING:BOOL=NO"
         ]
+
         self.spawn(configure_command)
 
-        # configure_stage = subprocess.Popen(
-        #     configure_command,
-        #     env=modded_env,
-        #     cwd=self.cmake_binary_dir
-        # )
-        #
-        # configure_stage.communicate()
-        #
-        # if configure_stage.returncode != 0:
-        #     command_string = " ".join(configure_command)
-        #     error_message = "CMake failed at configuration stage with " \
-        #                     "command \"{}\"".format(command_string)
-        #
-        #     raise CMakeException(error_message)
+    def get_install_prefix(self, ext):
+        if ext.cmake_install_prefix is not None:
+            return os.path.abspath(ext.cmake_install_prefix)
+
+        if isinstance(ext, CMakeDependency):
+            install_prefix = os.path.normpath(self.build_temp)
+            if ext.prefix_name:
+                install_prefix = os.path.join(install_prefix, ext.prefix_name)
+            return os.path.abspath(install_prefix)
+
+        return os.path.abspath(self.build_lib)
+
+    def copy_extensions_to_lib(self, ext):
+        if isinstance(ext, CMakeDependency):
+            if ext.shared_library:
+                build_py = self.get_finalized_command('build_py')
+                build_cmd = self.get_finalized_command('build_ext')
+                fullname = build_cmd.get_ext_fullname(ext.name)
+                filename = build_cmd.get_ext_filename(fullname)
+                src_filename = os.path.join(self.build_temp, filename)
+                package_dir = build_py.get_package_dir("uiucprescon.ocr")
+
+                # if os.path.exists(src_filename):
+                dest_filename = os.path.join(self.build_lib, package_dir, filename)
+                copy_file(
+                    src_filename, dest_filename, verbose=self.verbose,
+                    dry_run=self.dry_run
+                )
+
+    def copy_extensions_to_src(self, ext):
+        if ext.shared_library:
+            build_py = self.get_finalized_command('build_py')
+            build_cmd = self.get_finalized_command('build_ext')
+            fullname = build_cmd.get_ext_fullname(ext.name)
+            filename = build_cmd.get_ext_filename(fullname)
+            # src_filename = os.path.join(self.build_temp, filename)
+            package_dir = build_py.get_package_dir("uiucprescon.ocr")
+            src_filename = os.path.join(self.build_lib, package_dir, filename)
+
+            dest_filename = os.path.join(package_dir, filename)
+            copy_file(
+                src_filename, dest_filename, verbose=self.verbose,
+                dry_run=self.dry_run
+            )
 
     @staticmethod
     def get_build_generator_name():
@@ -204,104 +171,35 @@ class BuildExt(build_ext):
             'GCC': "Unix Makefiles",
             'Clang': "Unix Makefiles",
         }
-
+        # return "Ninja"
         return cmake_build_systems_lut[python_compiler]
-
 
     def build_cmake(self, ext):
 
         build_command = [
             self.cmake_exec,
-            "--build", self.build_temp,
+            "--build", ext.cmake_binary_dir,
             # "--parallel", "{}".format(self.parallel),
-            "--config", "Release",
+            "--config", "release",
         ]
         if self.parallel:
-            build_command.extend(["-j", str(self.parallel)])
-
-        # build_stage = subprocess.Popen(
-        #     build_command,
-        #     env=self.get_modified_env_vars(ext),
-        #     cwd=self.cmake_binary_dir)
+            build_command.extend(["--parallel", str(self.parallel)])
 
         if "Visual Studio" in self.get_build_generator_name():
             build_command += ["--", "/verbosity:minimal"]
 
         self.spawn(build_command)
 
-
     def install_cmake(self, ext):
 
         install_command = [
             self.cmake_exec,
-            "--build", ".",
-            "--config", "Release",
+            "--build", ext.cmake_binary_dir,
+            "--config", "release",
             "--target", "install"
         ]
 
-        install_stage = subprocess.Popen(
-            install_command,
-            env=self.get_modified_env_vars(ext),
-            cwd=self.cmake_binary_dir)
-
-        install_stage.communicate()
-
-        if install_stage.returncode != 0:
-            raise CMakeException(
-                "CMake failed at build stage with command \"{}\"".
-                    format(" ".join(install_command))
-            )
-
-        def filter_share_libs(item: os.DirEntry):
-            basename, extension = os.path.splitext(item.name)
-
-            if not extension.endswith(".dll") and \
-                    not extension.endswith(".pyd"):
-                return False
-
-            return True
-
-        """ CPPAN installs all the shared libraries depens that it uses to the 
-        bin directory of the tree and all the interface libraries to the lib 
-        directory. 
-        I cannot find a way to change this behavior, so all dll files should be 
-        moved to the python module and the .lib files need to be deleted before
-        python can create a wheel. 
-        """
-        if self.inplace == 1:
-            dest_root = os.path.abspath(os.path.dirname(__file__))
-        else:
-            dest_root = self.build_lib
-
-        install_file_paths = [
-            os.path.normpath(os.path.join(self.build_lib, "bin")),
-            os.path.normpath(os.path.join(self.build_lib, "uiucprescon", "ocr")),
-
-        ]
-
-        for path in install_file_paths:
-            if not os.path.exists(path):
-                os.makedirs(path)
-
-        for m in itertools.chain(map(os.scandir, install_file_paths)):
-            for dll in filter(filter_share_libs, m):
-                dll_dest = os.path.join(dest_root,"uiucprescon", "ocr", dll.name)
-                # print("HERE {}".format(dll_dest), file=sys.stderr)
-                # if not os.path.exists(dll_dest):
-                #     os.makedirs(dll_dest)
-
-                shutil.move(dll.path, os.path.join(dll_dest))
-                ext.libraries.append(dll.name)
-
-        generated_bin_directory = os.path.normpath(os.path.join(self.build_lib, "bin"))
-        generated_lib_directory = os.path.normpath(os.path.join(self.build_lib, "lib"))
-        generated_dirs = [generated_bin_directory, generated_lib_directory]
-
-        for generated_dir in generated_dirs:
-            if os.path.exists(generated_dir):
-                print("Removing {}".format(generated_dir))
-                shutil.rmtree(generated_dir)
-
+        self.spawn(install_command)
 
     def get_modified_env_vars(self, ext):
 
@@ -322,7 +220,7 @@ class BuildExt(build_ext):
         return modded_env
 
     @staticmethod
-    def _get_file_extension(url)->str:
+    def _get_file_extension(url) -> str:
         if url.endswith(".tar.gz"):
             return ".tar.gz"
         if url.endswith(".zip"):
@@ -354,46 +252,10 @@ class BuildExt(build_ext):
 
         source_dest = os.path.join(self.build_temp, "{}-source".format(ext.name))
         self._extract_source(src_archive_dst, source_dest)
+        if ext.starting_path is not None:
+            source_dest = os.path.join(source_dest, ext.starting_path)
+        ext.cmake_source_dir = source_dest
         return source_dest
-
-    def get_required_tools(self, ext):
-        for tool_name, tool in ext.tools.items():
-            file_extension = self._get_file_extension(tool.url)
-            download_dst = os.path.join(self.build_temp, "{}{}".format(tool_name, file_extension))
-            if not os.path.exists(download_dst):
-                print("Downloading {}".format(tool_name))
-                self.download_file(tool.url, download_dst)
-
-            dst = os.path.join(self._get_tools_dir(), tool_name)
-            if not os.path.exists(dst):
-                self._extract_source(download_dst, dst)
-
-            tool_executables = {}
-            for executable in self._find_executables(dst):
-                executable_name = \
-                    os.path.splitext(os.path.basename(executable))[0]
-                tool_executables[executable_name] = os.path.abspath(executable)
-
-            ext.tools[tool_name] = Tool(tool_name, tool.url, tool_executables)
-
-    def _find_executables(self, root)->typing.Iterable[str]:
-        for root, dirs, files in os.walk(root):
-            for filename in files:
-                full_path = os.path.join(root, filename)
-                if os.access(full_path, os.X_OK):
-                    yield full_path
-
-    def install_depends(self, ext):
-        for command in ext.configuration_commands:
-            command(self, ext)
-
-    def _get_tools_dir(self):
-        """ Returns directory to store any helper tools"""
-
-        tools_dir = os.path.join(self.build_temp, "tools")
-        if not os.path.exists(tools_dir):
-            os.makedirs(tools_dir)
-        return tools_dir
 
     @staticmethod
     def _extract_source(source_archive, dst):
@@ -430,79 +292,74 @@ class BuildExt(build_ext):
 
 
 class CMakeExtension(Extension):
-    def __init__(self, name):
+    def __init__(self, name, *args, **kwargs):
         # don't invoke the original build_ext for this special extension
         super().__init__(name, sources=[])
-
-
-class DownloadCMakeExtension(CMakeExtension):
-
-    def __init__(self, name, url):
-        super().__init__(name)
-        self.url = url
         self.cmake_source_dir = None
         self.cmake_binary_dir = None
-        self.tools: typing.Dict[str, Tool] = dict()
-        self.configuration_commands = []
-
-    def add_required_tool(self, name, url):
-        self.tools[name] = Tool(name, url, dict())
-
-    def add_configure_command(self, callback):
-        self.configuration_commands.append(callback)
+        self.cmake_args: List[Tuple[str, Union[str, callable()]]] = []
+        self.cmake_install_prefix = None
+        self.url = None
+        self.prefix_name = None
+        self.shared_library = True
 
 
-def clean_cppan_cache(build, ext):
-    okay_codes = [0,1]
-    cppan = ext.tools['CPPAN']
-    executable = cppan.executable['cppan']
-    print("Cleaning cppan cache")
-    result = subprocess.run([executable, "--clear-cache"], cwd=build.build_temp)
-    if result.stdout:
-        print(result.stdout)
+class CMakeDependency(CMakeExtension):
 
-    if result.stderr:
-        print(result.stderr)
-
-    print(result.returncode)
-
-    if result.returncode not in okay_codes:
-        raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
-    print("Cleaning cppan cache -- Done")
-    pass
+    def __init__(self, name, url, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.url = url
+        self.starting_path = None
+        self.prefix_name = None
 
 
-def install_cppan(build, ext):
-    okay_codes = [0,1]
-    cppan = ext.tools['CPPAN']
-    executable = cppan.executable['cppan']
-    installed_cppan = os.path.join(str(Path.home()), "cppan.exe")
-    shutil.copyfile(executable, installed_cppan)
-    shutil.copyfile("cppan.yml", os.path.join(build.build_temp, "cppan.yml"))
-    ext.tools['CPPAN'].executable['cppan'] = installed_cppan
-    
-    print("Running downloaded cppan for the first time")
-    result = subprocess.run(
-        [executable],
-        # [executable, "--settings", "cppan.yml", "--verbose", "--dir", os.path.abspath(build.build_temp)],
-        cwd=str(Path.home()))
+tesseract_extension = CMakeExtension("tesseractwrap")
+tesseract_extension.cmake_source_dir = os.path.abspath(os.path.dirname(__file__))
 
-    if result.stdout:
-        print(result.stdout)
+include_path = os.path.join(sys.base_prefix, "include")
+lib_path = os.path.join(sys.base_prefix, "Scripts", "python3.dll")
 
-    if result.stderr:
-        print(result.stderr)
+zlib = CMakeDependency("zlib", url="https://www.zlib.net/zlib-1.2.11.tar.gz")
+zlib.starting_path = "zlib-1.2.11"
 
-    if result.returncode not in okay_codes:
-        raise Exception("Running cppan returned with nonzero code {}.".format(result.returncode))
-    pass
-    print("Running downloaded cppan for the first time -- Done")
+tiff = CMakeDependency("tiff", url="https://download.osgeo.org/libtiff/tiff-4.0.10.tar.gz")
+tiff.starting_path = "tiff-4.0.10"
+tiff.shared_library = False
+
+tiff.cmake_args = [
+    ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+    ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
+    ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+    # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
+    ("-DBUILD_SHARED_LIBS:BOOL", "no"),
+]
+# TODO: Add a CMakeDependency for openjp2
 
 
-tesseract_extension = DownloadCMakeExtension("tesseractwrap", TESSERACT_SOURCE_URL)
+leptonica = CMakeDependency("leptonica-1.77.0", url="https://github.com/DanBloomberg/leptonica/archive/1.77.0.tar.gz")
 
-tesseract_extension.add_required_tool("CPPAN", CPPAN_URL)
-tesseract_extension.add_configure_command(install_cppan)
+# Lambda is use to delay the evaluation of zlib until it's finished processing
+leptonica.cmake_args = [
+    # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
+    ("-DZLIB_INCLUDE_DIR:PATH:", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+    ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+    ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
+    ("-DTIFF_INCLUDE_DIR:PATH", lambda: os.path.join(tiff.cmake_install_prefix, "include")),
+    ("-DTIFF_LIBRARY:FILEPATH", lambda: os.path.join(tiff.cmake_install_prefix, "lib", "tiff.lib")),
+]
+leptonica.starting_path = "leptonica-1.77.0"
+
+tesseract = CMakeDependency("tesseract40", url="https://github.com/tesseract-ocr/tesseract/archive/4.0.0.tar.gz")
+tesseract.starting_path = "tesseract-4.0.0"
+tesseract.cmake_args = [
+    ("-DBUILD_TRAINING_TOOLS:BOOL", "OFF"),
+    ("-DLeptonica_DIR:PATH", lambda: os.path.join(leptonica.cmake_install_prefix, "cmake")),
+]
+tesseract_extension.cmake_args = [
+    ("-DPYTHON_EXECUTABLE:FILEPATH", sys.executable),
+    ("-DTesseract_ROOT:FILEPATH", lambda: os.path.join(tesseract.cmake_install_prefix)),
+    ("-DLeptonica_ROOT:PATH", lambda: os.path.join(leptonica.cmake_install_prefix))
+]
 
 setup(
     packages=['uiucprescon.ocr'],
@@ -515,10 +372,14 @@ setup(
         'pytest',
     ],
     namespace_packages=["uiucprescon"],
-    ext_modules=[tesseract_extension],
+    ext_modules=[
+        zlib,
+        tiff,
+        leptonica,
+        tesseract,
+        tesseract_extension
+    ],
     cmdclass={
-        # 'build_py': BuildPyCommand,
         "build_ext": BuildExt,
-        # "clean_ext": CleanExt
     },
 )
