@@ -1,7 +1,4 @@
 @Library(["devpi", "PythonHelpers"]) _
-// TODO: Remove global variables
-def DOC_ZIP_FILENAME = "doc.zip"
-def junit_filename = "junit.xml"
 
 
 def remove_files(artifacts){
@@ -150,22 +147,10 @@ pipeline {
                         bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PSWD} --clientdir ${WORKSPACE}\\certs\\"
                     }
                 }
-                // TODO: remove
-                stage("Setting Variables Used by the Rest of the Build"){
-                    steps{
-                        script{
-                            junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
-                        }
-                        bat "tree /A /F > ${WORKSPACE}/logs/tree_postconfig.log"
-                    }
-                }
             }
             post{
                 success{
                     echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
-                }
-                always{
-                    echo "junit_filename = ${junit_filename}"
                 }
                 failure {
                     deleteDir()
@@ -336,7 +321,7 @@ pipeline {
                                         script{
                                             try{
                                                 bat "pipenv run tox --workdir ..\\.tox\\PyTest"
-                //                                    bat "pipenv run tox -vv --workdir ${WORKSPACE}\\.tox\\PyTest -- --junitxml=${WORKSPACE}\\pipenv\\\\${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}\\pipenv\\/coverage/ --cov=ocr"
+
                                             } catch (exc) {
                                                 bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
                                             }
@@ -358,13 +343,13 @@ pipeline {
                     }
                     steps{
                         dir("build\\lib"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
+                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
                         }
                     }
                     post {
                         always {
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage.py', reportTitles: ''])
-                            junit "reports/pytest/${junit_filename}"
+                            junit "reports/pytest/${env.junit_filename}"
                             script {
                                 try{
                                     publishCoverage
