@@ -189,20 +189,12 @@ pipeline {
                 }
             }
             post{
-                post{
-                    success{
-                        echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
-                    }
+                success{
+                    echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
                 }
                 always{
-                    echo """Name                            = ${env.PKG_NAME}
-Version                         = ${env.PKG_VERSION}
-documentation zip file          = ${env.DOC_ZIP_FILENAME}
-junit_filename                  = ${junit_filename}
-"""
-
+                    echo "junit_filename = ${junit_filename}"
                 }
-
             }
 
         }
