@@ -181,33 +181,9 @@ pipeline {
                 // TODO: remove
                 stage("Setting Variables Used by the Rest of the Build"){
                     steps{
-
-#                        script {
-#                            // Set up the reports directory variable
-#
-#                            dir("source"){
-#                                PKG_NAME = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python.exe  setup.py --name").trim()
-#                                PKG_VERSION = bat(returnStdout: true, script: "@${tool 'CPython-3.6'}\\python.exe setup.py --version").trim()
-#                            }
-#                        }
-
                         script{
                             junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                         }
-
-
-
-
-                        script{
-
-
-
-
-
-                        }
-
-
-
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_postconfig.log"
                     }
                 }
