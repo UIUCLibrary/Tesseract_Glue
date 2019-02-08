@@ -207,14 +207,14 @@ pipeline {
                     }
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
-                        script{
-                            // Add a line to config file so auto docs look in the build folder
-                            def sphinx_config_file = "${WORKSPACE}/source/docs/source/conf.py"
-                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
-                            def readContent = readFile "${sphinx_config_file}"
-                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
-                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
-                        }
+#                        script{
+#                            // Add a line to config file so auto docs look in the build folder
+#                            def sphinx_config_file = "${WORKSPACE}/source/docs/source/conf.py"
+#                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
+#                            def readContent = readFile "${sphinx_config_file}"
+#                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
+#                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
+#                        }
                         dir("source"){
                             bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
@@ -230,17 +230,17 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            script{
+#                            script{
                                 // // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
                                 // def alljob = env.JOB_NAME.tokenize("/") as String[]
                                 // def project_name = alljob[0]
                                 // dir("${WORKSPACE}/dist"){
                                 //     zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${env.DOC_ZIP_FILENAME}"
                                 // }
-                                script{
-                                    zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
-                                    stash includes: 'build/docs/html/**', name: 'docs'
-                                }
+#                                script{
+                            zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+                            stash includes: 'build/docs/html/**', name: 'docs'
+#                                }
                             }
                         }
                         failure{
