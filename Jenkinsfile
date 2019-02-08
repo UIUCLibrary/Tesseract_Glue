@@ -260,6 +260,10 @@ pipeline {
         }
 
         stage("Testing") {
+            environment{
+                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
+            }
+
 //            environment{
 //                PATH = ";$PATH"
 //            }
@@ -392,48 +396,71 @@ pipeline {
                     when {
                         equals expected: true, actual: params.TEST_RUN_MYPY
                     }
-                    steps{
-                        dir("reports/mypy/html"){
-                            deleteDir()
-                            bat "dir"
-                        }
-                        script{
-                            // tee("logs/mypy.log") {
-                            try{
+                    stages{
+                        stage("Generate stubs") {
+                            steps{
                                 dir("source"){
-                                    bat "dir"
-                                    bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${WORKSPACE}\\reports\\mypy\\html --cobertura-xml-report ${WORKSPACE}\\reports\\mypy > ${WORKSPACE}\\logs\\mypy.log"
+                                  bat "stubgen uiucprescon --recursive -o ${WORKSPACE}\\mypy_stubs"
                                 }
-                            } catch (exc) {
-                                echo "MyPy found some warnings"
                             }
-                            dir("${WORKSPACE}/reports/mypy"){
-                                if(fileExists("mypy_cobertura.xml")){
-                                    bat "del mypy_cobertura.xml"
-                                }
 
-                                bat "ren cobertura.xml mypy_cobertura.xml"
+                        }
+                        stage("Running MyPy"){
+                            environment{
+                                MYPYPATH = "${WORKSPACE}\\mypy_stubs"
                             }
-                            // }
+
+                            steps{
+                                bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
+                                dir("source"){
+                                    bat returnStatus: true, script: "mypy -p uiucprescon --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
+                                }
+                            }
+                            post {
+                                always {
+                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                                }
+                            }
+
+//                                script{
+//                                    // tee("logs/mypy.log") {
+//                                    try{
+//                                        dir("source"){
+//                                            bat "dir"
+//                                            bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${WORKSPACE}\\reports\\mypy\\html --cobertura-xml-report ${WORKSPACE}\\reports\\mypy > ${WORKSPACE}\\logs\\mypy.log"
+//                                        }
+//                                    } catch (exc) {
+//                                        echo "MyPy found some warnings"
+//                                    }
+//                                    dir("${WORKSPACE}/reports/mypy"){
+//                                        if(fileExists("mypy_cobertura.xml")){
+//                                            bat "del mypy_cobertura.xml"
+//                                        }
+//
+//                                        bat "ren cobertura.xml mypy_cobertura.xml"
+//                                    }
+//                                    // }
+//                                }
                         }
                     }
                     post {
                         always {
-                            cobertura(
-                                autoUpdateHealth: false,
-                                autoUpdateStability: false,
-                                coberturaReportFile: 'reports/mypy/mypy_cobertura.xml',
-                                // conditionalCoverageTargets: '70, 0, 0',
-                                enableNewApi: false,
-                                failUnhealthy: false,
-                                failUnstable: false,
-                                lineCoverageTargets: '80, 0, 0',
-                                maxNumberOfBuilds: 0,
-                                methodCoverageTargets: '80, 0, 0',
-                                onlyStable: false,
-                                sourceEncoding: 'ASCII',
-                                zoomCoverageChart: false
-                            )
+//                            cobertura(
+//                                autoUpdateHealth: false,
+//                                autoUpdateStability: false,
+//                                coberturaReportFile: 'reports/mypy/mypy_cobertura.xml',
+//                                // conditionalCoverageTargets: '70, 0, 0',
+//                                enableNewApi: false,
+//                                failUnhealthy: false,
+//                                failUnstable: false,
+//                                lineCoverageTargets: '80, 0, 0',
+//                                maxNumberOfBuilds: 0,
+//                                methodCoverageTargets: '80, 0, 0',
+//                                onlyStable: false,
+//                                sourceEncoding: 'ASCII',
+//                                zoomCoverageChart: false
+//                            )
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                         }
