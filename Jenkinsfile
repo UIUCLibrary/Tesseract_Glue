@@ -219,6 +219,11 @@ pipeline {
                 }
             }
             post{
+                post{
+                    success{
+                        echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
+                    }
+                }
                 always{
                     echo """Name                            = ${PKG_NAME}
 Version                         = ${PKG_VERSION}
