@@ -98,9 +98,6 @@ pipeline {
                         success{
                             archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
-                        failure {
-                            deleteDir()
-                        }
                     }
 
                 }
@@ -112,7 +109,6 @@ pipeline {
                         dir("source"){
                             bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check"
                             bat "python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
-
                         }
                     }
                     post{
@@ -141,9 +137,7 @@ pipeline {
                             bat "venv\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
                             archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
-                        failure {
-                            deleteDir()
-                        }
+
                     }
                 }
                 // TODO: Remove login devpi stage
@@ -172,6 +166,9 @@ pipeline {
                 }
                 always{
                     echo "junit_filename = ${junit_filename}"
+                }
+                failure {
+                    deleteDir()
                 }
             }
 
