@@ -14,6 +14,19 @@ def remove_files(artifacts){
 }
 
 
+def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
+    script {
+            try {
+                bat "${devpiExecutable} login ${devpiUsername} --password ${devpiPassword}"
+                bat "${devpiExecutable} use ${devpiIndex}"
+                bat "${devpiExecutable} remove -y ${pkgName}==${pkgVersion}"
+            } catch (Exception ex) {
+                echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
+        }
+
+    }
+}
+
 pipeline {
     agent {
         label "Windows && VS2015 && Python3 && longfilenames"
@@ -199,20 +212,21 @@ pipeline {
 
         }
         stage("Building") {
+                        
             stages{
                 stage("Building Python Package"){
                     environment {
-                        PATH = "${tool 'cmake3.12'}\\;$PATH"
+                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'cmake3.12'};$PATH"
                     }
                     steps {
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
                         // tee("logs/build.log") {
-                            dir("source"){
-                                lock("cppan_${NODE_NAME}"){
-                                    powershell "& python setup.py build -b ${WORKSPACE}\\build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/lib | tee ${WORKSPACE}\\logs\\build.log"
-                                    // bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
-                                }
-                            }
+                        dir("source"){
+                            // lock("cppan_${NODE_NAME}"){
+                            powershell "& python setup.py build -b ${WORKSPACE}\\build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/lib | tee ${WORKSPACE}\\logs\\build.log"
+                                // bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
+                            // }
+                        }
                         // }
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -244,23 +258,26 @@ pipeline {
                             //     }
                             // }
                         }
-                        failure{
-                            echo "${WORKSPACE}"
-                            echo "locating cppan.yml files"
-                            script{
-                                def cppan_files = findFiles glob: '**/cppan.yml'
-                                cppan_files.each { cppan_file ->
-                                    echo "Found ${cppan_file}"
-                                    archiveArtifacts artifacts: "${cppan_file}"
-                                }
-                            }
-                            bat "set > logs\\env_vars.log"
-                            bat "tree /A /F > logs\\tree_postbuild_failed.log"
+                        // failure{
+                        //     echo "${WORKSPACE}"
+                        //     echo "locating cppan.yml files"
+                        //     script{
+                        //         def cppan_files = findFiles glob: '**/cppan.yml'
+                        //         cppan_files.each { cppan_file ->
+                        //             echo "Found ${cppan_file}"
+                        //             archiveArtifacts artifacts: "${cppan_file}"
+                        //         }
+                        //     }
+                        //     bat "set > logs\\env_vars.log"
+                        //     bat "tree /A /F > logs\\tree_postbuild_failed.log"
 
-                        }
+                        // }
                     }
                 }
                 stage("Building Documentation"){
+                    environment {
+                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+                    }
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
                         script{
@@ -273,7 +290,7 @@ pipeline {
                         }
 
                         dir("build/lib"){
-                            powershell "& pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees | tee ${WORKSPACE}\\logs\\build_sphinx.log"
+                            powershell "& python -m pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees | tee ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
                     }
                     post{
