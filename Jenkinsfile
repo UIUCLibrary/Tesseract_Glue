@@ -1,5 +1,5 @@
-@Library("devpi") _
-
+@Library(["devpi", "PythonHelpers"]) _
+// TODO: Remove global variables
 def PKG_NAME = "unknown"
 def PKG_VERSION = "unknown"
 def DOC_ZIP_FILENAME = "doc.zip"
@@ -19,42 +19,51 @@ def remove_files(artifacts){
 
 
 pipeline {
-                agent {
-                    label "Windows && VS2015 && Python3 && longfilenames"
-                }
+    agent {
+        label "Windows && VS2015 && Python3 && longfilenames"
+    }
 
-                triggers {
-                    cron('@daily')
-                }
+    triggers {
+        cron('@daily')
+    }
 
-                options {
-                    disableConcurrentBuilds()  //each branch has 1 job running at a time
-                    timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
-                    checkoutToSubdirectory("source")
-                    preserveStashes()
-                }
-                environment {
-                    build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
-                    PIPENV_CACHE_DIR="${WORKSPACE}\\..\\.virtualenvs\\cache\\"
-                    WORKON_HOME ="${WORKSPACE}\\pipenv\\"
-                }
-                parameters {
-                    booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
-            //        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
-                    booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
-                    booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
-                    booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
-                    booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
-                    booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+    options {
+        disableConcurrentBuilds()  //each branch has 1 job running at a time
+        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
+        checkoutToSubdirectory("source")
+        preserveStashes()
+    }
+    environment {
+        PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
+        PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
+        DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
+        DEVPI = credentials("DS_devpi")
+        PIPENV_NOSPIN="DISABLED"
+        build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
+        PIPENV_CACHE_DIR="${WORKSPACE}\\..\\.virtualenvs\\cache\\"
+        WORKON_HOME ="${WORKSPACE}\\pipenv\\"
+        
+    }
+    parameters {
+        booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
+//        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
+        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
+        booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
+        booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
+        booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
 
-                    booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-                    booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
-                    // choice(choices: 'None\nrelease', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
-                    string(name: 'DEPLOY_DOCS_URL_SUBFOLDER', defaultValue: "ocr", description: 'The directory that the docs should be saved under')
-                    booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
-                }
-                stages {
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
+        // choice(choices: 'None\nrelease', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
+        string(name: 'DEPLOY_DOCS_URL_SUBFOLDER', defaultValue: "ocr", description: 'The directory that the docs should be saved under')
+        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
+    }
+    stages {
         stage("Configure") {
+            environment {
+                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+            }
             stages{
                 stage("Purge all existing data in workspace"){
                     when{
@@ -67,6 +76,7 @@ pipeline {
                         }
                     }
                 }
+                // TODO: Remove clean up stage
                 stage("Cleanup"){
                     steps {
                         dir("logs"){
@@ -104,10 +114,10 @@ pipeline {
                 stage("Installing Required System Level Dependencies"){
                     steps{
                         lock("system_python_${NODE_NAME}"){
-                            bat "${tool 'CPython-3.6'}\\python.exe -m pip install pip --upgrade --quiet && ${tool 'CPython-3.6'}\\python.exe -m pip install --upgrade pipenv --quiet"
+                            bat "python -m pip install pip --upgrade --quiet && python -m pip install --upgrade pipenv --quiet"
                         }
 
-                        bat "${tool 'CPython-3.6'}\\python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
+                        bat "python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
 
                     }
                     post{
@@ -126,8 +136,8 @@ pipeline {
                     }
                     steps {
                         dir("source"){
-                            bat "${tool 'CPython-3.6'}\\python.exe -m pipenv install --dev --deploy"
-                            bat "${tool 'CPython-3.6'}\\python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
+                            bat "python.exe -m pipenv install --dev --deploy"
+                            bat "python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
 
                         }
                     }
@@ -139,14 +149,14 @@ pipeline {
                 }
                 stage("Creating Virtualenv for Building"){
                     steps {
-                        bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
+                        bat "python.exe -m venv venv"
 
                         script {
                             try {
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip"
+                                bat "venv\\Scripts\\python.exe -m pip install -U pip"
                             }
                             catch (exc) {
-                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
+                                bat "python.exe -m venv venv"
                                 bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
                             }
                         }
@@ -162,6 +172,7 @@ pipeline {
                         }
                     }
                 }
+                // TODO: Remove login devpi stage
                 stage("Logging into DevPi"){
                     environment{
                         DEVPI_PSWD = credentials('devpi-login')
