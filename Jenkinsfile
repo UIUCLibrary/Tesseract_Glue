@@ -246,14 +246,14 @@ pipeline {
                         failure{
                             echo "Failed to build Python package"
                         }
-                        cleanup{
-                            script{
-                                if(fileExists("logs/build_sphinx.log")){
-                                    bat "del logs\\build_sphinx.log"
-                                }
-                            }
-
-                        }
+#                        cleanup{
+#                            script{
+#                                if(fileExists("logs/build_sphinx.log")){
+#                                    bat "del logs\\build_sphinx.log"
+#                                }
+#                            }
+#
+#                        }
                     }
                 }
             }
