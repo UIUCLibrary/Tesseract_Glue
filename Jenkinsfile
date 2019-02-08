@@ -87,12 +87,10 @@ pipeline {
                         lock("system_python_${NODE_NAME}"){
                             bat "python -m pip install pip --upgrade --quiet && python -m pip install --upgrade pipenv --quiet"
                         }
-
-                        bat "python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
-
                     }
                     post{
                         success{
+                            bat "(if not exist logs mkdir logs) && python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
                             archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
                     }
