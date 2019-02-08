@@ -216,7 +216,7 @@ pipeline {
             stages{
                 stage("Building Python Package"){
                     environment {
-                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'cmake3.12'};$PATH"
+                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'cmake3.13'};$PATH"
                     }
                     steps {
                         bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
@@ -343,7 +343,7 @@ pipeline {
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     environment {
-                        PATH = "${tool 'cmake3.12'}\\;$PATH"
+                        PATH = "${tool 'cmake3.13'}\\;$PATH"
                         CL = "/MP"
 
                     }
@@ -531,7 +531,7 @@ pipeline {
         }
         stage("Packaging") {
             environment {
-                PATH = "${tool 'cmake3.12'}\\;$PATH"
+                PATH = "${tool 'cmake3.13'};$PATH"
             }
             steps {
                 dir("source"){
@@ -598,7 +598,7 @@ pipeline {
                         skipDefaultCheckout(true)
                     }
                     environment {
-                        PATH = "${tool 'cmake3.12'};$PATH"
+                        PATH = "${tool 'cmake3.13'};$PATH"
                         CL = "/MP"
                     }
                     stages {
