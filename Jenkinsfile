@@ -126,7 +126,7 @@ pipeline {
                             }
                         }
 
-                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
+                        bat "venv\\Scripts\\pip.exe install devpi-client mypy sphinx pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
                         bat 'venv\\Scripts\\pip.exe install "tox>=3.7"'
                     }
                     post{
