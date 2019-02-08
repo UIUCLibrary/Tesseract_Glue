@@ -166,15 +166,13 @@ pipeline {
                         PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'cmake3.13'};$PATH"
                     }
                     steps {
-                        bat "tree /A /F > ${WORKSPACE}/logs/tree_prebuild.log"
-                        // tee("logs/build.log") {
+
                         dir("source"){
-                            // lock("cppan_${NODE_NAME}"){
+
                             powershell "& python setup.py build -b ${WORKSPACE}\\build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/lib | tee ${WORKSPACE}\\logs\\build.log"
-                                // bat "pipenv run python setup.py build -b ${WORKSPACE}\\build -j ${NUMBER_OF_PROCESSORS} --build-lib ..\\build\\lib -t ..\\build\\temp\\"
-                            // }
+
                         }
-                        // }
+
                         dir("build\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
 
@@ -199,26 +197,8 @@ pipeline {
                                 notFailBuild: true
                                 )
 
-                            // script{
-                            //     if(fileExists("logs\\build.log")){
-                            //         bat "del logs\\build.log"
-                            //     }
-                            // }
-                        }
-                        // failure{
-                        //     echo "${WORKSPACE}"
-                        //     echo "locating cppan.yml files"
-                        //     script{
-                        //         def cppan_files = findFiles glob: '**/cppan.yml'
-                        //         cppan_files.each { cppan_file ->
-                        //             echo "Found ${cppan_file}"
-                        //             archiveArtifacts artifacts: "${cppan_file}"
-                        //         }
-                        //     }
-                        //     bat "set > logs\\env_vars.log"
-                        //     bat "tree /A /F > logs\\tree_postbuild_failed.log"
 
-                        // }
+                        }
                     }
                 }
                 stage("Building Documentation"){
@@ -235,10 +215,12 @@ pipeline {
                             echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
                             writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
                         }
-
-                        dir("build/lib"){
-                            powershell "& python -m pipenv run sphinx-build.exe -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees | tee ${WORKSPACE}\\logs\\build_sphinx.log"
+                        dir("source"){
+                            bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
+#                        dir("build/lib"){
+#                            bat "python -m pipenv run sphinx-build -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+#                        }
                     }
                     post{
                         always {
