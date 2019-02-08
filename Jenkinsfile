@@ -126,7 +126,9 @@ pipeline {
                             }
                         }
 
-                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"                    }
+                        bat "venv\\Scripts\\pip.exe install devpi-client pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
+                        bat 'venv\\Scripts\\pip.exe install "tox>=3.7"'
+                    }
                     post{
                         success{
                             bat "venv\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
@@ -258,21 +260,19 @@ pipeline {
         }
 
         stage("Testing") {
+//            environment{
+//                PATH = ";$PATH"
+//            }
             parallel {
                 stage("Run Tox test") {
-                    agent{
-                        node {
-                            label "Windows && VS2015 && Python3 && longfilenames"
-                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/tox/"
-                        }
-                    }
+//                    agent{
+//                        node {
+//                            label "Windows && VS2015 && Python3 && longfilenames"
+//                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/tox/"
+//                        }
+//                    }
                     when {
                        equals expected: true, actual: params.TEST_RUN_TOX
-                    }
-                    environment {
-                        PATH = "${tool 'cmake3.13'}\\;$PATH"
-                        CL = "/MP"
-
                     }
                     stages{
                         stage("Removing Previous Tox Environment"){
@@ -286,26 +286,19 @@ pipeline {
                             }
 
                         }
-                        stage("Configuring Tox Environment"){
-                            steps{
-                                dir("source"){
-                                    bat "${tool 'CPython-3.6'}\\python.exe -m pipenv install --dev --deploy"
-                                }
-                            }
-                        }
                         stage("Run Tox"){
+                            environment {
+                                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'}\\;$PATH"
+                                CL = "/MP"
+                            }
+
                             steps {
-
                                 dir("source"){
-                                    lock("cppan_${NODE_NAME}"){
-                                        script{
-                                            try{
-                                                bat "pipenv run tox --workdir ..\\.tox\\PyTest"
-
-                                            } catch (exc) {
-                                                bat "pipenv run tox -vv --recreate --workdir ..\\.tox\\PyTest"
-                                            }
-
+                                    script{
+                                        try{
+                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
+                                        } catch (exc) {
+                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
                                         }
                                     }
                                 }
