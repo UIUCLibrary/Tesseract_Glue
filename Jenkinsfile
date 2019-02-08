@@ -241,7 +241,7 @@ pipeline {
                             zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
                             stash includes: 'build/docs/html/**', name: 'docs'
 #                                }
-                            }
+#                            }
                         }
                         failure{
                             echo "Failed to build Python package"
