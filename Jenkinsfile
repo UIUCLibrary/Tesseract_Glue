@@ -207,20 +207,20 @@ pipeline {
                     }
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
-#                        script{
-#                            // Add a line to config file so auto docs look in the build folder
-#                            def sphinx_config_file = "${WORKSPACE}/source/docs/source/conf.py"
-#                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
-#                            def readContent = readFile "${sphinx_config_file}"
-#                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
-#                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
-#                        }
+//#                        script{
+//#                            // Add a line to config file so auto docs look in the build folder
+//#                            def sphinx_config_file = "${WORKSPACE}/source/docs/source/conf.py"
+//#                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
+//#                            def readContent = readFile "${sphinx_config_file}"
+//#                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
+//#                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
+//#                        }
                         dir("source"){
                             bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
-#                        dir("build/lib"){
-#                            bat "python -m pipenv run sphinx-build -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
-#                        }
+//#                        dir("build/lib"){
+//#                            bat "python -m pipenv run sphinx-build -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
+//#                        }
                     }
                     post{
                         always {
@@ -246,14 +246,14 @@ pipeline {
                         failure{
                             echo "Failed to build Python package"
                         }
-#                        cleanup{
-#                            script{
-#                                if(fileExists("logs/build_sphinx.log")){
-#                                    bat "del logs\\build_sphinx.log"
-#                                }
-#                            }
-#
-#                        }
+//#                        cleanup{
+//#                            script{
+//#                                if(fileExists("logs/build_sphinx.log")){
+//#                                    bat "del logs\\build_sphinx.log"
+//#                                }
+//#                            }
+//#
+//#                        }
                     }
                 }
             }
