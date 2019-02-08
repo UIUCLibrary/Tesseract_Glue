@@ -704,12 +704,7 @@ pipeline {
             post {
                 success {
                     echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
-                    script {
-                        withCredentials([usernamePassword(credentialsId: 'DS_devpi', usernameVariable: 'DEVPI_USERNAME', passwordVariable: 'DEVPI_PASSWORD')]) {
-                        bat "venv\\Scripts\\devpi.exe login ${DEVPI_USERNAME} --password ${DEVPI_PASSWORD}"
-                        bat "venv\\Scripts\\devpi.exe push --index ${DEVPI_USERNAME}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} ${DEVPI_USERNAME}/${env.BRANCH_NAME}"
-                        }
-                    }
+                    bat "venv\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}"
                 }
                 failure {
                     echo "At least one package format on DevPi failed."
@@ -785,45 +780,44 @@ pipeline {
     }
     post {
         cleanup{
+            remove_from_devpi("venv\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
+            cleanWs(
+                deleteDirs: true,
+                disableDeferredWipeout: true,
+                patterns: [
+                    [pattern: 'dist', type: 'INCLUDE'],
+//                    [pattern: 'build', type: 'INCLUDE'],
+                    [pattern: 'reports', type: 'INCLUDE'],
+                    [pattern: 'logs', type: 'INCLUDE'],
+                    [pattern: 'certs', type: 'INCLUDE'],
+                    [pattern: '*tmp', type: 'INCLUDE'],
+                    [pattern: "source/**/*.dll", type: 'INCLUDE'],
+                    [pattern: "source/**/*.pyd", type: 'INCLUDE'],
+                    [pattern: "source/**/*.exe", type: 'INCLUDE'],
+                    [pattern: "source/**/*.exe", type: 'INCLUDE']
+                    ]
+                )
+#            script {
+#                if(fileExists('source/setup.py')){
+#                    dir("source"){
+#                        try{
+#                            retry(3) {
+#                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
+#                            }
+#                        } catch (Exception ex) {
+#                            echo "Unable to successfully run clean. Purging source directory."
+#                            deleteDir()
+#                        }
+#                    }
+#                }
+#
+#                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
+#                    bat "venv\\Scripts\\devpi.exe use https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+#                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION} --clientdir ${WORKSPACE}\\certs\\ "
+#                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
+#                }
+#            }
 
-
-            script {
-                if(fileExists('source/setup.py')){
-                    dir("source"){
-                        try{
-                            retry(3) {
-                                bat "${WORKSPACE}\\venv\\Scripts\\python.exe setup.py clean --all"
-                            }
-                        } catch (Exception ex) {
-                            echo "Unable to successfully run clean. Purging source directory."
-                            deleteDir()
-                        }
-                    }
-                }
-
-                if (env.BRANCH_NAME == "master" || env.BRANCH_NAME == "dev"){
-                    bat "venv\\Scripts\\devpi.exe use https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-                    def devpi_remove_return_code = bat returnStatus: true, script:"venv\\Scripts\\devpi.exe remove -y ${env.PKG_NAME}==${env.PKG_VERSION} --clientdir ${WORKSPACE}\\certs\\ "
-                    echo "Devpi remove exited with code ${devpi_remove_return_code}."
-                }
-            }
-            dir("certs"){
-                deleteDir()
-            }
-            dir("build"){
-                deleteDir()
-            }
-            dir("dist"){
-                deleteDir()
-            }
-            dir("logs"){
-                deleteDir()
-            }
-            bat "tree /A /F > final_tree.log"
-            archiveArtifacts artifacts: "final_tree.log", allowEmptyArchive: true
-            bat "del final_tree.log"
-
-
-        }
+#        }
     }
 }
