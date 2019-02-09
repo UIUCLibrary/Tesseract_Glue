@@ -126,7 +126,7 @@ pipeline {
                             }
                         }
 
-                        bat "venv\\36\\Scripts\\pip.exe install devpi-client mypy sphinx pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
+                        bat "venv\\36\\Scripts\\pip.exe install devpi-client mypy lxml sphinx pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
                         bat 'venv\\36\\Scripts\\pip.exe install "tox>=3.7"'
                     }
                     post{
@@ -421,7 +421,16 @@ pipeline {
                             post {
                                 always {
                                     recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
-                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                                    publishHTML(
+                                        [
+                                            allowMissing: true,
+                                            alwaysLinkToLastBuild: false,
+                                            keepAll: false,
+                                            reportDir: 'reports/mypy/html/',
+                                            reportFiles: 'index.html',
+                                            reportName: 'MyPy HTML Report', reportTitles: ''
+                                        ]
+                                    )
                                 }
                             }
 
