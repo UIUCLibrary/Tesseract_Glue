@@ -478,7 +478,14 @@ pipeline {
             }
 
         }
-        stage("Python 3.6 whl"){
+        stage("Packaging") {
+            environment {
+                CMAKE_PATH = "${tool 'cmake3.13'}"
+                PATH = "${env.CMAKE_PATH};$PATH"
+                CL = "/MP"
+            }
+            parallel{
+                stage("Python 3.6 whl"){
                     stages{
                         stage("Create venv for 3.6"){
                             environment {
