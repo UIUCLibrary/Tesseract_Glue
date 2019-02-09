@@ -114,24 +114,24 @@ pipeline {
                 }
                 stage("Creating Virtualenv for Building"){
                     steps {
-                        bat "python.exe -m venv venv"
+                        bat "python.exe -m venv venv\\36"
 
                         script {
                             try {
-                                bat "venv\\Scripts\\python.exe -m pip install -U pip"
+                                bat "venv\\36\\Scripts\\python.exe -m pip install -U pip"
                             }
                             catch (exc) {
-                                bat "python.exe -m venv venv"
-                                bat "call venv\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+                                bat "python.exe -m venv venv\\36"
+                                bat "call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
                             }
                         }
 
-                        bat "venv\\Scripts\\pip.exe install devpi-client mypy sphinx pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
-                        bat 'venv\\Scripts\\pip.exe install "tox>=3.7"'
+                        bat "venv\\36\\Scripts\\pip.exe install devpi-client mypy sphinx pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
+                        bat 'venv\\36\\Scripts\\pip.exe install "tox>=3.7"'
                     }
                     post{
                         success{
-                            bat "venv\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
+                            bat "venv\\36\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
                             archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
 
@@ -143,8 +143,8 @@ pipeline {
                         DEVPI_PSWD = credentials('devpi-login')
                     }
                     steps{
-                        bat "venv\\Scripts\\devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}\\certs\\"
-                        bat "venv\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PSWD} --clientdir ${WORKSPACE}\\certs\\"
+                        bat "venv\\36\\Scripts\\devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}\\certs\\"
+                        bat "venv\\36\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PSWD} --clientdir ${WORKSPACE}\\certs\\"
                     }
                 }
             }
@@ -163,7 +163,7 @@ pipeline {
             stages{
                 stage("Building Python Package"){
                     environment {
-                        PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'cmake3.13'};$PATH"
+                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};$PATH"
                     }
                     steps {
 
@@ -261,7 +261,7 @@ pipeline {
 
         stage("Testing") {
             environment{
-                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
+                PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
             }
 
 //            environment{
@@ -292,7 +292,7 @@ pipeline {
                         }
                         stage("Run Tox"){
                             environment {
-                                PATH = "${WORKSPACE}\\venv\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'}\\;$PATH"
+                                PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'}\\;$PATH"
                                 CL = "/MP"
                             }
 
@@ -320,7 +320,7 @@ pipeline {
                     }
                     steps{
                         dir("build\\lib"){
-                            bat "${WORKSPACE}\\venv\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
+                            bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
                         }
                     }
                     post {
@@ -478,27 +478,127 @@ pipeline {
             }
 
         }
-        stage("Packaging") {
-            environment {
-                PATH = "${tool 'cmake3.13'};$PATH"
-            }
-            steps {
-                dir("source"){
-                    lock("cppan_${NODE_NAME}"){
-                        bat "pipenv run python setup.py build -b ..\\build  sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
+        stage("Python 3.6 whl"){
+                    stages{
+                        stage("Create venv for 3.6"){
+                            environment {
+                                PATH = "${tool 'CPython-3.6'};$PATH"
+                            }
+
+                            steps {
+                                bat "python -m venv venv\\36"
+                                bat "venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
+                            }
+                        }
+                        stage("Creating bdist wheel for 3.6"){
+                            environment {
+                                PATH = "${WORKSPACE}\\venv\\36\\scripts;${tool 'CPython-3.6'};$PATH"
+                            }
+                            steps {
+                                dir("source"){
+                                    bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
+                                }
+                            }
+                            post{
+                               success{
+                                    stash includes: 'dist/*.whl', name: "whl 3.6"
+                                }
+                            }
+                        }
+                    }
+                }
+                stage("Python sdist"){
+                    steps {
+                        dir("source"){
+                            bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
+                        }
+                    }
+                    post{
+                        success{
+                            stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
+                        }
+                    }
+                }
+                stage("Python 3.7 whl"){
+                    agent {
+                        node {
+                            label "Windows && Python3 && VS2015"
+                        }
+                    }
+                    environment {
+                        CMAKE_PATH = "${tool 'cmake3.13'}"
+                        PATH = "${env.CMAKE_PATH};${tool 'CPython-3.7'};$PATH"
+                        CL = "/MP"
+                    }
+                    stages{
+                        stage("create venv for 3.7"){
+                            steps {
+                                bat "python -m venv venv\\37"
+                                bat "venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install wheel setuptools --upgrade"
+                            }
+                        }
+
+                        stage("Creating bdist wheel for 3.7"){
+                            environment {
+                                PATH = "${WORKSPACE}\\venv\\37\\scripts;${tool 'CPython-3.6'};$PATH"
+                            }
+                            steps {
+                                dir("source"){
+                                    bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
+                                }
+                            }
+                            post{
+                                success{
+                                    stash includes: 'dist/*.whl', name: "whl 3.7"
+                                }
+                                cleanup{
+                                    cleanWs(
+                                        deleteDirs: true,
+                                        disableDeferredWipeout: true,
+                                        patterns: [
+                                            [pattern: 'dist', type: 'INCLUDE'],
+                                            [pattern: 'source', type: 'INCLUDE'],
+                                            [pattern: '*tmp', type: 'INCLUDE'],
+                                            [pattern: 'venv37', type: 'INCLUDE'],
+                                            ]
+                                        )
+                                }
+                            }
+                        }
                     }
                 }
             }
             post{
                 success{
+                    unstash "whl 3.7"
+                    unstash "whl 3.6"
+                    unstash "sdist"
                     archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
-                    stash includes: 'dist/*.*', name: "dist"
-                }
-                cleanup{
-                    remove_files("dist/*.whl,dist/*.tar.gz,dist/*.zip")
                 }
             }
         }
+//        stage("Packaging") {
+//
+//            environment {
+//                PATH = "${tool 'CPython-3.6'};${tool 'cmake3.13'};$PATH"
+//            }
+//            steps {
+//                dir("source"){
+////                    lock("cppan_${NODE_NAME}"){
+//                    bat "python -m pipenv run python setup.py build -b ..\\build  sdist -d ${WORKSPACE}\\dist bdist_wheel -d ..\\dist"
+////                    }
+//                }
+//            }
+//            post{
+//                success{
+//                    archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+//                    stash includes: 'dist/*.*', name: "dist"
+//                }
+//                cleanup{
+//                    remove_files("dist/*.whl,dist/*.tar.gz,dist/*.zip")
+//                }
+//            }
+//        }
         stage("Upload to DevPi staging") {
             when {
                 allOf{
@@ -512,11 +612,11 @@ pipeline {
             steps {
                 unstash "dist"
                 unstash "docs"
-                bat "venv\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                bat "venv\\36\\Scripts\\devpi.exe use DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
                 script {
-                    bat "venv\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --from-dir dist "
+                    bat "venv\\36\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --from-dir dist "
                     try {
-                        bat "venv\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
+                        bat "venv\\36\\Scripts\\devpi.exe upload --clientdir ${WORKSPACE}\\certs\\ --only-docs ${WORKSPACE}\\dist\\${env.DOC_ZIP_FILENAME}"
                     } catch (exc) {
                         echo "Unable to upload to devpi with docs."
                     }
@@ -553,8 +653,8 @@ pipeline {
                     stages {
                         stage("Building DevPi Testing venv for tar.gz"){
                             steps{
-                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
-                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
+                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv\\36"
+                                bat "venv\\36\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
                         stage("DevPi Testing tar.gz Package "){
@@ -562,7 +662,7 @@ pipeline {
                                 script {
                                     lock("cppan_${NODE_NAME}"){
                                         devpiTest(
-                                            devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                            devpiExecutable: "venv\\36\\Scripts\\devpi.exe",
                                             url: "https://devpi.library.illinois.edu",
                                             index: "${env.BRANCH_NAME}_staging",
                                             pkgName: "${env.PKG_NAME}",
@@ -630,14 +730,14 @@ pipeline {
                     stages{
                         stage("Building DevPi Testing venv"){
                             steps{
-                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv"
-                                bat "venv\\Scripts\\pip.exe install tox devpi-client"
+                                bat "${tool 'CPython-3.6'}\\python.exe -m venv venv\\36"
+                                bat "venv\\36\\Scripts\\pip.exe install tox devpi-client"
                             }
                         }
                         stage("DevPi Testing Whl"){
                             steps {
                                 devpiTest(
-                                    devpiExecutable: "venv\\Scripts\\devpi.exe",
+                                    devpiExecutable: "venv\\Scripts\\36\\devpi.exe",
                                     url: "https://devpi.library.illinois.edu",
                                     index: "${env.BRANCH_NAME}_staging",
                                     pkgName: "${env.PKG_NAME}",
@@ -653,7 +753,7 @@ pipeline {
             post {
                 success {
                     echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
-                    bat "venv\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}"
+                    bat "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}"
                 }
                 failure {
                     echo "At least one package format on DevPi failed."
@@ -716,8 +816,8 @@ pipeline {
                                     input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
                                 }
 
-                                bat "venv\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-                                bat "venv\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release --clientdir ${WORKSPACE}\\certs\\"
+                                bat "venv\\36\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                                bat "venv\\36\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release --clientdir ${WORKSPACE}\\certs\\"
                             } catch(err){
                                 echo "User response timed out. Packages not deployed to DevPi Production."
                             }
@@ -729,7 +829,7 @@ pipeline {
     }
     post {
         cleanup{
-            remove_from_devpi("venv\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
+            remove_from_devpi("venv\\36\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
             cleanWs(
                 deleteDirs: true,
                 disableDeferredWipeout: true,
