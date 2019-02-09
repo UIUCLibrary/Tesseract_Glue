@@ -515,6 +515,9 @@ pipeline {
                     }
                 }
                 stage("Python sdist"){
+                    environment {
+                        PATH = "${tool 'CPython-3.6'};$PATH"
+                    }
                     steps {
                         dir("source"){
                             bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
