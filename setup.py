@@ -45,6 +45,16 @@ class BuildExt(build_ext):
         super().initialize_options()
         self.cmake_exec = shutil.which("cmake")
 
+    def finalize_options(self):
+        super().finalize_options()
+
+        if self.cmake_exec is None:
+            raise Exception(
+                "Unable to locate CMake, Use --cmake-exec to set manually")
+        if not os.path.exists(self.cmake_exec):
+            raise Exception(
+                "Invalid location set to CMake")
+
     def get_ext_filename(self, fullname):
         ext = self.ext_map[fullname]
         if isinstance(ext, CMakeDependency):
@@ -53,7 +63,7 @@ class BuildExt(build_ext):
             return super().get_ext_filename(fullname)
 
     def run(self):
-
+        # super().run()
         for ext in self.extensions:
             if ext.url:
                 self.get_source(ext)
@@ -129,9 +139,11 @@ class BuildExt(build_ext):
                 filename = build_cmd.get_ext_filename(fullname)
                 src_filename = os.path.join(self.build_temp, filename)
                 package_dir = build_py.get_package_dir("uiucprescon.ocr")
-
+                full_package_dir = os.path.join(self.build_lib, package_dir)
+                self.mkpath(full_package_dir)
                 # if os.path.exists(src_filename):
-                dest_filename = os.path.join(self.build_lib, package_dir, filename)
+                dest_filename = os.path.join(full_package_dir, filename)
+
                 copy_file(
                     src_filename, dest_filename, verbose=self.verbose,
                     dry_run=self.dry_run
@@ -145,7 +157,8 @@ class BuildExt(build_ext):
             filename = build_cmd.get_ext_filename(fullname)
             # src_filename = os.path.join(self.build_temp, filename)
             package_dir = build_py.get_package_dir("uiucprescon.ocr")
-            src_filename = os.path.join(self.build_lib, package_dir, filename)
+            full_package_dir =os.path.join(self.build_lib, package_dir)
+            src_filename = os.path.join(full_package_dir, filename)
 
             dest_filename = os.path.join(package_dir, filename)
             copy_file(
@@ -297,7 +310,7 @@ class CMakeExtension(Extension):
         super().__init__(name, sources=[])
         self.cmake_source_dir = None
         self.cmake_binary_dir = None
-        self.cmake_args: List[Tuple[str, Union[str, callable()]]] = []
+        self.cmake_args: List[Tuple[str, Union[str, callable()]]] = kwargs.get("cmake_args", [])
         self.cmake_install_prefix = None
         self.url = None
         self.prefix_name = None
@@ -309,57 +322,85 @@ class CMakeDependency(CMakeExtension):
     def __init__(self, name, url, *args, **kwargs):
         super().__init__(name, *args, **kwargs)
         self.url = url
-        self.starting_path = None
+        self.starting_path = kwargs.get("starting_path")
         self.prefix_name = None
 
 
-tesseract_extension = CMakeExtension("tesseractwrap")
-tesseract_extension.cmake_source_dir = os.path.abspath(os.path.dirname(__file__))
 
 include_path = os.path.join(sys.base_prefix, "include")
 lib_path = os.path.join(sys.base_prefix, "Scripts", "python3.dll")
 
-zlib = CMakeDependency("zlib", url="https://www.zlib.net/zlib-1.2.11.tar.gz")
-zlib.starting_path = "zlib-1.2.11"
+zlib = CMakeDependency(
+    name="zlib",
+    url="https://www.zlib.net/zlib-1.2.11.tar.gz",
+    starting_path="zlib-1.2.11"
+)
+# Lambdas are use to delay the evaluation until a dependency finished building
 
-tiff = CMakeDependency("tiff", url="https://download.osgeo.org/libtiff/tiff-4.0.10.tar.gz")
-tiff.starting_path = "tiff-4.0.10"
+libpng = CMakeDependency(
+    name="libpng16",
+    url="https://download.sourceforge.net/libpng/libpng-1.6.36.tar.gz",
+    starting_path="libpng-1.6.36",
+    cmake_args=[
+        ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
+        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+    ]
+)
+
+
+tiff = CMakeDependency(
+    name="tiff",
+    url="https://download.osgeo.org/libtiff/tiff-4.0.10.tar.gz",
+    cmake_args=[
+        ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
+        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+        # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
+        ("-DBUILD_SHARED_LIBS:BOOL", "no"),
+       ],
+    starting_path="tiff-4.0.10",
+   )
+
 tiff.shared_library = False
 
-tiff.cmake_args = [
-    ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
-    ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
-    ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
-    # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
-    ("-DBUILD_SHARED_LIBS:BOOL", "no"),
-]
 # TODO: Add a CMakeDependency for openjp2
 
 
-leptonica = CMakeDependency("leptonica-1.77.0", url="https://github.com/DanBloomberg/leptonica/archive/1.77.0.tar.gz")
+leptonica = CMakeDependency(
+    name="leptonica-1.77.0",
+    url="https://github.com/DanBloomberg/leptonica/archive/1.77.0.tar.gz",
+    starting_path="leptonica-1.77.0",
+    cmake_args=[
+        # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
+        ("-DZLIB_INCLUDE_DIR:PATH:", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
+        ("-DTIFF_INCLUDE_DIR:PATH", lambda: os.path.join(tiff.cmake_install_prefix, "include")),
+        ("-DTIFF_LIBRARY:FILEPATH", lambda: os.path.join(tiff.cmake_install_prefix, "lib", "tiff.lib")),
+        ("-DPNG_PNG_INCLUDE_DIR:PATH",lambda: os.path.join(libpng.cmake_install_prefix, "include")),
+        ("-DPNG_LIBRARY_RELEASE:FILEPATH",lambda: os.path.join(libpng.cmake_install_prefix, "lib", "libpng16.lib")),
+    ])
 
-# Lambda is use to delay the evaluation of zlib until it's finished processing
-leptonica.cmake_args = [
-    # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
-    ("-DZLIB_INCLUDE_DIR:PATH:", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
-    ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
-    ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
-    ("-DTIFF_INCLUDE_DIR:PATH", lambda: os.path.join(tiff.cmake_install_prefix, "include")),
-    ("-DTIFF_LIBRARY:FILEPATH", lambda: os.path.join(tiff.cmake_install_prefix, "lib", "tiff.lib")),
-]
-leptonica.starting_path = "leptonica-1.77.0"
+tesseract = CMakeDependency(
+    name="tesseract40",
+    url="https://github.com/tesseract-ocr/tesseract/archive/4.0.0.tar.gz",
+    starting_path="tesseract-4.0.0",
+    cmake_args=[
+        ("-DBUILD_TRAINING_TOOLS:BOOL", "OFF"),
+        ("-DLeptonica_DIR:PATH", lambda: os.path.join(leptonica.cmake_install_prefix, "cmake")),
+    ]
+)
 
-tesseract = CMakeDependency("tesseract40", url="https://github.com/tesseract-ocr/tesseract/archive/4.0.0.tar.gz")
-tesseract.starting_path = "tesseract-4.0.0"
-tesseract.cmake_args = [
-    ("-DBUILD_TRAINING_TOOLS:BOOL", "OFF"),
-    ("-DLeptonica_DIR:PATH", lambda: os.path.join(leptonica.cmake_install_prefix, "cmake")),
-]
-tesseract_extension.cmake_args = [
-    ("-DPYTHON_EXECUTABLE:FILEPATH", sys.executable),
-    ("-DTesseract_ROOT:FILEPATH", lambda: os.path.join(tesseract.cmake_install_prefix)),
-    ("-DLeptonica_ROOT:PATH", lambda: os.path.join(leptonica.cmake_install_prefix))
-]
+tesseract_extension = CMakeExtension(
+    name="tesseractwrap",
+    cmake_args=[
+        ("-DPYTHON_EXECUTABLE:FILEPATH", sys.executable),
+        ("-DTesseract_ROOT:FILEPATH", lambda: os.path.join(tesseract.cmake_install_prefix)),
+        ("-DLeptonica_ROOT:PATH", lambda: os.path.join(leptonica.cmake_install_prefix))
+    ]
+)
+tesseract_extension.cmake_source_dir = os.path.abspath(os.path.dirname(__file__))
 
 setup(
     packages=['uiucprescon.ocr'],
@@ -374,6 +415,7 @@ setup(
     namespace_packages=["uiucprescon"],
     ext_modules=[
         zlib,
+        libpng,
         tiff,
         leptonica,
         tesseract,
