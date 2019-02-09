@@ -300,9 +300,9 @@ pipeline {
                                 dir("source"){
                                     script{
                                         try{
-                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox"
+                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
                                         } catch (exc) {
-                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate"
+                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
                                         }
                                     }
                                 }
