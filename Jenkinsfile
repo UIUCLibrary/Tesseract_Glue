@@ -124,9 +124,6 @@ pipeline {
                                 bat "call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
                             }
                         }
-
-                        bat "venv\\36\\Scripts\\pip.exe install devpi-client mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
-                        bat 'venv\\36\\Scripts\\pip.exe install "tox>=3.7"'
                     }
                     post{
                         success{
@@ -227,13 +224,19 @@ pipeline {
         }
 
         stage("Testing") {
-            environment{
-                PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
-            }
             failFast true
             stages{
-                stage("Running tests"){
+                stage("Installing package testing tools"){
+                    steps{
+                        bat "venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
+                        bat 'venv\\36\\Scripts\\pip.exe install "tox>=3.7"'
 
+                    }
+                }
+                stage("Running tests"){
+                    environment{
+                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
+                    }
                     parallel {
                         stage("Run Tox test") {
                             when {
