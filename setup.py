@@ -199,7 +199,7 @@ class BuildExt(build_ext):
             build_command.extend(["--parallel", str(self.parallel)])
 
         if "Visual Studio" in self.get_build_generator_name():
-            build_command += ["--", "/verbosity:minimal"]
+            build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
 
         self.spawn(build_command)
 
