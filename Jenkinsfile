@@ -226,7 +226,7 @@ pipeline {
         stage("Testing") {
             failFast true
             stages{
-                stage("Installing package testing tools"){
+                stage("Installing Package Testing Tools"){
                     steps{
                         bat "venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
                         bat 'venv\\36\\Scripts\\pip.exe install "tox>=3.7"'
