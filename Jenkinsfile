@@ -188,6 +188,7 @@ pipeline {
                             dir("source"){
                                 bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
                             }
+                            archiveArtifacts "logs/built_package.log"
                         }
                         cleanup{
                             cleanWs(
