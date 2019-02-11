@@ -137,16 +137,6 @@ pipeline {
 
                     }
                 }
-                // TODO: Remove login devpi stage
-//                stage("Logging into DevPi"){
-//                    environment{
-//                        DEVPI_PSWD = credentials('devpi-login')
-//                    }
-//                    steps{
-//                        bat "venv\\36\\Scripts\\devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}\\certs\\"
-//                        bat "venv\\36\\Scripts\\devpi.exe login DS_Jenkins --password ${env.DEVPI_PSWD} --clientdir ${WORKSPACE}\\certs\\"
-//                    }
-//                }
             }
             post{
                 success{
@@ -1130,6 +1120,7 @@ pipeline {
                     [pattern: 'logs', type: 'INCLUDE'],
                     [pattern: 'certs', type: 'INCLUDE'],
                     [pattern: '*tmp', type: 'INCLUDE'],
+                    [pattern: 'mypy_stubs', type: 'INCLUDE'],
                     [pattern: "source/**/*.dll", type: 'INCLUDE'],
                     [pattern: "source/**/*.pyd", type: 'INCLUDE'],
                     [pattern: "source/**/*.exe", type: 'INCLUDE'],
