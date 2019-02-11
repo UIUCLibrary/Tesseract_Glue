@@ -126,7 +126,7 @@ pipeline {
                             }
                         }
 
-                        bat "venv\\36\\Scripts\\pip.exe install devpi-client mypy lxml sphinx pytest pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
+                        bat "venv\\36\\Scripts\\pip.exe install devpi-client mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed"
                         bat 'venv\\36\\Scripts\\pip.exe install "tox>=3.7"'
                     }
                     post{
@@ -380,7 +380,7 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_FLAKE8
                     }
                     steps{
-                        bat returnStatus: true, script: "pipenv run flake8 uiucprescon --tee --output-file ${WORKSPACE}/logs/flake8.log"
+                        bat returnStatus: true, script: "venv\\36\\Scripts\\flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
 //                        script{
 //                            try{
 //                                // tee('reports/flake8.log') {
