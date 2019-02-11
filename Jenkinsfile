@@ -421,12 +421,12 @@ pipeline {
                             steps{
                                 bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
                                 dir("source"){
-                                    bat returnStatus: true, script: "mypy -p uiucprescon --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
+                                    bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
                                 }
                             }
                             post {
                                 always {
-                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
+                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs\\mypy.log')])
                                     publishHTML(
                                         [
                                             allowMissing: true,
