@@ -380,18 +380,18 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_FLAKE8
                     }
                     steps{
-                        script{
-                            try{
-                                // tee('reports/flake8.log') {
-                                dir("source"){
-                                    bat returnStatus: true, script: "pipenv run uiucprescon --tee --output-file ${WORKSPACE}/logs/flake8.log"
-//                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
-                                }
-                                // }
-                            } catch (exc) {
-                                echo "flake8 found some warnings"
-                            }
-                        }
+                        bat returnStatus: true, script: "pipenv run uiucprescon --tee --output-file ${WORKSPACE}/logs/flake8.log"
+//                        script{
+//                            try{
+//                                // tee('reports/flake8.log') {
+//                                dir("source"){
+////                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
+//                                }
+//                                // }
+//                            } catch (exc) {
+//                                echo "flake8 found some warnings"
+//                            }
+//                        }
                     }
                     post {
                         always {
