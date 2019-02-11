@@ -169,15 +169,15 @@ pipeline {
 
                         dir("source"){
 
-                            powershell "& python setup.py build -b ${WORKSPACE}\\build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
+                            powershell "& python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
 
                         }
 
-                        dir("build\\lib\\tests"){
+                        dir("build\\36\\lib\\tests"){
                             bat "copy ${WORKSPACE}\\source\\tests\\*.py"
 
                         }
-                        dir("build\\lib\\tests\\feature"){
+                        dir("build\\36\\lib\\tests\\feature"){
                                 bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.py"
                                 bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.feature"
                         }
@@ -328,7 +328,7 @@ pipeline {
                         junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                     }
                     steps{
-                        dir("build\\lib"){
+                        dir("build\\36\\lib"){
                             bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
                         }
                     }
