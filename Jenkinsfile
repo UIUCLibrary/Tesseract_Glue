@@ -174,7 +174,12 @@ pipeline {
                     }
                     post{
                         always{
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
+                            recordIssues(tools: [
+                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
+                                    msBuild(name: 'Setuptools Build: MSBuild', pattern: 'logs/build.log')
+                                ]
+                                )
+//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
                             dir("source"){
                                 bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
                             }
@@ -219,7 +224,8 @@ pipeline {
                     }
                     post{
                         always {
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
+                            recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log', id: 'sphinx_build')])
+//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
                             archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
 
                         }
@@ -357,12 +363,12 @@ pipeline {
                             echo "Cleaning doctest reports directory"
                             deleteDir()
                         }
-//                        TODO: Output warnings to a file
                         dir("source"){
-                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -v"
+                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest-warnings.log"
                         }
 //                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${WORKSPACE}\\reports\\doctest.txt"
                     }
+//                        TODO: Capture warnings log file
 //                    post{
 //                        always {
 //                            archiveArtifacts allowEmptyArchive: true, artifacts: "reports/doctest.txt"
@@ -378,7 +384,8 @@ pipeline {
                             try{
                                 // tee('reports/flake8.log') {
                                 dir("source"){
-                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
+                                    bat returnStatus: true, script: "pipenv run uiucprescon --tee --output-file ${WORKSPACE}/logs/flake8.log"
+//                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
                                 }
                                 // }
                             } catch (exc) {
@@ -388,7 +395,8 @@ pipeline {
                     }
                     post {
                         always {
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'reports/flake8.log']], unHealthy: ''
+                            recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'PyLint', pattern: 'reports/flake8.log']], unHealthy: ''
                         }
                     }
                 }
@@ -470,7 +478,8 @@ pipeline {
 //                                sourceEncoding: 'ASCII',
 //                                zoomCoverageChart: false
 //                            )
-                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
+//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
+                            recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                         }
 //                        cleanup{
