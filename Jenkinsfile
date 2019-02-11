@@ -185,13 +185,17 @@ pipeline {
                     post{
                         always{
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
+                            dir("source"){
+                                bat "tree /F /A > logs\\built_package.log"
+                            }
                         }
                         cleanup{
                             cleanWs(
                                 patterns: [
                                         [pattern: 'logs/build.log', type: 'INCLUDE'],
-                                        [pattern: "logs/tree_postbuild_failed.log", type: 'INCLUDE'],
-                                        [pattern: "logs/tree_home_postbuild_failed.log", type: 'INCLUDE'],
+                                        [pattern: "logs/built_package.log", type: 'INCLUDE'],
+//                                        [pattern: "logs/tree_postbuild_failed.log", type: 'INCLUDE'],
+//                                        [pattern: "logs/tree_home_postbuild_failed.log", type: 'INCLUDE'],
                                         [pattern: "logs/env_vars.log", type: 'INCLUDE'],
                                     ],
                                 notFailBuild: true
@@ -263,10 +267,14 @@ pipeline {
             environment{
                 PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
             }
+//            options{
+//                parallelsAlwaysFailFast()
+//            }
 
 //            environment{
 //                PATH = ";$PATH"
 //            }
+            failFast true
             parallel {
                 stage("Run Tox test") {
 //                    agent{
@@ -475,13 +483,13 @@ pipeline {
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                         }
-                        cleanup{
-                            script{
-                                if(fileExists('reports/mypy/mypy_cobertura.xml')){
-                                    bat "del reports\\mypy\\mypy_cobertura.xml"
-                                }
-                            }
-                        }
+//                        cleanup{
+//                            script{
+//                                if(fileExists('reports/mypy/mypy_cobertura.xml')){
+//                                    bat "del reports\\mypy\\mypy_cobertura.xml"
+//                                }
+//                            }
+//                        }
                     }
                 }
             }
