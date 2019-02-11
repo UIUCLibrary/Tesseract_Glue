@@ -159,14 +159,14 @@ pipeline {
 
                         }
 
-                        dir("build\\36\\lib\\tests"){
-                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
-
-                        }
-                        dir("build\\36\\lib\\tests\\feature"){
-                                bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.py"
-                                bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.feature"
-                        }
+//                        dir("build\\36\\lib\\tests"){
+//                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
+//
+//                        }
+//                        dir("build\\36\\lib\\tests\\feature"){
+//                                bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.py"
+//                                bat "copy ${WORKSPACE}\\source\\tests\\feature\\*.feature"
+//                        }
                     }
                     post{
                         always{
