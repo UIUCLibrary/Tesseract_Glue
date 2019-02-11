@@ -364,16 +364,16 @@ pipeline {
 //                            deleteDir()
 //                        }
                         dir("source"){
-                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest-warnings.log"
+                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
                         }
 //                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${WORKSPACE}\\reports\\doctest.txt"
                     }
-//                        TODO: Capture warnings log file
-//                    post{
-//                        always {
-//                            archiveArtifacts allowEmptyArchive: true, artifacts: "reports/doctest.txt"
-//                        }
-//                    }
+                    post{
+                        always {
+                            archiveArtifacts artifacts: "reports/doctest/output.txt", allowEmptyArchive: true
+                            recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
+                        }
+                    }
                 }
                 stage("Run Flake8 Static Analysis") {
                     when {
