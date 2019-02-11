@@ -359,10 +359,10 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_DOCTEST
                     }
                     steps {
-                        dir("${WORKSPACE}/reports/doctests"){
-                            echo "Cleaning doctest reports directory"
-                            deleteDir()
-                        }
+//                        dir("${WORKSPACE}/reports/doctests"){
+//                            echo "Cleaning doctest reports directory"
+//                            deleteDir()
+//                        }
                         dir("source"){
                             bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest-warnings.log"
                         }
