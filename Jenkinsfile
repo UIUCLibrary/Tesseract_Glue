@@ -61,7 +61,6 @@ pipeline {
 
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
-        // choice(choices: 'None\nrelease', description: "Release the build to production. Only available in the Master branch", name: 'RELEASE')
         string(name: 'DEPLOY_DOCS_URL_SUBFOLDER', defaultValue: "ocr", description: 'The directory that the docs should be saved under')
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
     }
@@ -179,7 +178,6 @@ pipeline {
                                     msBuild(name: 'Setuptools Build: MSBuild', pattern: 'logs/build.log')
                                 ]
                                 )
-//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
                             dir("source"){
                                 bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
                             }
@@ -190,8 +188,6 @@ pipeline {
                                 patterns: [
                                         [pattern: 'logs/build.log', type: 'INCLUDE'],
                                         [pattern: "logs/built_package.log", type: 'INCLUDE'],
-//                                        [pattern: "logs/tree_postbuild_failed.log", type: 'INCLUDE'],
-//                                        [pattern: "logs/tree_home_postbuild_failed.log", type: 'INCLUDE'],
                                         [pattern: "logs/env_vars.log", type: 'INCLUDE'],
                                     ],
                                 notFailBuild: true
@@ -207,54 +203,24 @@ pipeline {
                     }
                     steps{
                         echo "Building docs on ${env.NODE_NAME}"
-//#                        script{
-//#                            // Add a line to config file so auto docs look in the build folder
-//#                            def sphinx_config_file = "${WORKSPACE}/source/docs/source/conf.py"
-//#                            def extra_line = "sys.path.insert(0, os.path.abspath('${WORKSPACE}/build/lib'))"
-//#                            def readContent = readFile "${sphinx_config_file}"
-//#                            echo "Adding \"${extra_line}\" to ${sphinx_config_file}."
-//#                            writeFile file: "${sphinx_config_file}", text: readContent+"\r\n${extra_line}\r\n"
-//#                        }
                         dir("source"){
                             bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
-//#                        dir("build/lib"){
-//#                            bat "python -m pipenv run sphinx-build -b html ${WORKSPACE}\\source\\docs\\source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\doctrees"
-//#                        }
                     }
                     post{
                         always {
                             recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log', id: 'sphinx_build')])
-//                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'Pep8', pattern: 'logs/build_sphinx.log']]
                             archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
 
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-//                            script{
-//                                // // Multibranch jobs add the slash and add the branch to the job name. I need only the job name
-//                                // def alljob = env.JOB_NAME.tokenize("/") as String[]
-//                                // def project_name = alljob[0]
-//                                // dir("${WORKSPACE}/dist"){
-//                                //     zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "${env.DOC_ZIP_FILENAME}"
-//                                // }
-//                                script{
                             zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
                             stash includes: 'build/docs/html/**', name: 'docs'
-//#                                }
-//                            }
                         }
                         failure{
                             echo "Failed to build Python package"
                         }
-//#                        cleanup{
-//#                            script{
-//#                                if(fileExists("logs/build_sphinx.log")){
-//#                                    bat "del logs\\build_sphinx.log"
-//#                                }
-//#                            }
-//#
-//#                        }
                     }
                 }
             }
@@ -264,171 +230,163 @@ pipeline {
             environment{
                 PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
             }
-//            options{
-//                parallelsAlwaysFailFast()
-//            }
-
-//            environment{
-//                PATH = ";$PATH"
-//            }
             failFast true
-            parallel {
-                stage("Run Tox test") {
-//                    agent{
-//                        node {
-//                            label "Windows && VS2015 && Python3 && longfilenames"
-//                            customWorkspace "c:/Jenkins/temp/${JOB_NAME}/tox/"
-//                        }
-//                    }
-                    when {
-                       equals expected: true, actual: params.TEST_RUN_TOX
-                    }
-                    stages{
-                        stage("Removing Previous Tox Environment"){
-                            when{
-                                equals expected: true, actual: params.FRESH_WORKSPACE
+            stages{
+                stage("Running tests"){
+
+                    parallel {
+                        stage("Run Tox test") {
+                            when {
+                               equals expected: true, actual: params.TEST_RUN_TOX
+                            }
+                            stages{
+                                stage("Removing Previous Tox Environment"){
+                                    when{
+                                        equals expected: true, actual: params.FRESH_WORKSPACE
+                                    }
+                                    steps{
+                                        dir(".tox"){
+                                            deleteDir()
+                                        }
+                                    }
+
+                                }
+                                stage("Run Tox"){
+                                    environment {
+                                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'}\\;$PATH"
+                                        CL = "/MP"
+                                    }
+
+                                    steps {
+                                        dir("source"){
+                                            script{
+                                                try{
+                                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+                                                } catch (exc) {
+                                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                            }
+                        }
+                        stage("Run Pytest Unit Tests"){
+                            when {
+                               equals expected: true, actual: params.TEST_RUN_PYTEST
+                            }
+                            environment{
+                                junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
                             steps{
-                                dir(".tox"){
-                                    deleteDir()
+                                dir("build\\36\\lib"){
+                                    bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
                                 }
                             }
-
-                        }
-                        stage("Run Tox"){
-                            environment {
-                                PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'}\\;$PATH"
-                                CL = "/MP"
-                            }
-
-                            steps {
-                                dir("source"){
-                                    script{
+                            post {
+                                always {
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage.py', reportTitles: ''])
+                                    junit "reports/pytest/${env.junit_filename}"
+                                    script {
                                         try{
-                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
-                                        } catch (exc) {
-                                            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+                                            publishCoverage
+                                                autoDetectPath: 'coverage*/*.xml'
+                                                adapters: [
+                                                    cobertura(coberturaReportFile:"reports/coverage.xml")
+                                                ]
+                                        } catch(exc){
+                                            echo "cobertura With Coverage API failed. Falling back to cobertura plugin"
+                                            cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                                         }
+                                    }
+                                    bat "del reports\\coverage.xml"
+
+                                }
+                                failure{
+                                    dir("build"){
+                                        bat "tree /A /F"
                                     }
                                 }
                             }
                         }
-
-                    }
-                }
-                stage("Run Pytest Unit Tests"){
-                    when {
-                       equals expected: true, actual: params.TEST_RUN_PYTEST
-                    }
-                    environment{
-                        junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
-                    }
-                    steps{
-                        dir("build\\36\\lib"){
-                            bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
-                        }
-                    }
-                    post {
-                        always {
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage.py', reportTitles: ''])
-                            junit "reports/pytest/${env.junit_filename}"
-                            script {
-                                try{
-                                    publishCoverage
-                                        autoDetectPath: 'coverage*/*.xml'
-                                        adapters: [
-                                            cobertura(coberturaReportFile:"reports/coverage.xml")
-                                        ]
-                                } catch(exc){
-                                    echo "cobertura With Coverage API failed. Falling back to cobertura plugin"
-                                    cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
-                                }
+                        stage("Run Doctest Tests"){
+                            when {
+                                equals expected: true, actual: params.TEST_RUN_DOCTEST
                             }
-                            bat "del reports\\coverage.xml"
-
-                        }
-                        failure{
-                            dir("build"){
-                                bat "tree /A /F"
-                            }
-                        }
-                    }
-                }
-                stage("Run Doctest Tests"){
-                    when {
-                        equals expected: true, actual: params.TEST_RUN_DOCTEST
-                    }
-                    steps {
-//                        dir("${WORKSPACE}/reports/doctests"){
-//                            echo "Cleaning doctest reports directory"
-//                            deleteDir()
-//                        }
-                        dir("source"){
-                            bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
-                        }
-//                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${WORKSPACE}\\reports\\doctest.txt"
-                    }
-                    post{
-                        always {
-                            archiveArtifacts artifacts: "reports/doctest/output.txt", allowEmptyArchive: true
-                            recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
-                        }
-                    }
-                }
-                stage("Run Flake8 Static Analysis") {
-                    when {
-                        equals expected: true, actual: params.TEST_RUN_FLAKE8
-                    }
-                    steps{
-                        bat returnStatus: true, script: "venv\\36\\Scripts\\flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
-//                        script{
-//                            try{
-//                                // tee('reports/flake8.log') {
-//                                dir("source"){
-////                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
-//                                }
-//                                // }
-//                            } catch (exc) {
-//                                echo "flake8 found some warnings"
-//                            }
-//                        }
-                    }
-                    post {
-                        always {
-                            recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
-                        }
-                    }
-                }
-                stage("Run MyPy Static Analysis") {
-                    when {
-                        equals expected: true, actual: params.TEST_RUN_MYPY
-                    }
-                    stages{
-                        stage("Generate Stubs") {
-                            steps{
+                            steps {
+        //                        dir("${WORKSPACE}/reports/doctests"){
+        //                            echo "Cleaning doctest reports directory"
+        //                            deleteDir()
+        //                        }
                                 dir("source"){
-                                  bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
+                                    bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
+                                }
+        //                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${WORKSPACE}\\reports\\doctest.txt"
+                            }
+                            post{
+                                always {
+                                    archiveArtifacts artifacts: "reports/doctest/output.txt", allowEmptyArchive: true
+                                    recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
                                 }
                             }
-
                         }
-                        stage("Running MyPy"){
-                            environment{
-                                MYPYPATH = "${WORKSPACE}\\mypy_stubs"
+                        stage("Run Flake8 Static Analysis") {
+                            when {
+                                equals expected: true, actual: params.TEST_RUN_FLAKE8
                             }
-
                             steps{
-                                bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
-                                dir("source"){
-                                    bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
+                                bat returnStatus: true, script: "venv\\36\\Scripts\\flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
+        //                        script{
+        //                            try{
+        //                                // tee('reports/flake8.log') {
+        //                                dir("source"){
+        ////                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
+        //                                }
+        //                                // }
+        //                            } catch (exc) {
+        //                                echo "flake8 found some warnings"
+        //                            }
+        //                        }
+                            }
+                            post {
+                                always {
+                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                 }
                             }
                         }
-                    }
-                    post {
-                        always {
-                            recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
-                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                        stage("Run MyPy Static Analysis") {
+                            when {
+                                equals expected: true, actual: params.TEST_RUN_MYPY
+                            }
+                            stages{
+                                stage("Generate Stubs") {
+                                    steps{
+                                        dir("source"){
+                                          bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
+                                        }
+                                    }
+
+                                }
+                                stage("Running MyPy"){
+                                    environment{
+                                        MYPYPATH = "${WORKSPACE}\\mypy_stubs"
+                                    }
+
+                                    steps{
+                                        bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
+                                        dir("source"){
+                                            bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
+                                        }
+                                    }
+                                }
+                            }
+                            post {
+                                always {
+                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
+                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                                }
+                            }
                         }
                     }
                 }
