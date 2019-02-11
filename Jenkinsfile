@@ -186,7 +186,7 @@ pipeline {
                         always{
                             warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MSBuild', pattern: "logs\\build.log"]]
                             dir("source"){
-                                bat "tree /F /A > logs\\built_package.log"
+                                bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
                             }
                         }
                         cleanup{
