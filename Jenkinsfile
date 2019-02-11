@@ -423,21 +423,6 @@ pipeline {
                                     bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
                                 }
                             }
-//                            post {
-//                                always {
-//                                    recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs\\mypy.log')])
-//                                    publishHTML(
-//                                        [
-//                                            allowMissing: true,
-//                                            alwaysLinkToLastBuild: false,
-//                                            keepAll: false,
-//                                            reportDir: 'reports/mypy/html/',
-//                                            reportFiles: 'index.html',
-//                                            reportName: 'MyPy HTML Report', reportTitles: ''
-//                                        ]
-//                                    )
-//                                }
-//                            }
                         }
                     }
                     post {
@@ -890,7 +875,6 @@ pipeline {
     }
     post {
         cleanup{
-//            remove_from_devpi("venv\\36\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
             cleanWs(
                 deleteDirs: true,
                 disableDeferredWipeout: true,
