@@ -407,15 +407,14 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     stages{
-//                    TODO: Fix generating stubs
-//                        stage("Generate stubs") {
-//                            steps{
-//                                dir("source"){
-//                                  bat "stubgen uiucprescon --recursive -o ${WORKSPACE}\\mypy_stubs"
-//                                }
-//                            }
-//
-//                        }
+                        stage("Generate stubs") {
+                            steps{
+                                dir("source"){
+                                  bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
+                                }
+                            }
+
+                        }
                         stage("Running MyPy"){
                             environment{
                                 MYPYPATH = "${WORKSPACE}\\mypy_stubs"
