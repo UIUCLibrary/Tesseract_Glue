@@ -233,7 +233,7 @@ pipeline {
 
                     }
                 }
-                stage("Running tests"){
+                stage("Running Tests"){
                     environment{
                         PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
                     }
