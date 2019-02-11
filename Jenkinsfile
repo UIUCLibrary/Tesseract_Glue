@@ -405,7 +405,7 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_MYPY
                     }
                     stages{
-                        stage("Generate stubs") {
+                        stage("Generate Stubs") {
                             steps{
                                 dir("source"){
                                   bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
