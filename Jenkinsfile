@@ -439,56 +439,14 @@ pipeline {
                                     )
                                 }
                             }
-
-//                                script{
-//                                    // tee("logs/mypy.log") {
-//                                    try{
-//                                        dir("source"){
-//                                            bat "dir"
-//                                            bat "pipenv run mypy ${WORKSPACE}\\build\\lib\\uiucprescon --html-report ${WORKSPACE}\\reports\\mypy\\html --cobertura-xml-report ${WORKSPACE}\\reports\\mypy > ${WORKSPACE}\\logs\\mypy.log"
-//                                        }
-//                                    } catch (exc) {
-//                                        echo "MyPy found some warnings"
-//                                    }
-//                                    dir("${WORKSPACE}/reports/mypy"){
-//                                        if(fileExists("mypy_cobertura.xml")){
-//                                            bat "del mypy_cobertura.xml"
-//                                        }
-//
-//                                        bat "ren cobertura.xml mypy_cobertura.xml"
-//                                    }
-//                                    // }
-//                                }
                         }
                     }
                     post {
                         always {
-//                            cobertura(
-//                                autoUpdateHealth: false,
-//                                autoUpdateStability: false,
-//                                coberturaReportFile: 'reports/mypy/mypy_cobertura.xml',
-//                                // conditionalCoverageTargets: '70, 0, 0',
-//                                enableNewApi: false,
-//                                failUnhealthy: false,
-//                                failUnstable: false,
-//                                lineCoverageTargets: '80, 0, 0',
-//                                maxNumberOfBuilds: 0,
-//                                methodCoverageTargets: '80, 0, 0',
-//                                onlyStable: false,
-//                                sourceEncoding: 'ASCII',
-//                                zoomCoverageChart: false
-//                            )
 //                            warnings canRunOnFailed: true, parserConfigurations: [[parserName: 'MyPy', pattern: 'logs/mypy.log']], unHealthy: ''
                             recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                         }
-//                        cleanup{
-//                            script{
-//                                if(fileExists('reports/mypy/mypy_cobertura.xml')){
-//                                    bat "del reports\\mypy\\mypy_cobertura.xml"
-//                                }
-//                            }
-//                        }
                     }
                 }
             }
@@ -509,8 +467,7 @@ pipeline {
                             }
 
                             steps {
-                                bat "python -m venv venv\\36"
-                                bat "venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
+                                bat "python -m venv venv\\36 && venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
                             }
                         }
                         stage("Creating bdist wheel for 3.6"){
