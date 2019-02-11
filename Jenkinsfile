@@ -169,7 +169,7 @@ pipeline {
 
                         dir("source"){
 
-                            powershell "& python setup.py build -b ${WORKSPACE}\\build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib | tee ${WORKSPACE}\\logs\\build.log"
+                            powershell "& python setup.py build -b ${WORKSPACE}\\build -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
 
                         }
 
