@@ -11,7 +11,7 @@ from distutils.file_util import copy_file
 
 import urllib.request
 import platform
-# import subprocess
+import subprocess
 from typing import List, Tuple, Union
 import tarfile
 import zipfile
@@ -195,13 +195,16 @@ class BuildExt(build_ext):
             # "--parallel", "{}".format(self.parallel),
             "--config", "release",
         ]
+        env = os.environ.copy()
         if self.parallel:
             build_command.extend(["--parallel", str(self.parallel)])
 
         if "Visual Studio" in self.get_build_generator_name():
             build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
+            env['CL'] = "/MP"
 
-        self.spawn(build_command)
+        p = subprocess.Popen(build_command, env=env)
+        p.communicate()
 
     def install_cmake(self, ext):
 
@@ -211,26 +214,14 @@ class BuildExt(build_ext):
             "--config", "release",
             "--target", "install"
         ]
-
+        # env = os.environ.copy()
+        # if "Visual Studio" in self.get_build_generator_name():
+        #     env['CL'] = "/MP"
+        # p = subprocess.Popen(install_command, env=env)
+        # p.communicate()
+        # # exit()
         self.spawn(install_command)
 
-    def get_modified_env_vars(self, ext):
-
-        if self._env_vars:
-            return self._env_vars
-
-        extra_path = set()
-        modded_env = os.environ.copy()
-        for _, tool in ext.tools.items():
-            for __, executable in tool.executable.items():
-                extra_path.add(os.path.dirname(executable))
-            # for tool in tool:
-            #     print(tool.executable)
-        new_path = ";".join(extra_path)
-        #
-        modded_env["PATH"] = "{};{}".format(new_path, modded_env["PATH"])
-        self._env_vars = modded_env
-        return modded_env
 
     @staticmethod
     def _get_file_extension(url) -> str:
