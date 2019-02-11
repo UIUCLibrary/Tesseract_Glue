@@ -380,7 +380,7 @@ pipeline {
                         equals expected: true, actual: params.TEST_RUN_FLAKE8
                     }
                     steps{
-                        bat returnStatus: true, script: "pipenv run uiucprescon --tee --output-file ${WORKSPACE}/logs/flake8.log"
+                        bat returnStatus: true, script: "pipenv run flake8 uiucprescon --tee --output-file ${WORKSPACE}/logs/flake8.log"
 //                        script{
 //                            try{
 //                                // tee('reports/flake8.log') {
