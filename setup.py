@@ -1,3 +1,5 @@
+import re
+
 import setuptools
 from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
@@ -82,19 +84,20 @@ class BuildExt(build_ext):
             if self.inplace:
                 self.copy_extensions_to_src(ext)
 
+    def parse_compiler_info(self, compiler_info):
+        compiler_regex = re.compile("(?<=v\.)[0-9]*")
+        match = compiler_regex.findall(compiler_info)
+        print(match)
+
+        # TODO: parse out the arch such as x64, Win32
+        return "1", "2"
+
     def configure_cmake(self, ext):
 
         ext.cmake_install_prefix = self.get_install_prefix(ext)
         fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
 
-        try:
-            build_system = self.get_build_generator_name()
-        except KeyError as e:
 
-            message = "No known build system generator for the current " \
-                      "implementation of Python's compiler {}".format(e)
-
-            raise CMakeException(message)
 
         configure_command = [
             self.cmake_exec,
@@ -104,8 +107,25 @@ class BuildExt(build_ext):
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}",
-            "-G", build_system,
+
         ]
+
+        try:
+            build_system = self.get_build_generator_name()
+
+            if platform.architecture()[0] == '64bit':
+                configure_command += ["-A", "x64"]
+
+            if build_system is not None:
+                configure_command += ["-G", build_system]
+
+        except KeyError as e:
+
+            message = "No known build system generator for the current " \
+                      "implementation of Python's compiler {}".format(e)
+
+            raise CMakeException(message)
+
         for k, v in ext.cmake_args:
             # To delay any evaluation
             if callable(v):
@@ -171,33 +191,24 @@ class BuildExt(build_ext):
         python_compiler = platform.python_compiler()
 
         if "GCC" in python_compiler:
-            python_compiler = "GCC"
+            return "Unix Makefiles"
 
         if "Clang" in python_compiler:
-            python_compiler = "Clang"
+            return "Unix Makefiles"
 
-        cmake_build_systems_lut = {
-            'MSC v.1900 64 bit (AMD64)': "Visual Studio 14 2015 Win64",
-            'MSC v.1900 32 bit (Intel)': "Visual Studio 14 2015",
-            'MSC v.1915 64 bit (AMD64)': "Visual Studio 14 2015 Win64",
-            'MSC v.1915 32 bit (Intel)': "Visual Studio 14 2015",
-            'GCC': "Unix Makefiles",
-            'Clang': "Unix Makefiles",
-        }
-        # return "Ninja"
-        return cmake_build_systems_lut[python_compiler]
+        if 'MSC v.19' in python_compiler:
+            return "Visual Studio 14 2015"
 
     def build_cmake(self, ext):
 
         build_command = [
             self.cmake_exec,
             "--build", ext.cmake_binary_dir,
-            # "--parallel", "{}".format(self.parallel),
             "--config", "release",
         ]
         env = os.environ.copy()
-        if self.parallel:
-            build_command.extend(["--parallel", str(self.parallel)])
+        if self.parallel is not None:
+            build_command += ["--parallel", str(self.parallel)]
 
         if "Visual Studio" in self.get_build_generator_name():
             build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
@@ -214,12 +225,6 @@ class BuildExt(build_ext):
             "--config", "release",
             "--target", "install"
         ]
-        # env = os.environ.copy()
-        # if "Visual Studio" in self.get_build_generator_name():
-        #     env['CL'] = "/MP"
-        # p = subprocess.Popen(install_command, env=env)
-        # p.communicate()
-        # # exit()
         self.spawn(install_command)
 
 
@@ -339,6 +344,12 @@ libpng = CMakeDependency(
     ]
 )
 
+libjpeg = CMakeDependency(
+    name="jpeg62",
+    url="https://github.com/libjpeg-turbo/libjpeg-turbo/archive/2.0.1.tar.gz",
+    starting_path="libjpeg-turbo-2.0.1"
+
+)
 
 tiff = CMakeDependency(
     name="tiff",
@@ -347,6 +358,8 @@ tiff = CMakeDependency(
         ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
         ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
         ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+        ("-DJPEG_INCLUDE_DIR:PATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "include")),
+        ("-DJPEG_LIBRARY:FILEPATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
         # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
         ("-DBUILD_SHARED_LIBS:BOOL", "no"),
        ],
@@ -357,9 +370,23 @@ tiff.shared_library = False
 
 # TODO: Add a CMakeDependency for openjp2
 
+openjpeg = CMakeDependency(
+    name="openjp2",
+    url="https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz",
+    starting_path="openjpeg-2.3.0",
+    cmake_args=[
+        ("-DZLIB_INCLUDE_DIR:PATH:", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
+        ("-DPNG_PNG_INCLUDE_DIR:PATH",lambda: os.path.join(libpng.cmake_install_prefix, "include")),
+        ("-DPNG_LIBRARY_RELEASE:FILEPATH",lambda: os.path.join(libpng.cmake_install_prefix, "lib", "libpng16.lib")),
+    ]
+)
+
+
 
 leptonica = CMakeDependency(
-    name="leptonica-1.77.0",
+    name="-1.77.0",
     url="https://github.com/DanBloomberg/leptonica/archive/1.77.0.tar.gz",
     starting_path="leptonica-1.77.0",
     cmake_args=[
@@ -369,6 +396,8 @@ leptonica = CMakeDependency(
         ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
         ("-DTIFF_INCLUDE_DIR:PATH", lambda: os.path.join(tiff.cmake_install_prefix, "include")),
         ("-DTIFF_LIBRARY:FILEPATH", lambda: os.path.join(tiff.cmake_install_prefix, "lib", "tiff.lib")),
+        ("-DJPEG_INCLUDE_DIR:PATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "include")),
+        ("-DJPEG_LIBRARY:FILEPATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
         ("-DPNG_PNG_INCLUDE_DIR:PATH",lambda: os.path.join(libpng.cmake_install_prefix, "include")),
         ("-DPNG_LIBRARY_RELEASE:FILEPATH",lambda: os.path.join(libpng.cmake_install_prefix, "lib", "libpng16.lib")),
     ])
@@ -407,7 +436,9 @@ setup(
     ext_modules=[
         zlib,
         libpng,
+        libjpeg,
         tiff,
+        openjpeg,
         leptonica,
         tesseract,
         tesseract_extension
