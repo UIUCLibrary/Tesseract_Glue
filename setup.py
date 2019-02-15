@@ -27,7 +27,6 @@ class CMakeException(RuntimeError):
     pass
 
 
-
 class BuildExt(build_ext):
     user_options = build_ext.user_options + [
         ('cmake-exec=', None, "Location of the CMake executable. "
@@ -74,7 +73,8 @@ class BuildExt(build_ext):
             fullname = self.get_ext_filename(ext.name)
             full_package_dir = os.path.join(self.build_lib, self.package_dir)
             install_lib = os.path.join(full_package_dir, fullname)
-            ext.cmake_binary_dir = os.path.join(self.build_temp, "{}-build".format(ext.name))
+            ext.cmake_binary_dir = os.path.join(self.build_temp,
+                                                "{}-build".format(ext.name))
 
             ext.cmake_install_prefix = self.get_install_prefix(ext)
 
@@ -89,7 +89,9 @@ class BuildExt(build_ext):
             self.build_cmake(ext)
 
             if self.needs_to_install(ext):
-                self.announce("Installing {} to {} .".format(ext.name, install_lib), 3)
+                self.announce(
+                    "Installing {} to {} .".format(ext.name, install_lib), 3)
+
                 self.install_cmake(ext)
 
             if self.inplace:
@@ -111,7 +113,9 @@ class BuildExt(build_ext):
         if self.force:
             return True
 
-        install_manifest = os.path.join(ext.cmake_binary_dir, "install_manifest.txt")
+        install_manifest = os.path.join(ext.cmake_binary_dir,
+                                        "install_manifest.txt")
+
         if not os.path.exists(install_manifest):
             return True
 
@@ -123,7 +127,10 @@ class BuildExt(build_ext):
         return False
 
     def configure_cmake(self, ext):
-        fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
+        fetch_content_base_dir = os.path.abspath(
+            os.path.join(self.build_temp,
+                         "thirdparty"))
+
         configure_command = [
             self.cmake_exec,
             f"-S{os.path.abspath(ext.cmake_source_dir)}",
@@ -168,7 +175,11 @@ class BuildExt(build_ext):
             return os.path.abspath(ext.cmake_install_prefix)
 
         if isinstance(ext, CMakeDependency):
-            install_prefix = os.path.normpath(os.path.join(self.build_lib, self.package_dir, self.library_install_dir))
+            install_prefix = os.path.normpath(
+                os.path.join(self.build_lib,
+                             self.package_dir,
+                             self.library_install_dir))
+
             if ext.prefix_name:
                 install_prefix = os.path.join(install_prefix, ext.prefix_name)
             return os.path.abspath(install_prefix)
@@ -182,7 +193,11 @@ class BuildExt(build_ext):
                 fullname = build_cmd.get_ext_fullname(ext.name)
                 filename = build_cmd.get_ext_filename(fullname)
                 src_filename = os.path.join(self.build_temp, filename)
-                full_package_dir = os.path.join(self.build_lib, self.package_dir, self.library_install_dir, "bin")
+                full_package_dir = os.path.join(self.build_lib,
+                                                self.package_dir,
+                                                self.library_install_dir,
+                                                "bin")
+
                 self.mkpath(full_package_dir)
                 dest_filename = os.path.join(full_package_dir, filename)
 
@@ -201,11 +216,15 @@ class BuildExt(build_ext):
         if ext.shared_library and isinstance(ext, CMakeExtension):
             src_filename = os.path.join(self.build_temp, filename)
             if isinstance(ext, CMakeDependency):
-                full_package_dir = os.path.join(self.package_dir, self.library_install_dir, "bin")
+                full_package_dir = \
+                    os.path.join(self.package_dir,
+                                 self.library_install_dir, "bin")
+
                 self.mkpath(full_package_dir)
             else:
                 full_package_dir = self.package_dir
-                src_filename = os.path.join(self.build_lib, self.package_dir, filename)
+                src_filename = os.path.join(self.build_lib,
+                                            self.package_dir, filename)
 
             dest_filename = os.path.join(full_package_dir, filename)
             self.copy_file(src_filename, dest_filename)
@@ -249,7 +268,6 @@ class BuildExt(build_ext):
         ]
         self.spawn(install_command)
 
-
     @staticmethod
     def _get_file_extension(url) -> str:
         if url.endswith(".tar.gz"):
@@ -270,7 +288,8 @@ class BuildExt(build_ext):
         source_archive_file_extension = self._get_file_extension(ext.url)
         if ext.url.endswith(source_archive_file_extension):
             src_archive_dst = os.path.join(
-                self.build_temp, "".join([ext.name, source_archive_file_extension])
+                self.build_temp, "".join([ext.name,
+                                          source_archive_file_extension])
             )
 
         else:
@@ -281,7 +300,9 @@ class BuildExt(build_ext):
         if not os.path.exists(src_archive_dst):
             self._download_source(ext, src_archive_dst)
 
-        source_dest = os.path.join(self.build_temp, "{}-source".format(ext.name))
+        source_dest = os.path.join(self.build_temp,
+                                   "{}-source".format(ext.name))
+
         self._extract_source(src_archive_dst, source_dest)
         if ext.starting_path is not None:
             source_dest = os.path.join(source_dest, ext.starting_path)
@@ -293,8 +314,11 @@ class BuildExt(build_ext):
         if source_archive.endswith(".tar.gz"):
             with tarfile.open(source_archive, "r:gz") as archive:
                 for compressed_file in archive:
-                    if not os.path.exists(os.path.join(dst, compressed_file.name)):
-                        self.announce("Extracting {}".format(compressed_file.name))
+                    if not os.path.exists(
+                            os.path.join(dst, compressed_file.name)):
+                        self.announce(
+                            "Extracting {}".format(compressed_file.name))
+
                         archive.extract(compressed_file, dst)
         elif source_archive.endswith(".zip"):
             with zipfile.ZipFile(source_archive) as archive:
@@ -302,7 +326,8 @@ class BuildExt(build_ext):
                     self.announce("Extracting {}".format(compressed_file))
                     archive.extract(compressed_file, dst)
         else:
-            raise Exception("Unknown format to extract {}".format(source_archive))
+            raise Exception(
+                "Unknown format to extract {}".format(source_archive))
 
     def _download_source(self, extension, save_as):
         self.announce("Fetching source code for {}".format(extension.name))
@@ -313,9 +338,10 @@ class BuildExt(build_ext):
         dir_name = os.path.dirname(save_as)
         if not os.path.exists(dir_name):
             os.makedirs(dir_name)
-        with urllib.request.urlopen(url) as response, open(save_as, 'wb') as out_file:
-            shutil.copyfileobj(response, out_file)
-            assert response.getcode() == 200
+        with urllib.request.urlopen(url) as response:
+            with open(save_as, 'wb') as out_file:
+                shutil.copyfileobj(response, out_file)
+                assert response.getcode() == 200
 
 
 class BuildTesseract(BuildExt):
@@ -332,7 +358,9 @@ class CMakeExtension(setuptools.Extension):
         super().__init__(name, sources=[])
         self.cmake_source_dir = None
         self.cmake_binary_dir = None
-        self.cmake_args: List[Tuple[str, Union[str, callable()]]] = kwargs.get("cmake_args", [])
+        self.cmake_args: List[Tuple[str, Union[str, callable()]]] = \
+            kwargs.get("cmake_args", [])
+
         self.cmake_install_prefix = None
         self.url = None
         self.prefix_name = None
@@ -347,6 +375,7 @@ class CMakeDependency(CMakeExtension):
         self.starting_path = kwargs.get("starting_path")
         self.prefix_name = None
 
+
 zlib = CMakeDependency(
     name="zlib",
     url="https://www.zlib.net/zlib-1.2.11.tar.gz",
@@ -359,10 +388,16 @@ libpng = CMakeDependency(
     url="https://github.com/glennrp/libpng/archive/v1.6.36.tar.gz",
     starting_path="libpng-1.6.36",
     cmake_args=[
-        ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+        ("-DZLIB_INCLUDE_DIR:PATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "include")),
         ("-DPNG_TESTS:BOOL", "FALSE"),
-        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
-        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+        ("-DZLIB_LIBRARY_RELEASE:FILEPATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "lib", "zlib.lib")),
+        ("-DZLIB_LIBRARY_DEBUG:FILEPATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "lib", "zlibd.lib")),
     ]
 )
 
@@ -381,11 +416,21 @@ tiff = CMakeDependency(
     name="tiff",
     url="https://download.osgeo.org/libtiff/tiff-4.0.10.tar.gz",
     cmake_args=[
-        ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
-        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
-        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
-        ("-DJPEG_INCLUDE_DIR:PATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "include")),
-        ("-DJPEG_LIBRARY:FILEPATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
+        ("-DZLIB_INCLUDE_DIR:PATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "include")),
+        ("-DZLIB_LIBRARY_RELEASE:FILEPATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "lib", "zlib.lib")),
+        ("-DZLIB_LIBRARY_DEBUG:FILEPATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+        ("-DJPEG_INCLUDE_DIR:PATH",
+            lambda: os.path.join(
+                libjpeg.cmake_install_prefix, "include")),
+        ("-DJPEG_LIBRARY:FILEPATH",
+            lambda: os.path.join(
+                libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
        ],
     starting_path="tiff-4.0.10",
    )
@@ -404,18 +449,40 @@ leptonica = CMakeDependency(
     url="https://github.com/DanBloomberg/leptonica/archive/1.77.0.tar.gz",
     starting_path="leptonica-1.77.0",
     cmake_args=[
-        ("-DZLIB_INCLUDE_DIR:PATH:", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
-        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
-        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
-        ("-DTIFF_INCLUDE_DIR:PATH", lambda: os.path.join(tiff.cmake_install_prefix, "include")),
-        ("-DTIFF_LIBRARY:FILEPATH", lambda: os.path.join(tiff.cmake_install_prefix, "lib", "tiff.lib")),
-        ("-DJPEG_INCLUDE_DIR:PATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "include")),
-        ("-DJPEG_LIBRARY:FILEPATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
-        ("-DPNG_PNG_INCLUDE_DIR:PATH", lambda: os.path.join(libpng.cmake_install_prefix, "include")),
-        ("-DPNG_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(libpng.cmake_install_prefix, "lib", "libpng16.lib")),
+        ("-DZLIB_INCLUDE_DIR:PATH:",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "include")),
+        ("-DZLIB_LIBRARY_DEBUG:FILEPATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+        ("-DZLIB_LIBRARY_RELEASE:FILEPATH",
+            lambda: os.path.join(
+                zlib.cmake_install_prefix, "lib", "zlib.lib")),
+        ("-DTIFF_INCLUDE_DIR:PATH",
+            lambda: os.path.join(
+                tiff.cmake_install_prefix, "include")),
+        ("-DTIFF_LIBRARY:FILEPATH",
+            lambda: os.path.join(
+                tiff.cmake_install_prefix, "lib", "tiff.lib")),
+        ("-DJPEG_INCLUDE_DIR:PATH",
+            lambda: os.path.join(
+                libjpeg.cmake_install_prefix, "include")),
+        ("-DJPEG_LIBRARY:FILEPATH",
+            lambda: os.path.join(
+                libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
+        ("-DPNG_PNG_INCLUDE_DIR:PATH",
+            lambda: os.path.join(
+                libpng.cmake_install_prefix, "include")),
+        ("-DPNG_LIBRARY_RELEASE:FILEPATH",
+            lambda: os.path.join(
+                libpng.cmake_install_prefix, "lib", "libpng16.lib")),
         ("-DJP2K_FOUND:BOOL", "TRUE"),
-        ("-DJP2K_INCLUDE_DIRS:PATH", lambda: os.path.join(openjpeg.cmake_install_prefix, "include", "openjpeg-2.3")),
-        ("-DJP2K_LIBRARIES:FILEPATH", lambda: os.path.join(openjpeg.cmake_install_prefix, "lib", "openjp2.lib"))
+        ("-DJP2K_INCLUDE_DIRS:PATH",
+            lambda: os.path.join(
+                openjpeg.cmake_install_prefix, "include", "openjpeg-2.3")),
+        ("-DJP2K_LIBRARIES:FILEPATH",
+            lambda: os.path.join(
+                openjpeg.cmake_install_prefix, "lib", "openjp2.lib"))
     ])
 
 tesseract = CMakeDependency(
@@ -424,7 +491,8 @@ tesseract = CMakeDependency(
     starting_path="tesseract-4.0.0",
     cmake_args=[
         ("-DBUILD_TRAINING_TOOLS:BOOL", "OFF"),
-        ("-DLeptonica_DIR:PATH", lambda: os.path.join(leptonica.cmake_install_prefix, "cmake")),
+        ("-DLeptonica_DIR:PATH",
+            lambda: os.path.join(leptonica.cmake_install_prefix, "cmake")),
     ]
 )
 
@@ -432,11 +500,14 @@ tesseract_extension = CMakeExtension(
     name="tesseractwrap",
     cmake_args=[
         ("-DPYTHON_EXECUTABLE:FILEPATH", sys.executable),
-        ("-DTesseract_ROOT:FILEPATH", lambda: os.path.join(tesseract.cmake_install_prefix)),
-        ("-DLeptonica_ROOT:PATH", lambda: os.path.join(leptonica.cmake_install_prefix))
+        ("-DTesseract_ROOT:FILEPATH",
+            lambda: os.path.join(tesseract.cmake_install_prefix)),
+        ("-DLeptonica_ROOT:PATH",
+            lambda: os.path.join(leptonica.cmake_install_prefix))
     ]
 )
-tesseract_extension.cmake_source_dir = os.path.abspath(os.path.dirname(__file__))
+tesseract_extension.cmake_source_dir = \
+    os.path.abspath(os.path.dirname(__file__))
 
 setuptools.setup(
     packages=['uiucprescon.ocr'],
