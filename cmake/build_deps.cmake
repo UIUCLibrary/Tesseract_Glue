@@ -5,10 +5,10 @@ endif()
 
 include(FetchContent)
 
-message("Hello")
 
 if(NOT Config)
     set(Config release)
+    message("Building release configuration")
 endif()
 
 # ======================
@@ -43,14 +43,10 @@ FetchContent_Populate(libpng
         )
 execute_process(COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
         -S ${CMAKE_BINARY_DIR}/source/libpng-src -B ${CMAKE_BINARY_DIR}/build/libpng-build
-        #        -DZLIB_INCLUDE_DIR:PATH=${CMAKE_BINARY_DIR}/dist/include
-        #        -DZLIB_LIBRARY_RELEASE:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlib.lib
-        #        -DZLIB_LIBRARY_DEBUG:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlibd.lib
-        #         -DTIFF_INCLUDE_DIR:FILEPATH=${TIFF_INCLUDE_DIR}
-        #         -DTIFF_LIBRARY_RELEASE:FILEPATH=${TIFF_LIBRARY}
         -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/dist
         -DCMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/dist/cmake
         -DCMAKE_BUILD_TYPE=${Config}
+        -DPNG_TESTS:BOOL=FALSE
         )       
 execute_process(COMMAND 
         ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/build/libpng-build --config ${Config} --target install -j 8)
@@ -82,19 +78,16 @@ FetchContent_Populate(libJPEG
         SOURCE_DIR ${CMAKE_BINARY_DIR}/source/libjpeg-src
         BINARY_DIR ${CMAKE_BINARY_DIR}/build/libjpeg-build
         SUBBUILD_DIR ${CMAKE_BINARY_DIR}/subbuild/libjpeg-build
-#        URL_HASH   MD5=114192d7ebe537912a2b97408832e7fd
+        URL_HASH   MD5=3bf7db68a626d115fabfb631aacdd7a2
         )
 
 execute_process(COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
         -S ${CMAKE_BINARY_DIR}/source/libjpeg-src -B ${CMAKE_BINARY_DIR}/build/libjpeg-build
-#        -DZLIB_INCLUDE_DIR:PATH=${CMAKE_BINARY_DIR}/dist/include
-#        -DZLIB_LIBRARY_RELEASE:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlib.lib
-#        -DZLIB_LIBRARY_DEBUG:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlibd.lib
-#         -DTIFF_INCLUDE_DIR:FILEPATH=${TIFF_INCLUDE_DIR}
-#         -DTIFF_LIBRARY_RELEASE:FILEPATH=${TIFF_LIBRARY}
         -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/dist
         -DCMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/dist/cmake
         -DCMAKE_BUILD_TYPE=${Config}
+        -DENABLE_STATIC:BOOL=False
+        -DWITH_TURBOJPEG:BOOL=OFF
         )
         
 execute_process(COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/build/libjpeg-build --config ${Config} --target install -j 8)
@@ -110,7 +103,6 @@ find_path(JPEG_INCLUDE_DIR
 find_library(JPEG_LIBRARY
         NAMES
             jpeg.lib
-#            tiff.lib
         PATHS ${CMAKE_BINARY_DIR}/dist/lib
         NO_DEFAULT_PATH
         NO_CMAKE_PATH
@@ -160,8 +152,6 @@ find_library(TIFF_LIBRARY
         NO_CMAKE_SYSTEM_PATH
         )
 
-# message(FATAL_ERROR "Done")
-
 # ======================
 # OpenJPEG
 # ======================
@@ -170,17 +160,19 @@ FetchContent_Populate(openjpeg
         SOURCE_DIR ${CMAKE_BINARY_DIR}/source/openjpeg-src
         BINARY_DIR ${CMAKE_BINARY_DIR}/build/openjpeg-build
         SUBBUILD_DIR ${CMAKE_BINARY_DIR}/subbuild/openjpeg-build
-#        URL_HASH   MD5=114192d7ebe537912a2b97408832e7fd
+        URL_HASH   MD5=6a1f8aaa1fe55d2088e3a9c942e0f698
         )
-# message("PNG_LIBRARY_RELEASE = ${PNG_LIBRARY_RELEASE}")
-# message("PNG_PNG_INCLUDE_DIR = ${PNG_PNG_INCLUDE_DIR}")
+
 execute_process(COMMAND ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
         -S ${CMAKE_BINARY_DIR}/source/openjpeg-src -B ${CMAKE_BINARY_DIR}/build/openjpeg-build
-       -DZLIB_INCLUDE_DIR:PATH=${CMAKE_BINARY_DIR}/dist/include
-       -DZLIB_LIBRARY_RELEASE:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlib.lib
-       -DZLIB_LIBRARY_DEBUG:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlibd.lib
-       -DPNG_LIBRARY_RELEASE:FILEPATH=${PNG_LIBRARY_RELEASE}
-       -DPNG_PNG_INCLUDE_DIR:PATH=${PNG_PNG_INCLUDE_DIR}
+        -DBUILD_CODEC:BOOL=OFF
+#       -DZLIB_INCLUDE_DIR:PATH=${CMAKE_BINARY_DIR}/dist/include
+#       -DZLIB_LIBRARY_RELEASE:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlib.lib
+#       -DZLIB_LIBRARY_DEBUG:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlibd.lib
+#       -DPNG_LIBRARY_RELEASE:FILEPATH=${PNG_LIBRARY_RELEASE}
+#       -DPNG_PNG_INCLUDE_DIR:PATH=${PNG_PNG_INCLUDE_DIR}
+#       -DTIFF_INCLUDE_DIR:PATH=${TIFF_INCLUDE_DIR}
+#       -DTIFF_LIBRARY:FILEPATH=${TIFF_LIBRARY}
          
         -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/dist
         -DCMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/dist/cmake
@@ -200,15 +192,11 @@ find_path(OPENJPEG_INCLUDE_DIR
 find_library(OPENJPEG_LIBRARY
         NAMES
              openjp2.lib
-#            tiff.lib
         PATHS ${CMAKE_BINARY_DIR}/dist/lib
         NO_DEFAULT_PATH
         NO_CMAKE_PATH
         NO_CMAKE_SYSTEM_PATH
         )
-# message("OPENJPEG_INCLUDE_DIR = ${OPENJPEG_INCLUDE_DIR}")
-# message("OPENJPEG_LIBRARY = ${OPENJPEG_LIBRARY}")
-
 
 
 # ======================
@@ -225,32 +213,28 @@ FetchContent_Populate(leptonica
 
 execute_process(
         COMMAND
-                ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
+                ${CMAKE_COMMAND} -E env CFLAGS="/I${CMAKE_BINARY_DIR}/dist/include" ${CMAKE_COMMAND} -G ${CMAKE_GENERATOR}
                 -S ${CMAKE_BINARY_DIR}/source/leptonica-src -B ${CMAKE_BINARY_DIR}/build/leptonica-build
                 -DZLIB_INCLUDE_DIR:PATH=${CMAKE_BINARY_DIR}/dist/include
                 -DZLIB_LIBRARY_RELEASE:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlib.lib
                 -DZLIB_LIBRARY_DEBUG:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/zlibd.lib
                 -DTIFF_INCLUDE_DIR:PATH=${TIFF_INCLUDE_DIR}
                 -DTIFF_LIBRARY:FILEPATH=${TIFF_LIBRARY}
-                -DJPEG_INCLUDE_DIR=${JPEG_INCLUDE_DIR}
-                -DJPEG_LIBRARY=${JPEG_LIBRARY}
-                # -DPNG_DIR:PATH=${CMAKE_BINARY_DIR}/dist
-                # -DOPENJPEG_INCLUDE_DIR=${OPENJPEG_INCLUDE_DIR}
-                # -DOPENJPEG_LIBRARY=${OPENJPEG_LIBRARY}
+                -DJPEG_INCLUDE_DIR:PATH=${JPEG_INCLUDE_DIR}
+                -DJPEG_LIBRARY:FILEPATH=${JPEG_LIBRARY}
+                -DJP2K_FOUND:BOOL=TRUE
+                -DJP2K_INCLUDE_DIRS:PATH=${CMAKE_BINARY_DIR}/dist/include
+                -DJP2K_LIBRARIES:FILEPATH=${CMAKE_BINARY_DIR}/dist/lib/openjp2.lib
                 -DCMAKE_BUILD_TYPE=${Config}
-                -DCMAKE_PREFIX_PATH=${CMAKE_BINARY_DIR}/dist/
-                -DCMAKE_MODULE_PATH=${CMAKE_BINARY_DIR}/dist/cmake
+                -DCMAKE_MODULE_PATH:PATH=${CMAKE_BINARY_DIR}/dist/cmake
                 -DCMAKE_INSTALL_PREFIX:PATH=${CMAKE_BINARY_DIR}/dist
-                # -DCMAKE_INCLUDE_PATH:PATH=${CMAKE_BINARY_DIR}/dist/include
-        # WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/dist/include
-        )
-# message(FATAL_ERROR "Done")
+         )
+
 execute_process(
-        COMMAND 
-                ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/build/leptonica-build --config ${Config} --target install -j 8
-        # WORKING_DIRECTORY ${CMAKE_BINARY_DIR}/dist/include
-        )
-# message(FATAL_ERROR "Stop now ")
+        COMMAND
+        ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/build/leptonica-build --config ${Config} --target install -j 8
+)
+
 # ======================
 # tesseract
 # ======================
@@ -296,3 +280,5 @@ if(NOT TESSERACT_TESTS EQUAL 0)
 endif()
 
 execute_process(COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}/build/tesseract-build --target install --config ${Config} -j 8)
+
+message("All Done!")
