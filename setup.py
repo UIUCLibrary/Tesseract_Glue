@@ -5,7 +5,7 @@ import os
 import sys
 from distutils.version import StrictVersion
 from distutils.file_util import copy_file
-
+import distutils.ccompiler
 import urllib.request
 import platform
 from typing import List, Tuple, Union
@@ -49,6 +49,9 @@ class BuildExt(build_ext):
     def initialize_options(self):
         super().initialize_options()
         self.cmake_exec = shutil.which("cmake")
+        compiler = distutils.ccompiler.new_compiler()
+        compiler.initialize()
+        self.compiler = compiler
 
     def finalize_options(self):
         super().finalize_options()
@@ -127,6 +130,7 @@ class BuildExt(build_ext):
         return False
 
     def configure_cmake(self, ext):
+
         fetch_content_base_dir = os.path.abspath(
             os.path.join(self.build_temp,
                          "thirdparty"))
@@ -238,7 +242,6 @@ class BuildExt(build_ext):
 
         if "Clang" in python_compiler:
             return "Unix Makefiles"
-
         if 'MSC v.19' in python_compiler:
             return "Visual Studio 14 2015"
 
