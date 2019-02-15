@@ -1,10 +1,5 @@
-import re
-
 import setuptools
-from setuptools import setup, Extension
 from setuptools.command.build_ext import build_ext
-
-# import itertools
 import shutil
 import os
 import sys
@@ -13,10 +8,11 @@ from distutils.file_util import copy_file
 
 import urllib.request
 import platform
-import subprocess
 from typing import List, Tuple, Union
 import tarfile
 import zipfile
+
+PACKAGE_NAME = "uiucprescon.ocr"
 
 if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
     print('your setuptools version does not support using setup.cfg. '
@@ -42,6 +38,12 @@ class BuildExt(build_ext):
         self.cmake_source_dir = None
         self.cmake_binary_dir = None
         self._env_vars = None
+        self.build_configuration = "release"
+
+    @property
+    def package_dir(self):
+        build_py = self.get_finalized_command('build_py')
+        return build_py.get_package_dir(PACKAGE_NAME)
 
     def initialize_options(self):
         super().initialize_options()
@@ -65,40 +67,61 @@ class BuildExt(build_ext):
             return super().get_ext_filename(fullname)
 
     def run(self):
-        # super().run()
+
         for ext in self.extensions:
+            fullname = self.get_ext_filename(ext.name)
+            full_package_dir = os.path.join(self.build_lib, self.package_dir)
+            install_lib = os.path.join(full_package_dir, fullname)
+            ext.cmake_binary_dir = os.path.join(self.build_temp, "{}-build".format(ext.name))
+
+            ext.cmake_install_prefix = self.get_install_prefix(ext)
+
             if ext.url:
                 self.get_source(ext)
-                pass
-            if ext.prefix_name is None:
-                ext.prefix_name = ext.name
-            ext.cmake_binary_dir = os.path.join(self.build_temp, "{}-build".format(ext.name))
+
             self.cmake_binary_dir = self.build_temp
-            os.makedirs(ext.cmake_binary_dir, exist_ok=True)
+            self.mkpath(ext.cmake_binary_dir)
 
             self.configure_cmake(ext)
+
             self.build_cmake(ext)
-            self.install_cmake(ext)
-            self.copy_extensions_to_lib(ext)
+
+            if self.needs_to_install(ext):
+                self.announce("Installing {} to {} .".format(ext.name, install_lib), 3)
+                self.install_cmake(ext)
 
             if self.inplace:
                 self.copy_extensions_to_src(ext)
 
-    def parse_compiler_info(self, compiler_info):
-        compiler_regex = re.compile("(?<=v\.)[0-9]*")
-        match = compiler_regex.findall(compiler_info)
-        print(match)
+    def needs_to_run_configure(self, ext) -> bool:
 
-        # TODO: parse out the arch such as x64, Win32
-        return "1", "2"
+        if self.force:
+            return True
+
+        cmake_cache = os.path.join(ext.cmake_binary_dir, "CMakeCache.txt")
+        if not os.path.exists(cmake_cache):
+            self.announce("CMake has not generated needed CMakeCache.txt", 1)
+            return True
+
+        return False
+
+    def needs_to_install(self, ext) -> bool:
+        if self.force:
+            return True
+
+        install_manifest = os.path.join(ext.cmake_binary_dir, "install_manifest.txt")
+        if not os.path.exists(install_manifest):
+            return True
+
+        with open(install_manifest, "r") as f:
+            for line in f:
+                install_file = line.strip()
+                if not os.path.exists(install_file):
+                    return True
+        return False
 
     def configure_cmake(self, ext):
-
-        ext.cmake_install_prefix = self.get_install_prefix(ext)
         fetch_content_base_dir = os.path.join(os.path.abspath(self.build_temp), "thirdparty")
-
-
-
         configure_command = [
             self.cmake_exec,
             f"-S{os.path.abspath(ext.cmake_source_dir)}",
@@ -132,7 +155,7 @@ class BuildExt(build_ext):
                 v = v()
             configure_command.append(f"{k}={v}")
         configure_command += [
-            "-DCMAKE_BUILD_TYPE=Release",
+            "-DCMAKE_BUILD_TYPE={}".format(self.build_configuration),
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
         ]
 
@@ -143,7 +166,7 @@ class BuildExt(build_ext):
             return os.path.abspath(ext.cmake_install_prefix)
 
         if isinstance(ext, CMakeDependency):
-            install_prefix = os.path.normpath(self.build_temp)
+            install_prefix = os.path.normpath(os.path.join(self.build_lib, self.package_dir, "tesseract"))
             if ext.prefix_name:
                 install_prefix = os.path.join(install_prefix, ext.prefix_name)
             return os.path.abspath(install_prefix)
@@ -153,15 +176,12 @@ class BuildExt(build_ext):
     def copy_extensions_to_lib(self, ext):
         if isinstance(ext, CMakeDependency):
             if ext.shared_library:
-                build_py = self.get_finalized_command('build_py')
                 build_cmd = self.get_finalized_command('build_ext')
                 fullname = build_cmd.get_ext_fullname(ext.name)
                 filename = build_cmd.get_ext_filename(fullname)
                 src_filename = os.path.join(self.build_temp, filename)
-                package_dir = build_py.get_package_dir("uiucprescon.ocr")
-                full_package_dir = os.path.join(self.build_lib, package_dir)
+                full_package_dir = os.path.join(self.build_lib, self.package_dir, "tesseract", "bin")
                 self.mkpath(full_package_dir)
-                # if os.path.exists(src_filename):
                 dest_filename = os.path.join(full_package_dir, filename)
 
                 copy_file(
@@ -170,21 +190,23 @@ class BuildExt(build_ext):
                 )
 
     def copy_extensions_to_src(self, ext):
-        if ext.shared_library:
-            build_py = self.get_finalized_command('build_py')
-            build_cmd = self.get_finalized_command('build_ext')
-            fullname = build_cmd.get_ext_fullname(ext.name)
-            filename = build_cmd.get_ext_filename(fullname)
-            # src_filename = os.path.join(self.build_temp, filename)
-            package_dir = build_py.get_package_dir("uiucprescon.ocr")
-            full_package_dir =os.path.join(self.build_lib, package_dir)
-            src_filename = os.path.join(full_package_dir, filename)
 
-            dest_filename = os.path.join(package_dir, filename)
-            copy_file(
-                src_filename, dest_filename, verbose=self.verbose,
-                dry_run=self.dry_run
-            )
+        build_cmd = self.get_finalized_command('build_ext')
+
+        fullname = build_cmd.get_ext_fullname(ext.name)
+        filename = build_cmd.get_ext_filename(fullname)
+
+        if ext.shared_library and isinstance(ext, CMakeExtension):
+            src_filename = os.path.join(self.build_temp, filename)
+            if isinstance(ext, CMakeDependency):
+                full_package_dir = os.path.join(self.package_dir, "tesseract", "bin")
+                self.mkpath(full_package_dir)
+            else:
+                full_package_dir = self.package_dir
+                src_filename = os.path.join(self.build_lib, self.package_dir, filename)
+
+            dest_filename = os.path.join(full_package_dir, filename)
+            self.copy_file(src_filename, dest_filename)
 
     @staticmethod
     def get_build_generator_name():
@@ -204,7 +226,7 @@ class BuildExt(build_ext):
         build_command = [
             self.cmake_exec,
             "--build", ext.cmake_binary_dir,
-            "--config", "release",
+            "--config", self.build_configuration,
         ]
         env = os.environ.copy()
         if self.parallel is not None:
@@ -213,16 +235,14 @@ class BuildExt(build_ext):
         if "Visual Studio" in self.get_build_generator_name():
             build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
             env['CL'] = "/MP"
-
-        p = subprocess.Popen(build_command, env=env)
-        p.communicate()
+        self.spawn(build_command)
 
     def install_cmake(self, ext):
 
         install_command = [
             self.cmake_exec,
             "--build", ext.cmake_binary_dir,
-            "--config", "release",
+            "--config", self.build_configuration,
             "--target", "install"
         ]
         self.spawn(install_command)
@@ -266,28 +286,24 @@ class BuildExt(build_ext):
         ext.cmake_source_dir = source_dest
         return source_dest
 
-    @staticmethod
-    def _extract_source(source_archive, dst):
+    def _extract_source(self, source_archive, dst):
 
-        print("Extracting files from {}".format(source_archive))
         if source_archive.endswith(".tar.gz"):
             with tarfile.open(source_archive, "r:gz") as archive:
                 for compressed_file in archive:
                     if not os.path.exists(os.path.join(dst, compressed_file.name)):
-                        print(" {}".format(compressed_file.name))
+                        self.announce("Extracting {}".format(compressed_file.name))
                         archive.extract(compressed_file, dst)
         elif source_archive.endswith(".zip"):
             with zipfile.ZipFile(source_archive) as archive:
                 for compressed_file in archive.namelist():
-                    print(" {}".format(compressed_file))
+                    self.announce("Extracting {}".format(compressed_file))
                     archive.extract(compressed_file, dst)
         else:
             raise Exception("Unknown format to extract {}".format(source_archive))
-        print("Extracting files from {}: Done".format(source_archive))
 
-    @staticmethod
-    def _download_source(extension, save_as):
-        print("Fetching source code for {}".format(extension.name))
+    def _download_source(self, extension, save_as):
+        self.announce("Fetching source code for {}".format(extension.name))
         BuildExt.download_file(extension.url, save_as)
 
     @staticmethod
@@ -300,7 +316,7 @@ class BuildExt(build_ext):
             assert response.getcode() == 200
 
 
-class CMakeExtension(Extension):
+class CMakeExtension(setuptools.Extension):
     def __init__(self, name, *args, **kwargs):
         # don't invoke the original build_ext for this special extension
         super().__init__(name, sources=[])
@@ -321,11 +337,6 @@ class CMakeDependency(CMakeExtension):
         self.starting_path = kwargs.get("starting_path")
         self.prefix_name = None
 
-
-
-include_path = os.path.join(sys.base_prefix, "include")
-lib_path = os.path.join(sys.base_prefix, "Scripts", "python3.dll")
-
 zlib = CMakeDependency(
     name="zlib",
     url="https://www.zlib.net/zlib-1.2.11.tar.gz",
@@ -335,10 +346,11 @@ zlib = CMakeDependency(
 
 libpng = CMakeDependency(
     name="libpng16",
-    url="https://download.sourceforge.net/libpng/libpng-1.6.36.tar.gz",
+    url="https://github.com/glennrp/libpng/archive/v1.6.36.tar.gz",
     starting_path="libpng-1.6.36",
     cmake_args=[
         ("-DZLIB_INCLUDE_DIR:PATH", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
+        ("-DPNG_TESTS:BOOL", "FALSE"),
         ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
         ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
     ]
@@ -347,7 +359,11 @@ libpng = CMakeDependency(
 libjpeg = CMakeDependency(
     name="jpeg62",
     url="https://github.com/libjpeg-turbo/libjpeg-turbo/archive/2.0.1.tar.gz",
-    starting_path="libjpeg-turbo-2.0.1"
+    starting_path="libjpeg-turbo-2.0.1",
+    cmake_args=[
+        ("-DENABLE_STATIC:BOOL", "False"),
+        ("-DWITH_TURBOJPEG:BOOL", "OFF"),
+    ]
 
 )
 
@@ -360,37 +376,24 @@ tiff = CMakeDependency(
         ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
         ("-DJPEG_INCLUDE_DIR:PATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "include")),
         ("-DJPEG_LIBRARY:FILEPATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
-        # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
-        ("-DBUILD_SHARED_LIBS:BOOL", "no"),
        ],
     starting_path="tiff-4.0.10",
    )
-
-tiff.shared_library = False
-
-# TODO: Add a CMakeDependency for openjp2
 
 openjpeg = CMakeDependency(
     name="openjp2",
     url="https://github.com/uclouvain/openjpeg/archive/v2.3.0.tar.gz",
     starting_path="openjpeg-2.3.0",
     cmake_args=[
-        ("-DZLIB_INCLUDE_DIR:PATH:", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
-        ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
-        ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
-        ("-DPNG_PNG_INCLUDE_DIR:PATH",lambda: os.path.join(libpng.cmake_install_prefix, "include")),
-        ("-DPNG_LIBRARY_RELEASE:FILEPATH",lambda: os.path.join(libpng.cmake_install_prefix, "lib", "libpng16.lib")),
+        ("-DBUILD_CODEC:BOOL", "OFF"),
     ]
 )
 
-
-
 leptonica = CMakeDependency(
-    name="-1.77.0",
+    name="leptonica-1.77.0",
     url="https://github.com/DanBloomberg/leptonica/archive/1.77.0.tar.gz",
     starting_path="leptonica-1.77.0",
     cmake_args=[
-        # ("-DZLIB_ROOT", lambda: zlib.cmake_install_prefix),
         ("-DZLIB_INCLUDE_DIR:PATH:", lambda: os.path.join(zlib.cmake_install_prefix, "include")),
         ("-DZLIB_LIBRARY_DEBUG:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlibd.lib")),
         ("-DZLIB_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(zlib.cmake_install_prefix, "lib", "zlib.lib")),
@@ -398,8 +401,11 @@ leptonica = CMakeDependency(
         ("-DTIFF_LIBRARY:FILEPATH", lambda: os.path.join(tiff.cmake_install_prefix, "lib", "tiff.lib")),
         ("-DJPEG_INCLUDE_DIR:PATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "include")),
         ("-DJPEG_LIBRARY:FILEPATH", lambda: os.path.join(libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
-        ("-DPNG_PNG_INCLUDE_DIR:PATH",lambda: os.path.join(libpng.cmake_install_prefix, "include")),
-        ("-DPNG_LIBRARY_RELEASE:FILEPATH",lambda: os.path.join(libpng.cmake_install_prefix, "lib", "libpng16.lib")),
+        ("-DPNG_PNG_INCLUDE_DIR:PATH", lambda: os.path.join(libpng.cmake_install_prefix, "include")),
+        ("-DPNG_LIBRARY_RELEASE:FILEPATH", lambda: os.path.join(libpng.cmake_install_prefix, "lib", "libpng16.lib")),
+        ("-DJP2K_FOUND:BOOL", "TRUE"),
+        ("-DJP2K_INCLUDE_DIRS:PATH", lambda: os.path.join(openjpeg.cmake_install_prefix, "include", "openjpeg-2.3")),
+        ("-DJP2K_LIBRARIES:FILEPATH", lambda: os.path.join(openjpeg.cmake_install_prefix, "lib", "openjp2.lib"))
     ])
 
 tesseract = CMakeDependency(
@@ -422,7 +428,7 @@ tesseract_extension = CMakeExtension(
 )
 tesseract_extension.cmake_source_dir = os.path.abspath(os.path.dirname(__file__))
 
-setup(
+setuptools.setup(
     packages=['uiucprescon.ocr'],
     setup_requires=[
         'pytest-runner'
