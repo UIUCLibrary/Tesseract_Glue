@@ -142,15 +142,15 @@ class BuildExt(build_ext):
             self.cmake_exec,
             f"-S{os.path.abspath(ext.cmake_source_dir)}",
             f"-B{os.path.abspath(ext.cmake_binary_dir)}",
-            f"-DCMAKE_C_COMPILER={self.compiler.cc}",
+            # f"-DCMAKE_C_COMPILER={self.compiler.cc}",
             f"-DCMAKE_INSTALL_PREFIX={os.path.abspath(ext.cmake_install_prefix)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}",
 
         ]
-        if asm is not None:
-            configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
+        # if asm is not None:
+        #     configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
 
 
         try:
