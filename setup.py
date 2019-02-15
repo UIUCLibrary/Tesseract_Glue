@@ -130,7 +130,10 @@ class BuildExt(build_ext):
         return False
 
     def configure_cmake(self, ext):
-
+        compiler_path = os.path.dirname(self.compiler.cc)
+        asm = shutil.which("ml", path=compiler_path)
+        if not asm is not None:
+            asm = shutil.which("ml64", path=compiler_path)
         fetch_content_base_dir = os.path.abspath(
             os.path.join(self.build_temp,
                          "thirdparty"))
@@ -139,12 +142,16 @@ class BuildExt(build_ext):
             self.cmake_exec,
             f"-S{os.path.abspath(ext.cmake_source_dir)}",
             f"-B{os.path.abspath(ext.cmake_binary_dir)}",
+            f"-DCMAKE_C_COMPILER={self.compiler.cc}",
             f"-DCMAKE_INSTALL_PREFIX={os.path.abspath(ext.cmake_install_prefix)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}",
 
         ]
+        if asm is not None:
+            configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
+
 
         try:
             build_system = self.get_build_generator_name()
@@ -171,8 +178,8 @@ class BuildExt(build_ext):
             "-DCMAKE_BUILD_TYPE={}".format(self.build_configuration),
             "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
         ]
-
-        self.spawn(configure_command)
+        self.compiler.spawn(configure_command)
+        # self.spawn(configure_command)
 
     def get_install_prefix(self, ext):
         if ext.cmake_install_prefix is not None:
@@ -259,7 +266,7 @@ class BuildExt(build_ext):
         if "Visual Studio" in self.get_build_generator_name():
             build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
             env['CL'] = "/MP"
-        self.spawn(build_command)
+        self.compiler.spawn(build_command)
 
     def install_cmake(self, ext):
 
@@ -269,7 +276,7 @@ class BuildExt(build_ext):
             "--config", self.build_configuration,
             "--target", "install"
         ]
-        self.spawn(install_command)
+        self.compiler.spawn(install_command)
 
     @staticmethod
     def _get_file_extension(url) -> str:
