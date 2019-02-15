@@ -27,6 +27,7 @@ class CMakeException(RuntimeError):
     pass
 
 
+
 class BuildExt(build_ext):
     user_options = build_ext.user_options + [
         ('cmake-exec=', None, "Location of the CMake executable. "
@@ -38,6 +39,7 @@ class BuildExt(build_ext):
         self.cmake_source_dir = None
         self.cmake_binary_dir = None
         self._env_vars = None
+        self.library_install_dir = ""
         self.build_configuration = "release"
 
     @property
@@ -166,7 +168,7 @@ class BuildExt(build_ext):
             return os.path.abspath(ext.cmake_install_prefix)
 
         if isinstance(ext, CMakeDependency):
-            install_prefix = os.path.normpath(os.path.join(self.build_lib, self.package_dir, "tesseract"))
+            install_prefix = os.path.normpath(os.path.join(self.build_lib, self.package_dir, self.library_install_dir))
             if ext.prefix_name:
                 install_prefix = os.path.join(install_prefix, ext.prefix_name)
             return os.path.abspath(install_prefix)
@@ -180,7 +182,7 @@ class BuildExt(build_ext):
                 fullname = build_cmd.get_ext_fullname(ext.name)
                 filename = build_cmd.get_ext_filename(fullname)
                 src_filename = os.path.join(self.build_temp, filename)
-                full_package_dir = os.path.join(self.build_lib, self.package_dir, "tesseract", "bin")
+                full_package_dir = os.path.join(self.build_lib, self.package_dir, self.library_install_dir, "bin")
                 self.mkpath(full_package_dir)
                 dest_filename = os.path.join(full_package_dir, filename)
 
@@ -199,7 +201,7 @@ class BuildExt(build_ext):
         if ext.shared_library and isinstance(ext, CMakeExtension):
             src_filename = os.path.join(self.build_temp, filename)
             if isinstance(ext, CMakeDependency):
-                full_package_dir = os.path.join(self.package_dir, "tesseract", "bin")
+                full_package_dir = os.path.join(self.package_dir, self.library_install_dir, "bin")
                 self.mkpath(full_package_dir)
             else:
                 full_package_dir = self.package_dir
@@ -314,6 +316,14 @@ class BuildExt(build_ext):
         with urllib.request.urlopen(url) as response, open(save_as, 'wb') as out_file:
             shutil.copyfileobj(response, out_file)
             assert response.getcode() == 200
+
+
+class BuildTesseract(BuildExt):
+    user_options = BuildExt.user_options
+
+    def __init__(self, dist):
+        super().__init__(dist)
+        self.library_install_dir = "tesseract"
 
 
 class CMakeExtension(setuptools.Extension):
@@ -450,6 +460,6 @@ setuptools.setup(
         tesseract_extension
     ],
     cmdclass={
-        "build_ext": BuildExt,
+        "build_ext": BuildTesseract,
     },
 )
