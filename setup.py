@@ -1,11 +1,13 @@
+from subprocess import Popen
+
 import setuptools
 from setuptools.command.build_ext import build_ext
 import shutil
 import os
 import sys
 from distutils.version import StrictVersion
-from distutils.file_util import copy_file
-import distutils.ccompiler
+# from distutils.file_util import copy_file
+# import distutils.ccompiler
 import urllib.request
 import platform
 from typing import List, Tuple, Union
@@ -49,9 +51,10 @@ class BuildExt(build_ext):
     def initialize_options(self):
         super().initialize_options()
         self.cmake_exec = shutil.which("cmake")
-        compiler = distutils.ccompiler.new_compiler()
-        compiler.initialize()
-        self.compiler = compiler
+        # self.
+        # compiler = distutils.ccompiler.new_compiler()
+        # compiler.initialize()
+        # self.ccompiler = compiler
 
     def finalize_options(self):
         super().finalize_options()
@@ -62,43 +65,58 @@ class BuildExt(build_ext):
         if not os.path.exists(self.cmake_exec):
             raise Exception(
                 "Invalid location set to CMake")
+        pass
 
     def get_ext_filename(self, fullname):
         ext = self.ext_map[fullname]
         if isinstance(ext, CMakeDependency):
-            return f"{fullname}.dll"
+            return os.path.join("bin", f"{fullname}.dll")
         else:
             return super().get_ext_filename(fullname)
 
-    def run(self):
-
+    def build_extensions(self):
+        # super().build_extensions()
         for ext in self.extensions:
-            fullname = self.get_ext_filename(ext.name)
-            full_package_dir = os.path.join(self.build_lib, self.package_dir)
-            install_lib = os.path.join(full_package_dir, fullname)
-            ext.cmake_binary_dir = os.path.join(self.build_temp,
-                                                "{}-build".format(ext.name))
+            with self._filter_build_errors(ext):
+                self.build_extension(ext)
+        pass
 
+    def run(self):
+        for ext in self.extensions:
             ext.cmake_install_prefix = self.get_install_prefix(ext)
+            ext.cmake_binary_dir = os.path.join(self.build_temp, "{}-build".format(ext.name))
 
-            if ext.url:
-                self.get_source(ext)
+        super().run()
 
-            self.cmake_binary_dir = self.build_temp
-            self.mkpath(ext.cmake_binary_dir)
 
-            self.configure_cmake(ext)
+    def build_extension(self, ext):
 
-            self.build_cmake(ext)
 
-            if self.needs_to_install(ext):
-                self.announce(
-                    "Installing {} to {} .".format(ext.name, install_lib), 3)
+        _compiler = self.compiler
+        # ext.cmake_install_prefix = self.get_install_prefix(ext)
 
-                self.install_cmake(ext)
+        try:
+            if isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension):
+                if ext.url:
+                    self.get_source(ext)
+                self.compiler = self.shlib_compiler
 
-            if self.inplace:
-                self.copy_extensions_to_src(ext)
+                if not self.compiler.initialized:
+                    self.compiler.initialize()
+                self.mkpath(ext.cmake_binary_dir)
+
+                self.configure_cmake(ext)
+
+                self.build_cmake(ext)
+
+                if self.needs_to_install(ext):
+                    self.install_cmake(ext)
+            if ext._needs_stub:
+                cmd = self.get_finalized_command('build_py').build_lib
+                self.write_stub(cmd, ext)
+        finally:
+            self.compiler = _compiler
+
 
     def needs_to_run_configure(self, ext) -> bool:
 
@@ -130,14 +148,13 @@ class BuildExt(build_ext):
         return False
 
     def configure_cmake(self, ext):
-        compiler_path = os.path.dirname(self.compiler.cc)
-        asm = shutil.which("ml", path=compiler_path)
-        if not asm is not None:
-            asm = shutil.which("ml64", path=compiler_path)
+        # compiler_path = os.path.dirname(self.shlib_compiler.cc)
+        # asm = shutil.which("ml", path=compiler_path)
+        # if not asm is not None:
+        #     asm = shutil.which("ml64", path=compiler_path)
         fetch_content_base_dir = os.path.abspath(
             os.path.join(self.build_temp,
                          "thirdparty"))
-
         configure_command = [
             self.cmake_exec,
             f"-S{os.path.abspath(ext.cmake_source_dir)}",
@@ -147,21 +164,25 @@ class BuildExt(build_ext):
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}",
+            # f"-DCMAKE_EXE_LINKER_FLAGS:STRING={linker_flags}",
+            # f"-CMAKE_EXE_LINKER_FLAGS:STRING= /machine:x64",
+            # f"-DCMAKE_GENERATOR_PLATFORM=x64",
 
         ]
-        if asm is not None:
-            configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
+        # if asm is not None:
+        #     configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
 
+        # configure_command += ["-G", "NMake Makefiles"]
 
         try:
-            build_system = self.get_build_generator_name()
 
             if platform.architecture()[0] == '64bit':
                 configure_command += ["-A", "x64"]
 
-            if build_system is not None:
-                configure_command += ["-G", build_system]
-
+            # if build_system is not None:
+            #     configure_command += ["-G", build_system]
+            if 'MSC v.19' in platform.python_compiler():
+                configure_command += ["-T", "v140"]
         except KeyError as e:
 
             message = "No known build system generator for the current " \
@@ -184,18 +205,50 @@ class BuildExt(build_ext):
     def get_install_prefix(self, ext):
         if ext.cmake_install_prefix is not None:
             return os.path.abspath(ext.cmake_install_prefix)
+        #
+        if isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension):
 
-        if isinstance(ext, CMakeDependency):
-            install_prefix = os.path.normpath(
-                os.path.join(self.build_lib,
-                             self.package_dir,
-                             self.library_install_dir))
+            if isinstance(ext, CMakeDependency):
+                install_prefix = os.path.join(self.build_lib, self.package_dir, self.library_install_dir)
+            else:
+                install_prefix = self.build_lib
 
-            if ext.prefix_name:
+            if ext.prefix_name is not None:
                 install_prefix = os.path.join(install_prefix, ext.prefix_name)
+
             return os.path.abspath(install_prefix)
 
         return os.path.abspath(self.build_lib)
+
+    def get_ext_fullpath(self, ext_name):
+        return super().get_ext_fullpath(ext_name)
+
+    def copy_extensions_to_source(self):
+        build_py = self.get_finalized_command('build_py')
+        for ext in self.extensions:
+            fullname = self.get_ext_fullname(ext.name)
+            filename = self.get_ext_filename(fullname)
+            if ext.shared_library and (isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension)):
+                src_filename = os.path.join(self.build_lib, self.package_dir)
+                if isinstance(ext, CMakeDependency):
+                    src_filename = os.path.join(src_filename, "tesseract")
+                    full_package_dir = \
+                        os.path.join(self.package_dir,
+                                     self.library_install_dir)
+                else:
+                    full_package_dir = self.package_dir
+                    src_filename = os.path.join(self.build_lib,
+                                                self.package_dir)
+                src_filename = os.path.join(src_filename, filename)
+                dest_filename = os.path.join(full_package_dir, filename)
+                self.mkpath(os.path.dirname(dest_filename))
+                self.copy_file(src_filename, dest_filename)
+
+                if ext._needs_stub:
+                    self.write_stub(dest_filename or os.curdir, ext, True)
+
+            if ext._needs_stub:
+                self.write_stub(full_package_dir or os.curdir, ext, True)
 
     def copy_extensions_to_lib(self, ext):
         if isinstance(ext, CMakeDependency):
@@ -212,33 +265,33 @@ class BuildExt(build_ext):
                 self.mkpath(full_package_dir)
                 dest_filename = os.path.join(full_package_dir, filename)
 
-                copy_file(
-                    src_filename, dest_filename, verbose=self.verbose,
-                    dry_run=self.dry_run
-                )
+                self.copy_file(src_filename, dest_filename)
 
-    def copy_extensions_to_src(self, ext):
+    # def copy_extensions_to_source(self):
+    #     super().copy_extensions_to_source()
 
-        build_cmd = self.get_finalized_command('build_ext')
-
-        fullname = build_cmd.get_ext_fullname(ext.name)
-        filename = build_cmd.get_ext_filename(fullname)
-
-        if ext.shared_library and isinstance(ext, CMakeExtension):
-            src_filename = os.path.join(self.build_temp, filename)
-            if isinstance(ext, CMakeDependency):
-                full_package_dir = \
-                    os.path.join(self.package_dir,
-                                 self.library_install_dir, "bin")
-
-                self.mkpath(full_package_dir)
-            else:
-                full_package_dir = self.package_dir
-                src_filename = os.path.join(self.build_lib,
-                                            self.package_dir, filename)
-
-            dest_filename = os.path.join(full_package_dir, filename)
-            self.copy_file(src_filename, dest_filename)
+    # def copy_extensions_to_src(self, ext):
+    #
+    #     build_cmd = self.get_finalized_command('build_ext')
+    #
+    #     fullname = build_cmd.get_ext_fullname(ext.name)
+    #     filename = build_cmd.get_ext_filename(fullname)
+    #
+    #     if ext.shared_library and isinstance(ext, CMakeExtension):
+    #         src_filename = os.path.join(self.build_temp, filename)
+    #         if isinstance(ext, CMakeDependency):
+    #             full_package_dir = \
+    #                 os.path.join(self.package_dir,
+    #                              self.library_install_dir, "bin")
+    #
+    #             self.mkpath(full_package_dir)
+    #         else:
+    #             full_package_dir = self.package_dir
+    #             src_filename = os.path.join(self.build_lib,
+    #                                         self.package_dir, filename)
+    #
+    #         dest_filename = os.path.join(full_package_dir, filename)
+    #         self.copy_file(src_filename, dest_filename)
 
     @staticmethod
     def get_build_generator_name():
@@ -249,6 +302,7 @@ class BuildExt(build_ext):
 
         if "Clang" in python_compiler:
             return "Unix Makefiles"
+
         if 'MSC v.19' in python_compiler:
             return "Visual Studio 14 2015"
 
@@ -256,27 +310,33 @@ class BuildExt(build_ext):
 
         build_command = [
             self.cmake_exec,
-            "--build", ext.cmake_binary_dir,
+            "--build", os.path.abspath(ext.cmake_binary_dir),
             "--config", self.build_configuration,
         ]
-        env = os.environ.copy()
+        # env = os.environ.copy()
         if self.parallel is not None:
             build_command += ["--parallel", str(self.parallel)]
 
         if "Visual Studio" in self.get_build_generator_name():
             build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
-            env['CL'] = "/MP"
-        self.compiler.spawn(build_command)
+            # env['CL'] = "/MP"
+        p = Popen(build_command)
+        p.communicate()
+        # self.compiler.spawn(build_command)
+        pass
 
     def install_cmake(self, ext):
 
         install_command = [
             self.cmake_exec,
-            "--build", ext.cmake_binary_dir,
+            "--build", os.path.abspath(ext.cmake_binary_dir),
             "--config", self.build_configuration,
             "--target", "install"
         ]
-        self.compiler.spawn(install_command)
+        # self.compiler.spawn(install_command)
+        p = Popen(install_command)
+        p.communicate()
+        pass
 
     @staticmethod
     def _get_file_extension(url) -> str:
@@ -377,19 +437,41 @@ class CMakeExtension(setuptools.Extension):
         self.shared_library = True
 
 
-class CMakeDependency(CMakeExtension):
+class CMakeDependency(setuptools.extension.Library):
 
     def __init__(self, name, url, *args, **kwargs):
-        super().__init__(name, *args, **kwargs)
-        self.url = url
+
         self.starting_path = kwargs.get("starting_path")
+
+        self.cmake_args: List[Tuple[str, Union[str, callable()]]] = \
+            kwargs.get("cmake_args", [])
+
+        # delete keys before sending it to super because you'll get warnings
+        # otherwise for these kwargs
+        if "starting_path" in kwargs:
+            del kwargs['starting_path']
+
+        if "cmake_args" in kwargs:
+            del kwargs["cmake_args"]
+
+        super().__init__(name, *args, **kwargs, sources=[])
+        self.url = url
         self.prefix_name = None
+        self.cmake_source_dir = None
+        self.cmake_binary_dir = None
+
+        self.cmake_install_prefix = None
+        self.shared_library = True
+        self.name = name
+
+
 
 
 zlib = CMakeDependency(
     name="zlib",
     url="https://www.zlib.net/zlib-1.2.11.tar.gz",
-    starting_path="zlib-1.2.11"
+    starting_path="zlib-1.2.11",
+    language="C"
 )
 # Lambdas are use to delay the evaluation until a dependency finished building
 
