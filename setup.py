@@ -149,8 +149,8 @@ class BuildExt(build_ext):
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}",
 
         ]
-        # if asm is not None:
-        #     configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
+        if asm is not None:
+            configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
 
 
         try:
