@@ -1,13 +1,13 @@
 import os as _os
-from .engine import Engine
-from . import tesseractwrap
-from .reader import Reader
 
 _path = _os.path.join(
     _os.path.dirname(__file__), 'tesseract', 'bin') + ";" + _os.environ['PATH']
 
 _os.environ['PATH'] = _path
 
+from . import tesseractwrap
+from .engine import Engine
+from .reader import Reader
 
 __all__ = [
     "Reader",
