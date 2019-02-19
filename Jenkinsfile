@@ -473,8 +473,7 @@ pipeline {
                     stages{
                         stage("create venv for 3.7"){
                             steps {
-                                bat "python -m venv venv\\37"
-                                bat "venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install wheel setuptools --upgrade"
+                                bat "python -m venv venv\\37 && venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install wheel setuptools --upgrade"
                             }
                         }
 
