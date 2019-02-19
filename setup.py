@@ -16,6 +16,8 @@ import zipfile
 
 PACKAGE_NAME = "uiucprescon.ocr"
 
+# nasm = shutil.which("nasm")
+
 if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
     print('your setuptools version does not support using setup.cfg. '
           'Upgrade setuptools and repeat the installation.',
@@ -32,7 +34,9 @@ class CMakeException(RuntimeError):
 class BuildExt(build_ext):
     user_options = build_ext.user_options + [
         ('cmake-exec=', None, "Location of the CMake executable. "
-                              "Defaults of CMake located on path")
+                              "Defaults of CMake located on path"),
+        ('nasm-exec=', None, "Location of the NASM executable. "
+                             "Defaults of NASM located on path")
     ]
 
     def __init__(self, dist):
@@ -51,6 +55,7 @@ class BuildExt(build_ext):
     def initialize_options(self):
         super().initialize_options()
         self.cmake_exec = shutil.which("cmake")
+        self.nasm_exec = shutil.which("nasm")
         # self.
         # compiler = distutils.ccompiler.new_compiler()
         # compiler.initialize()
@@ -169,6 +174,9 @@ class BuildExt(build_ext):
             # f"-DCMAKE_GENERATOR_PLATFORM=x64",
 
         ]
+        if self.nasm_exec:
+            configure_command.append(f"-DCMAKE_ASM_NASM_COMPILER:FILEPATH={os.path.normcase(self.nasm_exec)}")
+
         # if asm is not None:
         #     configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
 
@@ -247,8 +255,8 @@ class BuildExt(build_ext):
                 if ext._needs_stub:
                     self.write_stub(dest_filename or os.curdir, ext, True)
 
-            if ext._needs_stub:
-                self.write_stub(full_package_dir or os.curdir, ext, True)
+            # if ext._needs_stub:
+            #     self.write_stub(full_package_dir or os.curdir, ext, True)
 
     def copy_extensions_to_lib(self, ext):
         if isinstance(ext, CMakeDependency):
@@ -503,6 +511,7 @@ libjpeg = CMakeDependency(
     ]
 
 )
+
 
 tiff = CMakeDependency(
     name="tiff",
