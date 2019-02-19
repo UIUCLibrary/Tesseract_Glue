@@ -230,7 +230,7 @@ pipeline {
                 }
                 stage("Running Tests"){
                     environment{
-                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"   
+                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"   
                         PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"   
                         PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${env.PYTHON_SYSTEM_SCRIPTS_PATH};${tool 'cmake3.13'};$PATH"
                     }
@@ -293,7 +293,7 @@ pipeline {
                                     junit "reports/pytest/${env.junit_filename}"
                                     publishCoverage(
                                         adapters: [
-                                        coberturaAdapter('reports/coverage.xml')
+                                            coberturaAdapter('reports/coverage.xml')
                                         ],
                                         sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
                                     )
