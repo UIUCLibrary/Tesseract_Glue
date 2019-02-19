@@ -862,6 +862,7 @@ pipeline {
                     [pattern: 'logs', type: 'INCLUDE'],
                     [pattern: 'certs', type: 'INCLUDE'],
                     [pattern: '*tmp', type: 'INCLUDE'],
+                    [pattern: 'source', type: 'INCLUDE'],
                     [pattern: 'mypy_stubs', type: 'INCLUDE'],
                     [pattern: "source/**/*.dll", type: 'INCLUDE'],
                     [pattern: "source/**/*.pyd", type: 'INCLUDE'],
