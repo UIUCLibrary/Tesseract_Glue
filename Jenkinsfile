@@ -149,7 +149,7 @@ pipeline {
             stages{
                 stage("Building Python Package"){
                     environment {
-                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'}${tool name: 'nasm_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
+                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
                     }
                     steps {
 
