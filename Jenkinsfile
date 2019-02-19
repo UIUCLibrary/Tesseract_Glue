@@ -171,10 +171,10 @@ pipeline {
                                     msBuild(name: 'Setuptools Build: MSBuild', pattern: 'logs/build.log')
                                 ]
                                 )
-                            dir("source"){
-                                bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
-                            }
-                            archiveArtifacts "logs/built_package.log"
+                            // dir("source"){
+                            //     bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
+                            // }
+                            // archiveArtifacts "logs/built_package.log"
                         }
                         cleanup{
                             cleanWs(
