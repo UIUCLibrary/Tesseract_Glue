@@ -44,9 +44,7 @@ pipeline {
         PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
         DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
         DEVPI = credentials("DS_devpi")
-        PIPENV_NOSPIN="DISABLED"
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
-        PIPENV_CACHE_DIR="${WORKSPACE}\\..\\.virtualenvs\\cache\\"
         WORKON_HOME ="${WORKSPACE}\\pipenv\\"
         
     }
