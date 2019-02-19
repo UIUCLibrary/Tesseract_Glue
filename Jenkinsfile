@@ -195,7 +195,7 @@ pipeline {
                         PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                     }
                     steps{
-                        echo "Building docs on ${env.NODE_NAME}"
+                        // echo "Building docs on ${env.NODE_NAME}"
                         dir("source"){
                             bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                         }
