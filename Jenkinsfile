@@ -816,28 +816,28 @@ pipeline {
                         }
                     }
                 }
-                stage("Deploy to DevPi Production") {
-                    when {
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                            branch "master"
-                        }
-                    }
-                    steps {
-                        script {
-                            try{
-                                timeout(30) {
-                                    input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
-                                }
+                // stage("Deploy to DevPi Production") {
+                //     when {
+                //         allOf{
+                //             equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                //             branch "master"
+                //         }
+                //     }
+                //     steps {
+                //         script {
+                //             try{
+                //                 timeout(30) {
+                //                     input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
+                //                 }
 
-                                bat "venv\\36\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-                                bat "venv\\36\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release --clientdir ${WORKSPACE}\\certs\\"
-                            } catch(err){
-                                echo "User response timed out. Packages not deployed to DevPi Production."
-                            }
-                        }
-                    }
-                }
+                //                 bat "venv\\36\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
+                //                 bat "venv\\36\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release --clientdir ${WORKSPACE}\\certs\\"
+                //             } catch(err){
+                //                 echo "User response timed out. Packages not deployed to DevPi Production."
+                //             }
+                //         }
+                //     }
+                // }
             }
         }
     }
