@@ -99,8 +99,7 @@ pipeline {
                     }
                     steps {
                         dir("source"){
-                            bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check"
-                            bat "python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
+                            bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
                         }
                     }
                     post{
