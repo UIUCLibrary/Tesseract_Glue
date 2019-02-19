@@ -426,8 +426,9 @@ pipeline {
                         }
                         stage("Creating bdist wheel for 3.6"){
                             environment {
+                                NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
                                 PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\scripts"
-                                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};$PATH"
+                                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
                             }
                             steps {
                                 dir("source"){
