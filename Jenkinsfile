@@ -774,48 +774,48 @@ pipeline {
                 }
             }
         }
-        stage("Deploy"){
-            parallel {
-                stage("Deploy Online Documentation") {
-                    when{
-                        equals expected: true, actual: params.DEPLOY_DOCS
-                    }
-                    steps{
-                        dir("build/docs/html/"){
-                            script{
-                                try{
-                                    timeout(30) {
-                                        input 'Update project documentation?'
-                                    }
-                                    sshPublisher(
-                                        publishers: [
-                                            sshPublisherDesc(
-                                                configName: 'apache-ns - lib-dccuser-updater',
-                                                sshLabel: [label: 'Linux'],
-                                                transfers: [sshTransfer(excludes: '',
-                                                execCommand: '',
-                                                execTimeout: 120000,
-                                                flatten: false,
-                                                makeEmptyDirs: false,
-                                                noDefaultExcludes: false,
-                                                patternSeparator: '[, ]+',
-                                                remoteDirectory: "${params.DEPLOY_DOCS_URL_SUBFOLDER}",
-                                                remoteDirectorySDF: false,
-                                                removePrefix: '',
-                                                sourceFiles: '**')],
-                                            usePromotionTimestamp: false,
-                                            useWorkspaceInPromotion: false,
-                                            verbose: true
-                                            )
-                                        ]
-                                    )
-                                } catch(exc){
-                                    echo "User response timed out. Documentation not published."
-                                }
+        // stage("Deploy"){
+        //     parallel {
+        stage("Deploy Online Documentation") {
+            when{
+                equals expected: true, actual: params.DEPLOY_DOCS
+            }
+            steps{
+                dir("build/docs/html/"){
+                    script{
+                        try{
+                            timeout(30) {
+                                input 'Update project documentation?'
                             }
+                            sshPublisher(
+                                publishers: [
+                                    sshPublisherDesc(
+                                        configName: 'apache-ns - lib-dccuser-updater',
+                                        sshLabel: [label: 'Linux'],
+                                        transfers: [sshTransfer(excludes: '',
+                                        execCommand: '',
+                                        execTimeout: 120000,
+                                        flatten: false,
+                                        makeEmptyDirs: false,
+                                        noDefaultExcludes: false,
+                                        patternSeparator: '[, ]+',
+                                        remoteDirectory: "${params.DEPLOY_DOCS_URL_SUBFOLDER}",
+                                        remoteDirectorySDF: false,
+                                        removePrefix: '',
+                                        sourceFiles: '**')],
+                                    usePromotionTimestamp: false,
+                                    useWorkspaceInPromotion: false,
+                                    verbose: true
+                                    )
+                                ]
+                            )
+                        } catch(exc){
+                            echo "User response timed out. Documentation not published."
                         }
                     }
                 }
+            }
+        }
                 // stage("Deploy to DevPi Production") {
                 //     when {
                 //         allOf{
@@ -838,8 +838,8 @@ pipeline {
                 //         }
                 //     }
                 // }
-            }
-        }
+        //     }
+        // }
     }
     post {
         cleanup{
