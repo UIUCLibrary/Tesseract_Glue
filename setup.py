@@ -328,9 +328,9 @@ class BuildExt(build_ext):
         if "Visual Studio" in self.get_build_generator_name():
             build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
             # env['CL'] = "/MP"
-        p = Popen(build_command)
-        p.communicate()
-        # self.compiler.spawn(build_command)
+        # p = Popen(build_command)
+        # p.communicate()
+        self.compiler.spawn(build_command)
         pass
 
     def install_cmake(self, ext):
@@ -341,9 +341,9 @@ class BuildExt(build_ext):
             "--config", self.build_configuration,
             "--target", "install"
         ]
-        # self.compiler.spawn(install_command)
-        p = Popen(install_command)
-        p.communicate()
+        self.compiler.spawn(install_command)
+        # p = Popen(install_command)
+        # p.communicate()
         pass
 
     @staticmethod
