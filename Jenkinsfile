@@ -560,8 +560,7 @@ pipeline {
                                             lock("system_python_${NODE_NAME}"){
                                                 bat "python -m venv venv\\venv36"
                                             }
-                                            bat "venv\\venv36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\venv36\\Scripts\\pip.exe install setuptools --upgrade"
-                                            bat 'venv\\venv36\\Scripts\\pip.exe install devpi-client "tox<3.7"'
+                                            bat "venv\\venv36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\venv36\\Scripts\\pip.exe install setuptools --upgrade && venv\\venv36\\Scripts\\pip.exe install devpi-client \"tox<3.7\""
                                         }
 
                                 }
