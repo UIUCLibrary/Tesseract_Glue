@@ -480,7 +480,7 @@ pipeline {
                         stage("Creating bdist wheel for 3.7"){
                             environment {
                                 PYTHON37_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\37\\scripts"
-                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};$PATH"
+                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};$PATH"
                             }
                             steps {
                                 dir("source"){
