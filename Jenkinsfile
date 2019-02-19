@@ -532,8 +532,7 @@ pipeline {
                         unstash "whl 3.6"
                         unstash "whl 3.7"
                         unstash "sdist"
-                        bat "pip install devpi-client"
-                        bat "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+                        bat "pip install devpi-client && devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
                     }
                 }
                 stage("Test DevPi packages") {
@@ -573,7 +572,7 @@ pipeline {
                                         PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${env.PYTHON_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                                     }
                                     steps {
-                                        echo "Testing Source zip package in devpi"
+                                        // echo "Testing Source zip package in devpi"
 
                                         timeout(20){
                                             devpiTest(
