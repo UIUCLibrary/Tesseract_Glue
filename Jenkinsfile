@@ -235,7 +235,9 @@ pipeline {
                 }
                 stage("Running Tests"){
                     environment{
-                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'}\\Scripts;${tool 'cmake3.13'};$PATH"
+                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"   
+                        PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"   
+                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${env.PYTHON_SYSTEM_SCRIPTS_PATH};${tool 'cmake3.13'};$PATH"
                     }
                     parallel {
                         stage("Run Tox test") {
@@ -256,7 +258,9 @@ pipeline {
                                 }
                                 stage("Run Tox"){
                                     environment {
-                                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'}\\;$PATH"
+                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"   
+                                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
+                                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'};${env.NASM_PATH};$PATH"
                                         CL = "/MP"
                                     }
 
@@ -417,7 +421,8 @@ pipeline {
                         }
                         stage("Creating bdist wheel for 3.6"){
                             environment {
-                                PATH = "${WORKSPACE}\\venv\\36\\scripts;${tool 'CPython-3.6'};$PATH"
+                                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\scripts"
+                                PATH = "${env.PYTHON_VENV36_SCRIPTS_PATH};${tool 'CPython-3.6'};$PATH"
                             }
                             steps {
                                 dir("source"){
@@ -455,7 +460,8 @@ pipeline {
                     }
                     environment {
                         CMAKE_PATH = "${tool 'cmake3.13'}"
-                        PATH = "${env.CMAKE_PATH};${tool 'CPython-3.7'};$PATH"
+                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
+                        PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${tool 'CPython-3.7'};$PATH"
                         CL = "/MP"
                     }
                     stages{
@@ -468,7 +474,8 @@ pipeline {
 
                         stage("Creating bdist wheel for 3.7"){
                             environment {
-                                PATH = "${WORKSPACE}\\venv\\37\\scripts;${tool 'CPython-3.6'};$PATH"
+                                PYTHON37_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\37\\scripts"
+                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};$PATH"
                             }
                             steps {
                                 dir("source"){
@@ -520,7 +527,8 @@ pipeline {
             }
 
             environment{
-                PATH = "${WORKSPACE}\\venv\\venv36\\Scripts;$PATH"
+                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
+                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};$PATH"
             }
             stages{
                 stage("Upload to DevPi Staging"){
@@ -565,7 +573,10 @@ pipeline {
                                 stage("Testing DevPi zip Package"){
 
                                     environment {
-                                        PATH = "${WORKSPACE}\\venv\\venv36\\Scripts;${tool 'cmake3.13'};${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+                                        CMAKE_PATH = "${tool 'cmake3.13'}"
+                                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
+                                        PYTHON_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"                                        
+                                        PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${env.PYTHON_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                                     }
                                     steps {
                                         echo "Testing Source zip package in devpi"
