@@ -117,8 +117,7 @@ pipeline {
                                 bat "venv\\36\\Scripts\\python.exe -m pip install -U pip"
                             }
                             catch (exc) {
-                                bat "python.exe -m venv venv\\36"
-                                bat "call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+                                bat "python.exe -m venv venv\\36 && call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
                             }
                         }
                     }
