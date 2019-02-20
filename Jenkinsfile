@@ -165,6 +165,9 @@ pipeline {
 //                        }
                     }
                     post{
+                        success{
+                            stash includes: 'build/36/**', name: 'BUILD_PY36'
+                        }
                         always{
                             recordIssues(tools: [
                                     pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
@@ -313,14 +316,14 @@ pipeline {
                                     //         cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                                     //     }
                                     // }
-                                    bat "del reports\\coverage.xml"
+                                    // bat "del reports\\coverage.xml"
 
                                 }
-                                failure{
-                                    dir("build"){
-                                        bat "tree /A /F"
-                                    }
-                                }
+                                // failure{
+                                //     dir("build"){
+                                //         bat "tree /A /F"
+                                //     }
+                                // }
                             }
                         }
                         stage("Run Doctest Tests"){
@@ -431,6 +434,7 @@ pipeline {
                                 PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
                             }
                             steps {
+                                unstash 'BUILD_PY36'
                                 dir("source"){
                                     bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
                                 }
