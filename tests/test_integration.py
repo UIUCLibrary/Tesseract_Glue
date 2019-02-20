@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from uiucprescon import ocr
 
-TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/4.0.0/"
+TESSDATA_SOURCE_URL_BASE = "https://github.com/tesseract-ocr/tessdata/raw/"
 
 
 def download_data(url, destination):
@@ -40,7 +40,9 @@ def test_reader_with_data(tessdata_eng, sample_images):
 
 @pytest.mark.integration
 def test_no_osd_file():
-    english_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "eng.traineddata")
+    e = ocr.Engine("")
+    version = e.get_version()
+    english_data_url = "{}/{}/{}".format(TESSDATA_SOURCE_URL_BASE, version, "eng.traineddata")
 
     test_path = os.path.dirname(__file__)
     tessdata_path = os.path.join(test_path, "no_osd_tessdata")
