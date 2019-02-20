@@ -1,4 +1,4 @@
-language_codes = {
+LANGUAGE_CODES = {
     "afr": "Afrikaans",
     "amh": "Amharic",
     "ara": "Arabic",
