@@ -2,15 +2,14 @@ import os as _os
 import sys as _sys
 _paths = list(filter(lambda i: i.strip(), _os.environ['PATH'].split(";")))
 _tesseract_path = _os.path.abspath(_os.path.join(_os.path.dirname(__file__), 'tesseract', 'bin'))
-_new_paths = []
+
 for p in _paths:
     if p == _tesseract_path:
         break
 else:
     _paths .insert(0, _tesseract_path)
-_path = ";".join(_paths)
 
-_os.environ['PATH'] = _path
+_os.environ['PATH'] = ";".join(_paths)
 
 try:
     from . import tesseractwrap
