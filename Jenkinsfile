@@ -532,7 +532,7 @@ pipeline {
             }
 
             environment{
-                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
+                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
                 PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};$PATH"
             }
             stages{
