@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from uiucprescon import ocr
 
-TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/3.04.00/"
+TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/4.0.0/"
 
 
 def download_data(url, destination):

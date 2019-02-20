@@ -6,7 +6,8 @@ from tempfile import TemporaryDirectory
 import pytest
 
 USER_CONTENT_URL = "https://jenkins.library.illinois.edu/userContent"
-TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/3.04.00/"
+TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/4.0.0/"
+
 
 def pytest_addoption(parser):
     parser.addoption(
