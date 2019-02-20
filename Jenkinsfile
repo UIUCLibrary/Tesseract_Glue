@@ -35,7 +35,7 @@ pipeline {
 
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
-        timeout(60)  // Timeout after 60 minutes. This shouldn't take this long but it hangs for some reason
+        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
         preserveStashes()
     }
@@ -584,7 +584,7 @@ pipeline {
                                     steps {
                                         // echo "Testing Source zip package in devpi"
 
-                                        timeout(20){
+                                        timeout(40){
                                             devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                                 url: "https://devpi.library.illinois.edu",
