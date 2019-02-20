@@ -1,7 +1,7 @@
 import os as _os
 
-_path = _os.path.join(
-    _os.path.dirname(__file__), 'tesseract', 'bin') + ";" + _os.environ['PATH']
+_path = _os.path.abspath(_os.path.join(
+    _os.path.dirname(__file__), 'tesseract', 'bin') + ";") + _os.environ['PATH']
 
 _os.environ['PATH'] = _path
 
