@@ -1,3 +1,4 @@
+import ctypes.util
 import os as _os
 import sys as _sys
 _paths = list(filter(lambda i: i.strip(), _os.environ['PATH'].split(";")))
@@ -15,6 +16,21 @@ try:
     from . import tesseractwrap
 except ImportError as e:
     import subprocess
+
+    shared_libraries = [
+        "jpeg62",
+        "leptonica-1.77.0",
+        "libpng16",
+        "openjp2",
+        "tesseract40",
+        "tiff",
+        "zlib"
+    ]
+    print("Locating required libraries", file=_sys.stderr)
+    for lib in shared_libraries:
+        res = ctypes.util.find_library(lib)
+        print("{}:{}".format(lib, res), file=_sys.stderr)
+
     print("Check path values", file=_sys.stderr)
     for k, v in _os.environ.items():
         print("{}:{}".format(k, v), file=_sys.stderr)
