@@ -165,9 +165,6 @@ pipeline {
 //                        }
                     }
                     post{
-                        success{
-                            stash includes: 'build/36/**', name: 'BUILD_PY36'
-                        }
                         always{
                             recordIssues(tools: [
                                     pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
@@ -434,7 +431,7 @@ pipeline {
                                 PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
                             }
                             steps {
-                                unstash 'BUILD_PY36'
+                                
                                 dir("source"){
                                     bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
                                 }
@@ -443,6 +440,15 @@ pipeline {
                                success{
                                     stash includes: 'dist/*.whl', name: "whl 3.6"
                                 }
+                            }
+                        }
+                        stage("Testing 3.6 wheel on other machine"){
+                            agent { label 'Windows && !VS2015' }
+                            environment {
+                                PATH = "${tool 'CPython-3.6'};$PATH"
+                            }
+                            steps{
+                                echo "Here"
                             }
                         }
                     }
@@ -623,7 +629,7 @@ pipeline {
                         stage("Testing DevPi .whl Package with Python 3.6"){
                             agent {
                                 node {
-                                    label "Windows && Python3 && !VS2015"
+                                    label "Windows && Python3 && VS2015"
                                 }
                             }
 
@@ -687,7 +693,7 @@ pipeline {
                         stage("Testing DevPi .whl Package with Python 3.7"){
                             agent {
                                 node {
-                                    label "Windows && Python3 && !VS2015"
+                                    label "Windows && Python3 && VS2015"
                                 }
                             }
 
