@@ -23,7 +23,17 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 
     }
 }
-
+def create_build_venv(){
+    script {
+        bat "python.exe -m venv venv\\36"
+        try {
+            bat "venv\\36\\Scripts\\python.exe -m pip install -U pip"
+        }
+        catch (exc) {
+            bat "python.exe -m venv venv\\36 && call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+        }
+    }
+}
 pipeline {
     agent {
         label "Windows && VS2015 && Python3 && longfilenames"
@@ -110,16 +120,17 @@ pipeline {
                 }
                 stage("Creating Virtualenv for Building"){
                     steps {
-                        bat "python.exe -m venv venv\\36"
+                        create_build_venv()
+                        // bat "python.exe -m venv venv\\36"
 
-                        script {
-                            try {
-                                bat "venv\\36\\Scripts\\python.exe -m pip install -U pip"
-                            }
-                            catch (exc) {
-                                bat "python.exe -m venv venv\\36 && call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-                            }
-                        }
+                        // script {
+                        //     try {
+                        //         bat "venv\\36\\Scripts\\python.exe -m pip install -U pip"
+                        //     }
+                        //     catch (exc) {
+                        //         bat "python.exe -m venv venv\\36 && call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+                        //     }
+                        // }
                     }
                     post{
                         success{
