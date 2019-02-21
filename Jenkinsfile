@@ -54,7 +54,10 @@ def test_36(){
         // script{
         def python_wheel = findFiles glob: '**/*cp36*.whl'
         dir("source"){
-            bat "${WORKSPACE}\\venv\\${NODE_NAME}\\36\\Scripts\\tox.exe --installpkg=${python_wheel} -e py36"
+            python_wheel.each{
+                bat "${WORKSPACE}\\venv\\${NODE_NAME}\\36\\Scripts\\tox.exe --installpkg=${it} -e py36"
+            }
+            
         }
         // }
 
@@ -357,18 +360,13 @@ pipeline {
                                 equals expected: true, actual: params.TEST_RUN_DOCTEST
                             }
                             steps {
-        //                        dir("${WORKSPACE}/reports/doctests"){
-        //                            echo "Cleaning doctest reports directory"
-        //                            deleteDir()
-        //                        }
                                 dir("source"){
                                     bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
                                 }
-        //                        bat "move ${WORKSPACE}\\build\\docs\\output.txt ${WORKSPACE}\\reports\\doctest.txt"
                             }
                             post{
                                 always {
-                                    archiveArtifacts artifacts: "reports/doctest/output.txt", allowEmptyArchive: true
+                                    
                                     recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
                                 }
                             }
