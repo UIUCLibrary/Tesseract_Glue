@@ -23,14 +23,14 @@ def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUse
 
     }
 }
-def create_build_venv(){
+def create_venv(python_exe, venv_path){
     script {
-        bat "python.exe -m venv venv\\36"
+        bat "${python_exe} -m venv ${venv_path}"
         try {
-            bat "venv\\36\\Scripts\\python.exe -m pip install -U pip"
+            bat "${venv_path}\\Scripts\\python.exe -m pip install -U pip"
         }
         catch (exc) {
-            bat "python.exe -m venv venv\\36 && call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+            bat "${python_exe} -m venv ${venv_path} && call ${venv_path}\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
         }
     }
 }
@@ -132,17 +132,7 @@ pipeline {
                 }
                 stage("Creating Virtualenv for Building"){
                     steps {
-                        create_build_venv()
-                        // bat "python.exe -m venv venv\\36"
-
-                        // script {
-                        //     try {
-                        //         bat "venv\\36\\Scripts\\python.exe -m pip install -U pip"
-                        //     }
-                        //     catch (exc) {
-                        //         bat "python.exe -m venv venv\\36 && call venv\\36\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-                        //     }
-                        // }
+                        create_venv("python.exe", "venv\\36")
                     }
                     post{
                         success{
