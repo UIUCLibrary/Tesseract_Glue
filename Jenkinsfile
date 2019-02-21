@@ -34,6 +34,18 @@ def create_build_venv(){
         }
     }
 }
+def runtox(){
+    script{
+        try{
+            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+        } catch (exc) {
+            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+        }
+    }
+
+}
+
+
 pipeline {
     agent {
         label "Windows && VS2015 && Python3 && longfilenames"
@@ -272,13 +284,14 @@ pipeline {
 
                                     steps {
                                         dir("source"){
-                                            script{
-                                                try{
-                                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
-                                                } catch (exc) {
-                                                    bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
-                                                }
-                                            }
+                                            runtox()
+                                            // script{
+                                            //     try{
+                                            //         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+                                            //     } catch (exc) {
+                                            //         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+                                            //     }
+                                            // }
                                         }
                                     }
                                 }
