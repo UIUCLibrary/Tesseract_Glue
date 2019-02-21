@@ -35,6 +35,7 @@ def create_venv(python_exe, venv_path){
     }
 }
 def runtox(){
+    // TODO: Make more generic
     script{
         try{
             bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
@@ -462,7 +463,14 @@ pipeline {
                                 PATH = "${tool 'CPython-3.6'};$PATH"
                             }
                             steps{
-                                echo "Here"
+                                unstash "whl 3.6"
+                                bat "python -m venv venv\\${NODE_NAME}\\36 && venv\\${NODE_NAME}\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\36\\Scripts\\pip.exe install tox --upgrade"
+                                script{
+                                    def python_wheel = findFiles glob: '**/*cp36*.whl'
+                                    dir("source"){
+                                        bat "${WORKSPACE}\\venv\\${NODE_NAME}\\36\\Scripts\\tox.exe --installpkg=${python_wheel[0]}"
+                                    }
+                                }
                             }
                         }
                     }
