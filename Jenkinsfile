@@ -54,7 +54,7 @@ def test_36(){
         // script{
         def python_wheel = findFiles glob: '**/*cp36*.whl'
         dir("source"){
-            bat "${WORKSPACE}\\venv\\${NODE_NAME}\\36\\Scripts\\tox.exe --installpkg=${python_wheel}"
+            bat "${WORKSPACE}\\venv\\${NODE_NAME}\\36\\Scripts\\tox.exe --installpkg=${python_wheel} -e py36"
         }
         // }
 
