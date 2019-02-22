@@ -686,10 +686,11 @@ pipeline {
                                         PATH = "${tool 'CPython-3.6'};$PATH"
                                     }
                                     steps {
-                                        lock("system_python_${NODE_NAME}"){
-                                            bat "(if not exist venv\\36 mkdir venv\\36) && python -m venv venv\\36"
-                                        }
-                                        bat "venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install setuptools --upgrade && venv\\36\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
+                                        create_venv("python.exe", "venv\\36")
+                                        // lock("system_python_${NODE_NAME}"){
+                                        //     bat "(if not exist venv\\36 mkdir venv\\36) && python -m venv venv\\36"
+                                        // }
+                                        bat "venv\\36\\Scripts\\pip.exe install setuptools --upgrade && venv\\36\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
 
                                 }
@@ -750,11 +751,12 @@ pipeline {
                                         PATH = "${tool 'CPython-3.7'};$PATH"
                                     }
                                     steps {
-                                        lock("system_python_${NODE_NAME}"){
-//                                            bat "if not exist venv\\37 mkdir venv\\37"
-                                            bat "python -m venv venv\\37"
-                                        }
-                                        bat "venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install setuptools --upgrade && venv\\37\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
+                                       create_venv("python.exe", "venv\\37")
+//                                         lock("system_python_${NODE_NAME}"){
+// //                                            bat "if not exist venv\\37 mkdir venv\\37"
+//                                             bat "python -m venv venv\\37"
+//                                         }
+                                        bat "venv\\37\\Scripts\\pip.exe install setuptools --upgrade && venv\\37\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
 
                                 }
