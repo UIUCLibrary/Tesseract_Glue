@@ -49,18 +49,18 @@ def runtox(){
 
 def test_wheel(pkgRegex, python_version){
     script{
-        
+
         bat "python -m venv venv\\${NODE_NAME}\\${python_version} && venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install tox --upgrade"
-        
+
         def python_wheel = findFiles glob: "**/${pkgRegex}"
         dir("source"){
             python_wheel.each{
                 echo "Testing ${it}"
                 bat "${WORKSPACE}\\venv\\${NODE_NAME}\\${python_version}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
             }
-            
+
         }
-        
+
 
     }
 }
@@ -87,7 +87,7 @@ pipeline {
         DEVPI = credentials("DS_devpi")
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
         WORKON_HOME ="${WORKSPACE}\\pipenv\\"
-        
+
     }
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
@@ -173,7 +173,7 @@ pipeline {
 
         }
         stage("Building") {
-                        
+
             stages{
                 stage("Building Python Package"){
                     environment {
@@ -262,8 +262,8 @@ pipeline {
                 }
                 stage("Running Tests"){
                     environment{
-                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"   
-                        PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"   
+                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
+                        PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"
                         PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${env.PYTHON_SYSTEM_SCRIPTS_PATH};${tool 'cmake3.13'};$PATH"
                     }
                     parallel {
@@ -285,7 +285,7 @@ pipeline {
                                 }
                                 stage("Run Tox"){
                                     environment {
-                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"   
+                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
                                         NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
                                         PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'};${env.NASM_PATH};$PATH"
                                         CL = "/MP"
@@ -340,7 +340,7 @@ pipeline {
 
                                     // script {
                                     //     try{
-                                            
+
                                     //     } catch(exc){
                                     //         echo "cobertura With Coverage API failed. Falling back to cobertura plugin"
                                     //         cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
@@ -367,7 +367,7 @@ pipeline {
                             }
                             post{
                                 always {
-                                    
+
                                     recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
                                 }
                             }
@@ -459,7 +459,7 @@ pipeline {
                                 PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
                             }
                             steps {
-                                
+
                                 dir("source"){
                                     bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
                                 }
@@ -476,11 +476,11 @@ pipeline {
                                 PATH = "${tool 'CPython-3.6'};$PATH"
                             }
                             steps{
-                                
-                                
+
+
                                 unstash "whl 3.6"
                                 test_wheel("*cp36*.whl", "36")
-                               
+
                             }
                         }
                     }
@@ -552,11 +552,11 @@ pipeline {
                                 PATH = "${tool 'CPython-3.7'};$PATH"
                             }
                             steps{
-                                
-                                
+
+
                                 unstash "whl 3.7"
                                 test_wheel("*cp37*.whl", "37")
-                               
+
                             }
                         }
                     }
@@ -623,7 +623,7 @@ pipeline {
                                             lock("system_python_${NODE_NAME}"){
                                                 bat "python -m venv venv\\venv36 && venv\\venv36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\venv36\\Scripts\\pip.exe install setuptools --upgrade && venv\\venv36\\Scripts\\pip.exe install devpi-client \"tox<3.7\""
                                             }
-                                            
+
                                         }
 
                                 }
@@ -632,7 +632,7 @@ pipeline {
                                     environment {
                                         CMAKE_PATH = "${tool 'cmake3.13'}"
                                         NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-                                        PYTHON_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"                                        
+                                        PYTHON_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
                                         PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${env.PYTHON_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                                     }
                                     steps {
