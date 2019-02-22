@@ -27,7 +27,7 @@ def pytest_collection_modifyitems(config, items):
         reason="skipped integration tests. Use --integration option to run")
 
     for item in items:
-        if "integration" in item.keywords:
+        if "integration" in item.keywords or "expensive" in item.keywords :
             item.add_marker(skip_integration)
 
 
