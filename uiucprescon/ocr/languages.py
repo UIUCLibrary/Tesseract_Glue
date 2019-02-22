@@ -1,3 +1,10 @@
+import os
+import zipfile
+from urllib import request
+import tempfile
+import hashlib
+import time
+
 LANGUAGE_CODES = {
     "afr": "Afrikaans",
     "amh": "Amharic",
@@ -117,3 +124,72 @@ LANGUAGE_CODES = {
     "yid": "Yiddish",
     "yor": "Yoruba",
 }
+
+
+def _download_languague(url, destination, md5_hash=None):
+    BLOCKSIZE = 16 * 1024
+    base_name = os.path.basename(url)
+    destination_file = os.path.join(destination, base_name)
+
+    if os.path.exists(destination_file):
+        if not md5_hash:
+            return destination_file
+        else:
+            m = hashlib.md5()
+            with open(destination_file, "rb") as f:
+                buffer = f.read(BLOCKSIZE)
+                while len(buffer) > 0:
+                    m.update(buffer)
+                    buffer = f.read(BLOCKSIZE)
+            if m.hexdigest() == md5_hash:
+                return destination_file
+    p, temp_file = tempfile.mkstemp(dir=destination)
+    try:
+        with os.fdopen(p, "wb") as wf:
+            response = request.urlopen(url)
+            i = 0
+            m = hashlib.md5()
+            start_time = time.time()
+            last_printed = start_time
+            while True:
+                chunk = response.read(BLOCKSIZE)
+                if not chunk:
+
+                    break
+                wf.write(chunk)
+                m.update(chunk)
+                i += 1
+                update_time = time.time()
+                if update_time - last_printed > 0.5:
+                    last_printed = time.time()
+                    print("Download Tesseract language data"
+                          ": {:.2f} MB".format(wf.tell() / 1e+6))
+
+            if md5_hash is not None and m.hexdigest() != md5_hash:
+                raise IOError("File does not match expected hash")
+
+            print("Downloaded Tesseract language data. "
+                  "Total {:.2f} MB".format(wf.tell() / 1e+6))
+
+        print("Renaming {} to {}".format(temp_file, destination_file))
+        os.rename(temp_file, destination_file)
+    finally:
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
+    return destination_file
+
+
+def download_language_pack(tesseract_version, destination, md5_hash=None):
+    """Download a specific version of Tesseract training data"""
+    base_url = "https://codeload.github.com/tesseract-ocr/tessdata/zip"
+
+    url = "{}/{}".format(base_url, tesseract_version)
+    language_pack_archive = _download_languague(url, destination, md5_hash)
+    _extract_language_pack(language_pack_archive, destination)
+
+
+def _extract_language_pack(language_pack, destination):
+    with zipfile.ZipFile(language_pack) as archive:
+        for compressed_file in archive.namelist():
+            print("Extracting {}".format(compressed_file))
+            archive.extract(compressed_file, destination)
