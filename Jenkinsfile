@@ -47,20 +47,20 @@ def runtox(){
 }
 
 
-def test_36(){
+def test_wheel(pkgRegex, python_version){
     script{
-        unstash "whl 3.6"
-        bat "python -m venv venv\\${NODE_NAME}\\36 && venv\\${NODE_NAME}\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\36\\Scripts\\pip.exe install tox --upgrade"
-        // script{
-        def python_wheel = findFiles glob: '**/*cp36*.whl'
+        
+        bat "python -m venv venv\\${NODE_NAME}\\${python_version} && venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install tox --upgrade"
+        
+        def python_wheel = findFiles glob: "**/${pkgRegex}"
         dir("source"){
             python_wheel.each{
                 echo "Testing ${it}"
-                bat "${WORKSPACE}\\venv\\${NODE_NAME}\\36\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py36"
+                bat "${WORKSPACE}\\venv\\${NODE_NAME}\\${python_version}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
             }
             
         }
-        // }
+        
 
     }
 }
@@ -476,15 +476,11 @@ pipeline {
                                 PATH = "${tool 'CPython-3.6'};$PATH"
                             }
                             steps{
-                                test_36()
-                                // unstash "whl 3.6"
-                                // bat "python -m venv venv\\${NODE_NAME}\\36 && venv\\${NODE_NAME}\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\36\\Scripts\\pip.exe install tox --upgrade"
-                                // script{
-                                //     def python_wheel = findFiles glob: '**/*cp36*.whl'
-                                //     dir("source"){
-                                //         bat "${WORKSPACE}\\venv\\${NODE_NAME}\\36\\Scripts\\tox.exe --installpkg=${python_wheel}"
-                                //     }
-                                // }
+                                
+                                
+                                unstash "whl 3.6"
+                                test_wheel("*cp36*.whl", "36")
+                               
                             }
                         }
                     }
@@ -545,10 +541,22 @@ pipeline {
                                             [pattern: 'dist', type: 'INCLUDE'],
                                             [pattern: 'source', type: 'INCLUDE'],
                                             [pattern: '*tmp', type: 'INCLUDE'],
-                                            [pattern: 'venv37', type: 'INCLUDE'],
                                             ]
                                         )
                                 }
+                            }
+                        }
+                        stage("Testing 3.7 wheel on other machine"){
+                            agent { label 'Windows && !VS2015' }
+                            environment {
+                                PATH = "${tool 'CPython-3.7'};$PATH"
+                            }
+                            steps{
+                                
+                                
+                                unstash "whl 3.7"
+                                test_wheel("*cp37*.whl", "37")
+                               
                             }
                         }
                     }
