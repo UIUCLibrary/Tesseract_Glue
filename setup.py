@@ -31,10 +31,35 @@ class CMakeException(RuntimeError):
     pass
 
 
+class CMakeToolchainWriter:
+
+    def __init__(self) -> None:
+        super().__init__()
+        self._cache_values = dict()
+
+    def _generate_text(self) -> str:
+        lines = []
+        for k, v in self._cache_values.items():
+            lines.append(f"set({k} \"{v}\")")
+        return "\n".join(lines)
+
+    def write(self, filename) -> None:
+        with open(filename, "w") as wf:
+            wf.write(self._generate_text())
+            wf.write("\n")
+
+    def add_path(self, key: str, value: str):
+        self._cache_values[key] = value.replace("\\", "/")
+
+    def add_string(self, key: str, value: str):
+        self._cache_values[key] = value
+
+
 class BuildExt(build_ext):
     user_options = build_ext.user_options + [
         ('cmake-exec=', None, "Location of the CMake executable. "
                               "Defaults of CMake located on path"),
+        ('cmake-generator=', None, "Build system CMake generates."),
         ('nasm-exec=', None, "Location of the NASM executable. "
                              "Defaults of NASM located on path")
     ]
@@ -56,10 +81,11 @@ class BuildExt(build_ext):
         super().initialize_options()
         self.cmake_exec = shutil.which("cmake")
         self.nasm_exec = shutil.which("nasm")
-        # self.
-        # compiler = distutils.ccompiler.new_compiler()
-        # compiler.initialize()
-        # self.ccompiler = compiler
+        if shutil.which("ninja") is not None:
+            self.cmake_generator = "Ninja"
+        else:
+            self.cmake_generator = None
+
 
     def finalize_options(self):
         super().finalize_options()
@@ -80,7 +106,8 @@ class BuildExt(build_ext):
             return super().get_ext_filename(fullname)
 
     def build_extensions(self):
-        # super().build_extensions()
+        self.toolchain_file = os.path.abspath(os.path.join(self.build_temp, "toolchain.cmake"))
+        self.write_toolchain_file(self.toolchain_file)
         for ext in self.extensions:
             with self._filter_build_errors(ext):
                 self.build_extension(ext)
@@ -90,15 +117,10 @@ class BuildExt(build_ext):
         for ext in self.extensions:
             ext.cmake_install_prefix = self.get_install_prefix(ext)
             ext.cmake_binary_dir = os.path.join(self.build_temp, "{}-build".format(ext.name))
-
         super().run()
 
-
     def build_extension(self, ext):
-
-
         _compiler = self.compiler
-        # ext.cmake_install_prefix = self.get_install_prefix(ext)
 
         try:
             if isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension):
@@ -153,44 +175,31 @@ class BuildExt(build_ext):
         return False
 
     def configure_cmake(self, ext):
-        # compiler_path = os.path.dirname(self.shlib_compiler.cc)
-        # asm = shutil.which("ml", path=compiler_path)
-        # if not asm is not None:
-        #     asm = shutil.which("ml64", path=compiler_path)
-        fetch_content_base_dir = os.path.abspath(
-            os.path.join(self.build_temp,
-                         "thirdparty"))
+
         configure_command = [
             self.cmake_exec,
-            f"-S{os.path.abspath(ext.cmake_source_dir)}",
+            f"{os.path.abspath(ext.cmake_source_dir)}",
             f"-B{os.path.abspath(ext.cmake_binary_dir)}",
-            # f"-DCMAKE_C_COMPILER={self.compiler.cc}",
             f"-DCMAKE_INSTALL_PREFIX={os.path.abspath(ext.cmake_install_prefix)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
-            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}",
-            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}",
-            # f"-DCMAKE_EXE_LINKER_FLAGS:STRING={linker_flags}",
-            # f"-CMAKE_EXE_LINKER_FLAGS:STRING= /machine:x64",
-            # f"-DCMAKE_GENERATOR_PLATFORM=x64",
-
         ]
-        if self.nasm_exec:
-            configure_command.append(f"-DCMAKE_ASM_NASM_COMPILER:FILEPATH={os.path.normcase(self.nasm_exec)}")
 
-        # if asm is not None:
-        #     configure_command.append(f"-DCMAKE_ASM_COMPILER:FILEPATH={asm}")
-
-        # configure_command += ["-G", "NMake Makefiles"]
+        if self.debug is not None:
+            configure_command.append(f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}")
+        else:
+            configure_command.append(f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}")
 
         try:
 
-            if platform.architecture()[0] == '64bit':
-                configure_command += ["-A", "x64"]
+            if self.cmake_generator is not None:
+                configure_command += ["-G", self.cmake_generator]
+            else:
 
-            # if build_system is not None:
-            #     configure_command += ["-G", build_system]
-            if 'MSC v.19' in platform.python_compiler():
-                configure_command += ["-T", "v140"]
+                if 'MSC v.19' in platform.python_compiler():
+                    configure_command += ["-T", "v140"]
+
+            configure_command.insert(2, f"-DCMAKE_TOOLCHAIN_FILE:FILEPATH=\"{self.toolchain_file}\"")
+
         except KeyError as e:
 
             message = "No known build system generator for the current " \
@@ -205,10 +214,32 @@ class BuildExt(build_ext):
             configure_command.append(f"{k}={v}")
         configure_command += [
             "-DCMAKE_BUILD_TYPE={}".format(self.build_configuration),
-            "-DFETCHCONTENT_BASE_DIR={}".format(fetch_content_base_dir),
         ]
-        self.compiler.spawn(configure_command)
-        # self.spawn(configure_command)
+        self.compiler_spawn(configure_command)
+
+    def write_toolchain_file(self, toolchain_file):
+
+
+        self.announce("Generating CMake Toolchain file", 2)
+        if not self.compiler.initialized:
+            self.compiler.initialize()
+
+        self.mkpath(self.build_temp)
+        writer = CMakeToolchainWriter()
+        writer.add_string(key="CMAKE_SYSTEM_NAME", value=platform.system())
+
+        writer.add_string(key="CMAKE_SYSTEM_PROCESSOR", value=platform.machine())
+
+        writer.add_path(key="CMAKE_C_COMPILER", value=self.compiler.cc)
+        writer.add_path(key="CMAKE_CXX_COMPILER", value=self.compiler.cc)
+        writer.add_path(key="CMAKE_LINKER", value=self.compiler.linker)
+        writer.add_path(key="CMAKE_RC_COMPILER", value=self.compiler.rc)
+        writer.add_path(key="FETCHCONTENT_BASE_DIR", value=os.path.abspath(os.path.join(self.build_temp,"thirdparty")))
+        if self.nasm_exec:
+            writer.add_path(key="CMAKE_ASM_NASM_COMPILER", value=os.path.normcase(self.nasm_exec))
+
+        writer.write(toolchain_file)
+        self.announce("Generated CMake Toolchain file: {}".format(toolchain_file))
 
     def get_install_prefix(self, ext):
         if ext.cmake_install_prefix is not None:
@@ -275,31 +306,6 @@ class BuildExt(build_ext):
 
                 self.copy_file(src_filename, dest_filename)
 
-    # def copy_extensions_to_source(self):
-    #     super().copy_extensions_to_source()
-
-    # def copy_extensions_to_src(self, ext):
-    #
-    #     build_cmd = self.get_finalized_command('build_ext')
-    #
-    #     fullname = build_cmd.get_ext_fullname(ext.name)
-    #     filename = build_cmd.get_ext_filename(fullname)
-    #
-    #     if ext.shared_library and isinstance(ext, CMakeExtension):
-    #         src_filename = os.path.join(self.build_temp, filename)
-    #         if isinstance(ext, CMakeDependency):
-    #             full_package_dir = \
-    #                 os.path.join(self.package_dir,
-    #                              self.library_install_dir, "bin")
-    #
-    #             self.mkpath(full_package_dir)
-    #         else:
-    #             full_package_dir = self.package_dir
-    #             src_filename = os.path.join(self.build_lib,
-    #                                         self.package_dir, filename)
-    #
-    #         dest_filename = os.path.join(full_package_dir, filename)
-    #         self.copy_file(src_filename, dest_filename)
 
     @staticmethod
     def get_build_generator_name():
@@ -321,17 +327,28 @@ class BuildExt(build_ext):
             "--build", os.path.abspath(ext.cmake_binary_dir),
             "--config", self.build_configuration,
         ]
-        # env = os.environ.copy()
         if self.parallel is not None:
             build_command += ["--parallel", str(self.parallel)]
 
-        if "Visual Studio" in self.get_build_generator_name():
-            build_command += ["--", "/NOLOGO", "/verbosity:minimal"]
-            # env['CL'] = "/MP"
-        # p = Popen(build_command)
-        # p.communicate()
-        self.compiler.spawn(build_command)
+        self.compiler_spawn(build_command)
         pass
+
+    def compiler_spawn(self, cmd):
+        old_env_vars = os.environ.copy()
+        old_path = os.getenv("Path")
+        try:
+            os.environ["LIB"] = ";".join(self.compiler.library_dirs)
+            os.environ["INCLUDE"] = ";".join(self.compiler.include_dirs)
+
+            paths = [self.build_temp]
+            paths += old_path.split(";")
+            paths += self.compiler._paths.split(";")
+            new_value_path = ";".join(paths)
+            os.environ["Path"] = new_value_path
+            self.compiler.spawn(cmd)
+        finally:
+            os.environ = old_env_vars
+            os.environ["Path"] = old_path
 
     def install_cmake(self, ext):
 
@@ -341,7 +358,7 @@ class BuildExt(build_ext):
             "--config", self.build_configuration,
             "--target", "install"
         ]
-        self.compiler.spawn(install_command)
+        self.compiler_spawn(install_command)
         # p = Popen(install_command)
         # p.communicate()
         pass
