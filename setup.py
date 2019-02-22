@@ -1,5 +1,5 @@
 from subprocess import Popen
-
+from ctypes.util import find_library
 import setuptools
 from setuptools.command.build_ext import build_ext
 import shutil
@@ -138,9 +138,17 @@ class BuildExt(build_ext):
 
                 if self.needs_to_install(ext):
                     self.install_cmake(ext)
+
+            # Tesseract 4.0 uses OpenMP on Windows
+            openMP_library = find_library("VCOMP140")
+            if openMP_library is not None:
+                self.announce("Including OpenMP runtime")
+                self.copy_file(openMP_library, os.path.join(self.build_lib, self.package_dir, "tesseract", "bin"))
+
             if ext._needs_stub:
                 cmd = self.get_finalized_command('build_py').build_lib
                 self.write_stub(cmd, ext)
+
         finally:
             self.compiler = _compiler
 
