@@ -1,7 +1,7 @@
 import os
 
 from uiucprescon import ocr
-from pytest_bdd import scenario, given, then
+from pytest_bdd import scenario, given, then, when
 import re
 
 
@@ -44,10 +44,16 @@ def read_ocr(ocr_engine, image_path):
     #     u'STEP: Then the engine can produce an english reader object')
 
 
-@then("the engine has version information")
+@when("the engine has version information")
 def ocr_engine_has_version(ocr_engine):
     e = ocr_engine
     version = e.get_version()
-    version_regex = re.compile("\d\.\d{2}\.\d{2}")
+    version_regex = re.compile("[0-9][.][0-9]{1,2}[.][0-9]{1,2}")
     print(version)
     assert version_regex.match(version)
+
+
+@when("a reader is created")
+def step_impl():
+    pass
+    # raise NotImplementedError(u'STEP: When a reader is created')

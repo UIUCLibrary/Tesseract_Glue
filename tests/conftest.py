@@ -6,7 +6,8 @@ from tempfile import TemporaryDirectory
 import pytest
 
 USER_CONTENT_URL = "https://jenkins.library.illinois.edu/userContent"
-TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/3.04.00/"
+TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/4.0.0/"
+
 
 def pytest_addoption(parser):
     parser.addoption(
@@ -26,17 +27,17 @@ def pytest_collection_modifyitems(config, items):
         reason="skipped integration tests. Use --integration option to run")
 
     for item in items:
-        if "integration" in item.keywords:
+        if "integration" in item.keywords or "expensive" in item.keywords :
             item.add_marker(skip_integration)
 
 
 def download_data(url, destination):
-    with TemporaryDirectory() as download_path:
-        base_name = os.path.basename(url)
-        destination_file = os.path.join(destination, base_name)
+    base_name = os.path.basename(url)
+    destination_file = os.path.join(destination, base_name)
+    if os.path.exists(destination_file):
+        return
 
-        if os.path.exists(destination_file):
-            return
+    with TemporaryDirectory() as download_path:
 
         # if not os.path.exists()
         print("Downloading {}".format(url))

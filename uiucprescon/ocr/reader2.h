@@ -1,6 +1,6 @@
 #pragma once
 
-#include <baseapi.h>
+#include <tesseract/baseapi.h>
 #include <string>
 
 class Reader2

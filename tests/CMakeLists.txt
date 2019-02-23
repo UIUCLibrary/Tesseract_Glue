@@ -13,8 +13,8 @@ if(BUILD_TESTING)
         list(APPEND CMAKE_MODULE_PATH ${libcatch2_SOURCE_DIR}/contrib/)
     endif()
 #
-    file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/3.04.00/eng.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/eng.traineddata)
-    file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/3.04.00/osd.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/osd.traineddata)
+    file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/4.0.0/eng.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/eng.traineddata)
+    file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/4.0.0/osd.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/osd.traineddata)
 #    file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/4.00/eng.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/eng.traineddata)
 #    file(DOWNLOAD https://jenkins.library.illinois.edu/userContent/IlliniLore_1944_00000011.tif ${CMAKE_CURRENT_BINARY_DIR}/IlliniLore_1944_00000011.tif)
 

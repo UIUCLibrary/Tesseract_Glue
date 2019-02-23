@@ -1,6 +1,5 @@
 import abc
 import os
-
 from uiucprescon.ocr import tesseractwrap  # type: ignore
 
 

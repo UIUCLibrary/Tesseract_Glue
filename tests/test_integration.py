@@ -6,7 +6,7 @@ from tempfile import TemporaryDirectory
 import pytest
 from uiucprescon import ocr
 
-TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/3.04.00/"
+TESSDATA_SOURCE_URL_BASE = "https://github.com/tesseract-ocr/tessdata/raw/"
 
 
 def download_data(url, destination):
@@ -40,7 +40,9 @@ def test_reader_with_data(tessdata_eng, sample_images):
 
 @pytest.mark.integration
 def test_no_osd_file():
-    english_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "eng.traineddata")
+    e = ocr.Engine("")
+    version = e.get_version()
+    english_data_url = "{}/{}/{}".format(TESSDATA_SOURCE_URL_BASE, version, "eng.traineddata")
 
     test_path = os.path.dirname(__file__)
     tessdata_path = os.path.join(test_path, "no_osd_tessdata")
@@ -55,3 +57,20 @@ def test_no_osd_file():
             tesseract_data_path=tessdata_path
         )
 
+
+@pytest.mark.expensive
+def test_download_language_pack():
+    with TemporaryDirectory() as download_path:
+        print(download_path)
+        extract_path = os.path.join(download_path, "extracted")
+
+        if not os.path.exists(extract_path):
+            os.mkdir(extract_path)
+
+        ocr.languages.download_language_pack(
+            "4.0.0",
+            destination=download_path,
+            md5_hash="78d0e9da53d29277c0b28c2dc2ead4f9"
+        )
+        expect_file = os.path.join(download_path, "4.0.0")
+        assert os.path.exists(expect_file)
