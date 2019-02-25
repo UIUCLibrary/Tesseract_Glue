@@ -107,11 +107,15 @@ class BuildExt(build_ext):
 
     def build_extensions(self):
         self.toolchain_file = os.path.abspath(os.path.join(self.build_temp, "toolchain.cmake"))
-        self.write_toolchain_file(self.toolchain_file)
+
+        if os.path.exists(self.toolchain_file):
+            self.announce("Using CMake Toolchain file {}.".format(self.toolchain_file), 2)
+        else:
+            self.write_toolchain_file(self.toolchain_file)
+
         for ext in self.extensions:
             with self._filter_build_errors(ext):
                 self.build_extension(ext)
-        pass
 
     def run(self):
         for ext in self.extensions:
@@ -226,7 +230,6 @@ class BuildExt(build_ext):
         self.compiler_spawn(configure_command)
 
     def write_toolchain_file(self, toolchain_file):
-
 
         self.announce("Generating CMake Toolchain file", 2)
         if not self.compiler.initialized:
