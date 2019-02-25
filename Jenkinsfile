@@ -650,9 +650,7 @@ pipeline {
                                     }
                                     steps {
                                         create_venv("python.exe", "venv\\36")
-                                        // lock("system_python_${NODE_NAME}"){
-                                        //     bat "(if not exist venv\\36 mkdir venv\\36) && python -m venv venv\\36"
-                                        // }
+
                                         bat "venv\\36\\Scripts\\pip.exe install setuptools --upgrade && venv\\36\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
 
@@ -715,11 +713,7 @@ pipeline {
                                     }
                                     steps {
                                        create_venv("python.exe", "venv\\37")
-//                                         lock("system_python_${NODE_NAME}"){
-// //                                            bat "if not exist venv\\37 mkdir venv\\37"
-//                                             bat "python -m venv venv\\37"
-//                                         }
-                                        bat "venv\\37\\Scripts\\pip.exe install setuptools --upgrade && venv\\37\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
+                                       bat "venv\\37\\Scripts\\pip.exe install setuptools --upgrade && venv\\37\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
 
                                 }
@@ -779,10 +773,6 @@ pipeline {
                                         input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
                                     }
                                     bat "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
-                                    // bat "venv\\venv36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW}"
-
-                                    // bat "venv\\venv36\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging"
-                                    // bat "venv\\venv36\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
                                 } catch(err){
                                     echo "User response timed out. Packages not deployed to DevPi Production."
                                 }
@@ -801,8 +791,6 @@ pipeline {
                 }
             }
         }
-        // stage("Deploy"){
-        //     parallel {
         stage("Deploy Online Documentation") {
             when{
                 equals expected: true, actual: params.DEPLOY_DOCS
@@ -843,30 +831,6 @@ pipeline {
                 }
             }
         }
-                // stage("Deploy to DevPi Production") {
-                //     when {
-                //         allOf{
-                //             equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
-                //             branch "master"
-                //         }
-                //     }
-                //     steps {
-                //         script {
-                //             try{
-                //                 timeout(30) {
-                //                     input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
-                //                 }
-
-                //                 bat "venv\\36\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}\\certs\\"
-                //                 bat "venv\\36\\Scripts\\devpi.exe push ${env.PKG_NAME}==${env.PKG_VERSION} production/release --clientdir ${WORKSPACE}\\certs\\"
-                //             } catch(err){
-                //                 echo "User response timed out. Packages not deployed to DevPi Production."
-                //             }
-                //         }
-                //     }
-                // }
-        //     }
-        // }
     }
     post {
         cleanup{
@@ -875,7 +839,6 @@ pipeline {
                 disableDeferredWipeout: true,
                 patterns: [
                     [pattern: 'dist', type: 'INCLUDE'],
-//                    [pattern: 'build', type: 'INCLUDE'],
                     [pattern: 'reports', type: 'INCLUDE'],
                     [pattern: 'logs', type: 'INCLUDE'],
                     [pattern: 'certs', type: 'INCLUDE'],
