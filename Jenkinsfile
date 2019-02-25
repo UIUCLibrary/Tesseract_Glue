@@ -294,13 +294,6 @@ pipeline {
                                     steps {
                                         dir("source"){
                                             runtox()
-                                            // script{
-                                            //     try{
-                                            //         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
-                                            //     } catch (exc) {
-                                            //         bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
-                                            //     }
-                                            // }
                                         }
                                     }
                                 }
@@ -355,18 +348,9 @@ pipeline {
                                 equals expected: true, actual: params.TEST_RUN_FLAKE8
                             }
                             steps{
-                                bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
-        //                        script{
-        //                            try{
-        //                                // tee('reports/flake8.log') {
-        //                                dir("source"){
-        ////                                    powershell "& pipenv run flake8 uiucprescon --format=pylint | tee ${WORKSPACE}\\logs\\flake8.log"
-        //                                }
-        //                                // }
-        //                            } catch (exc) {
-        //                                echo "flake8 found some warnings"
-        //                            }
-        //                        }
+                                dir("source"){
+                                    bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
+                                }
                             }
                             post {
                                 always {
