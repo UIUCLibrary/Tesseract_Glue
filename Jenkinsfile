@@ -316,7 +316,7 @@ pipeline {
                             }
                             steps{
                                 dir("source"){
-                                    bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
+                                    bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
 //                                    bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
                                 }
                             }
@@ -331,29 +331,7 @@ pipeline {
                                         sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
                                     )
 
-                                    // publishCoverage(
-                                    //             autoDetectPath: 'coverage*/*.xml'
-                                    //             adapters: [
-                                    //                 cobertura(coberturaReportFile:"reports/coverage.xml")
-                                    //             ]
-                                    // )
-
-                                    // script {
-                                    //     try{
-
-                                    //     } catch(exc){
-                                    //         echo "cobertura With Coverage API failed. Falling back to cobertura plugin"
-                                    //         cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: "reports/coverage.xml", conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
-                                    //     }
-                                    // }
-                                    // bat "del reports\\coverage.xml"
-
                                 }
-                                // failure{
-                                //     dir("build"){
-                                //         bat "tree /A /F"
-                                //     }
-                                // }
                             }
                         }
                         stage("Run Doctest Tests"){
@@ -367,7 +345,7 @@ pipeline {
                             }
                             post{
                                 always {
-
+                                    
                                     recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
                                 }
                             }
@@ -377,7 +355,7 @@ pipeline {
                                 equals expected: true, actual: params.TEST_RUN_FLAKE8
                             }
                             steps{
-                                bat returnStatus: true, script: "venv\\36\\Scripts\\flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
+                                bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
         //                        script{
         //                            try{
         //                                // tee('reports/flake8.log') {
@@ -392,6 +370,7 @@ pipeline {
                             }
                             post {
                                 always {
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: "logs/flake8.log"
                                     recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                 }
                             }
