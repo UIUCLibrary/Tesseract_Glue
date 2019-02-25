@@ -636,7 +636,7 @@ pipeline {
                         stage("Testing DevPi .whl Package with Python 3.6"){
                             agent {
                                 node {
-                                    label "Windows && Python3 && VS2015"
+                                    label "Windows && Python3 && !VS2015"
                                 }
                             }
 
@@ -699,7 +699,7 @@ pipeline {
                         stage("Testing DevPi .whl Package with Python 3.7"){
                             agent {
                                 node {
-                                    label "Windows && Python3 && VS2015"
+                                    label "Windows && Python3 && !VS2015"
                                 }
                             }
 
