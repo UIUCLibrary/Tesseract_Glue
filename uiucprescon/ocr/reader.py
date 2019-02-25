@@ -8,7 +8,7 @@ class AbsReader(metaclass=abc.ABCMeta):
     def __init__(self, language_code, tesseract_data_path) -> None:
         super().__init__()
 
-        def is_lang_in_path(lang) ->bool:
+        def is_lang_in_path(lang) -> bool:
             data_file = "{}.traineddata".format(lang)
             return os.path.exists(os.path.join(tesseract_data_path, data_file))
 

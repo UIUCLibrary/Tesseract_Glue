@@ -1,4 +1,7 @@
 import os as _os
+
+# the path to the linking shared libraries need to added to the path env var
+# to properly work
 _paths = list(filter(lambda i: i.strip(), _os.environ['PATH'].split(";")))
 
 _tesseract_path = _os.path.abspath(
@@ -12,10 +15,11 @@ else:
 
 _os.environ['PATH'] = ";".join(_paths)
 
-from . import tesseractwrap
-from .engine import Engine
-from .reader import Reader
-from .languages import LANGUAGE_CODES
+from . import tesseractwrap             # noqa: E402
+from .engine import Engine              # noqa: E402
+from .reader import Reader              # noqa: E402
+from .languages import LANGUAGE_CODES   # noqa: E402
+
 
 __all__ = [
     "Reader",
