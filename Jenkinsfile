@@ -354,7 +354,7 @@ pipeline {
                             }
                             post {
                                 always {
-                                    archiveArtifacts allowEmptyArchive: true, artifacts: "logs/flake8.log"
+                                    // archiveArtifacts allowEmptyArchive: true, artifacts: "logs/flake8.log"
                                     recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                 }
                             }
