@@ -190,7 +190,7 @@ class BuildExt(build_ext):
 
         configure_command = [
             self.cmake_exec,
-            f"{os.path.abspath(ext.cmake_source_dir)}",
+            f"-S{os.path.abspath(ext.cmake_source_dir)}",
             f"-B{os.path.abspath(ext.cmake_binary_dir)}",
             f"-DCMAKE_INSTALL_PREFIX={os.path.abspath(ext.cmake_install_prefix)}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
