@@ -17,9 +17,9 @@ Welcome to uiucpreson.ocr 's documentation for version |version|!
 .. toctree::
    :titlesonly:
    :caption: API:
+   :maxdepth: 2
 
-   uiucprescon.ocr
-
+   publicapi
 
 Indices and tables
 ==================

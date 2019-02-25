@@ -1,8 +1,7 @@
-uiucprescon.ocr Package
-=======================
+uiucprescon.ocr
+---------------
 
-Public API
-----------
 
 .. automodule:: uiucprescon.ocr
     :members:
+
