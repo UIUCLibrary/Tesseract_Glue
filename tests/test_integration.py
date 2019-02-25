@@ -57,20 +57,20 @@ def test_no_osd_file():
             tesseract_data_path=tessdata_path
         )
 
-
-@pytest.mark.expensive
-def test_download_language_pack():
-    with TemporaryDirectory() as download_path:
-        print(download_path)
-        extract_path = os.path.join(download_path, "extracted")
-
-        if not os.path.exists(extract_path):
-            os.mkdir(extract_path)
-
-        ocr.languages.download_language_pack(
-            "4.0.0",
-            destination=download_path,
-            md5_hash="78d0e9da53d29277c0b28c2dc2ead4f9"
-        )
-        expect_file = os.path.join(download_path, "4.0.0")
-        assert os.path.exists(expect_file)
+#
+# @pytest.mark.expensive
+# def test_download_language_pack():
+#     with TemporaryDirectory() as download_path:
+#         print(download_path)
+#         extract_path = os.path.join(download_path, "extracted")
+#
+#         if not os.path.exists(extract_path):
+#             os.mkdir(extract_path)
+#
+#         ocr.languages.download_language_pack(
+#             "4.0.0",
+#             destination=download_path,
+#             md5_hash="78d0e9da53d29277c0b28c2dc2ead4f9"
+#         )
+#         expect_file = os.path.join(download_path, "4.0.0")
+#         assert os.path.exists(expect_file)
