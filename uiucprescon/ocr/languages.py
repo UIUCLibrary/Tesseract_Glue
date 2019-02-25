@@ -1,3 +1,4 @@
+"""This contains everything related to the language data files"""
 import os
 import zipfile
 from urllib import request
@@ -123,7 +124,7 @@ LANGUAGE_CODES = {
     "vie": "Vietnamese",
     "yid": "Yiddish",
     "yor": "Yoruba",
-}
+}  #: The codes used by Tesseract for a specific languages data set
 
 
 def _download_languague(url, destination, md5_hash=None):
@@ -179,8 +180,19 @@ def _download_languague(url, destination, md5_hash=None):
     return destination_file
 
 
-def download_language_pack(tesseract_version, destination, md5_hash=None):
-    """Download a specific version of Tesseract training data"""
+def download_language_pack(tesseract_version: str, destination: str,
+                           md5_hash: str = None):
+    """Download a specific version of Tesseract training data
+
+        Args:
+            tesseract_version: Version of Tesseract used.
+            destination: Path to save the language data
+            md5_hash (optional): Expected md5 hash value of the
+                downloaded archive. If file is already downloaded, it
+                will not need to be downloaded again.
+
+    """
+
     base_url = "https://codeload.github.com/tesseract-ocr/tessdata/zip"
 
     url = "{}/{}".format(base_url, tesseract_version)
