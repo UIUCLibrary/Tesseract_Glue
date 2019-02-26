@@ -473,7 +473,7 @@ pipeline {
                         CMAKE_PATH = "${tool 'cmake3.13'}"
                         NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
                         PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${tool 'CPython-3.7'};$PATH"
-                        CL = "/MP"
+                        // CL = "/MP"
                     }
                     stages{
                         stage("create venv for 3.7"){
