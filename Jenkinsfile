@@ -496,17 +496,7 @@ pipeline {
                                 success{
                                     stash includes: 'dist/*.whl', name: "whl 3.7"
                                 }
-                                cleanup{
-                                    cleanWs(
-                                        deleteDirs: true,
-                                        disableDeferredWipeout: true,
-                                        patterns: [
-                                            [pattern: 'dist', type: 'INCLUDE'],
-                                            [pattern: 'source', type: 'INCLUDE'],
-                                            [pattern: '*tmp', type: 'INCLUDE'],
-                                            ]
-                                        )
-                                }
+
                             }
                         }
                         stage("Testing 3.7 wheel on a computer without Visual Studio"){
@@ -521,6 +511,19 @@ pipeline {
                                 test_wheel("*cp37*.whl", "37")
 
                             }
+                        }
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                disableDeferredWipeout: true,
+                                patterns: [
+                                    [pattern: 'dist', type: 'INCLUDE'],
+                                    [pattern: 'source', type: 'INCLUDE'],
+                                    [pattern: '*tmp', type: 'INCLUDE'],
+                                    ]
+                                )
                         }
                     }
                 }
