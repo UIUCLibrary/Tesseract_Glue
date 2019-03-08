@@ -468,9 +468,7 @@ pipeline {
                 }
                 stage("Python 3.7 whl"){
                     agent {
-                        node {
-                            label "Windows && Python3 && VS2015"
-                        }
+                        label "Windows && Python3 && VS2015"
                     }
                     environment {
                         CMAKE_PATH = "${tool 'cmake3.13'}"
@@ -508,8 +506,6 @@ pipeline {
                                 PATH = "${tool 'CPython-3.7'};$PATH"
                             }
                             steps{
-
-
                                 unstash "whl 3.7"
                                 test_wheel("*cp37*.whl", "37")
 
