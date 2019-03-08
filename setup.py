@@ -240,18 +240,33 @@ class BuildExt(build_ext):
         writer.add_string(key="CMAKE_SYSTEM_NAME", value=platform.system())
 
         writer.add_string(key="CMAKE_SYSTEM_PROCESSOR", value=platform.machine())
-
+        writer.add_string(key="CMAKE_HOST_SYSTEM_PROCESSOR", value=platform.machine())
         writer.add_path(key="CMAKE_C_COMPILER", value=self.compiler.cc)
         writer.add_path(key="CMAKE_CXX_COMPILER", value=self.compiler.cc)
         writer.add_path(key="CMAKE_LINKER", value=self.compiler.linker)
         writer.add_path(key="CMAKE_RC_COMPILER", value=self.compiler.rc)
-        writer.add_path(key="FETCHCONTENT_BASE_DIR", value=os.path.abspath(os.path.join(self.build_temp,"thirdparty")))
+        writer.add_path(key="CMAKE_MT_COMPILER", value=self.compiler.mt)
+        if platform.machine() == "AMD64":
+            writer.add_string("CMAKE_LIBRARY_ARCHITECTURE", value="x64")
+            writer.add_string("CMAKE_C_LIBRARY_ARCHTECTURE ", value="x64")
+            writer.add_string("CMAKE_CXX_LIBRARY_ARCHTECTURE ", value="x64")
+        writer.add_path(key="FETCHCONTENT_BASE_DIR", value=os.path.abspath(os.path.join(self.build_temp, "thirdparty")))
+        # set(CMAKE_HOST_SYSTEM_PROCESSOR "AMD64")
+        # paths = [os.path.abspath(self.build_temp)]
+        # old_path = os.getenv("Path")
+        # paths += old_path.split(";")
+        # paths += self.compiler._paths.split(";")
+        # new_value_path = ";".join(paths)
         if self.nasm_exec:
             writer.add_path(key="CMAKE_ASM_NASM_COMPILER", value=os.path.normcase(self.nasm_exec))
 
         writer.write(toolchain_file)
+        with open(toolchain_file, "a+") as wf:
+            wf.write("\nset(ENV{PATH} \"")
+            wf.write(os.path.dirname(self.compiler.cc).replace("\\", "\\\\"))
+            wf.write(";$ENV{PATH}\")\n")
         self.announce("Generated CMake Toolchain file: {}".format(toolchain_file))
-
+        #
     def get_install_prefix(self, ext):
         if ext.cmake_install_prefix is not None:
             return os.path.abspath(ext.cmake_install_prefix)
@@ -351,7 +366,7 @@ class BuildExt(build_ext):
             os.environ["LIB"] = ";".join(self.compiler.library_dirs)
             os.environ["INCLUDE"] = ";".join(self.compiler.include_dirs)
 
-            paths = [self.build_temp]
+            paths = []
             paths += old_path.split(";")
             paths += self.compiler._paths.split(";")
             new_value_path = ";".join(paths)
