@@ -439,11 +439,14 @@ pipeline {
                                 PATH = "${tool 'CPython-3.6'};$PATH"
                             }
                             steps{
-
-
                                 unstash "whl 3.6"
                                 test_wheel("*cp36*.whl", "36")
 
+                            }
+                            post{
+                                cleanup{
+                                    deleteDir()
+                                }
                             }
                         }
                     }
@@ -510,6 +513,11 @@ pipeline {
                                 unstash "whl 3.7"
                                 test_wheel("*cp37*.whl", "37")
 
+                            }
+                            post{
+                                cleanup{
+                                    deleteDir()
+                                }
                             }
                         }
                     }
