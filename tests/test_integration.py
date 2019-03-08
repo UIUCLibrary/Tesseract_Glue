@@ -39,12 +39,13 @@ def test_reader_with_data(tessdata_eng, sample_images):
 
 
 @pytest.mark.integration
-def test_no_osd_file():
+def test_no_osd_file(tmpdir_factory):
     e = ocr.Engine("")
     version = e.get_version()
     english_data_url = "{}/{}/{}".format(TESSDATA_SOURCE_URL_BASE, version, "eng.traineddata")
 
-    test_path = os.path.dirname(__file__)
+    # test_path = os.path.dirname(__file__)
+    test_path = tmpdir_factory.mktemp("data")
     tessdata_path = os.path.join(test_path, "no_osd_tessdata")
 
     if not os.path.exists(tessdata_path):
@@ -56,6 +57,7 @@ def test_no_osd_file():
             language_code="eng",
             tesseract_data_path=tessdata_path
         )
+    shutil.rmtree(test_path)
 
 #
 # @pytest.mark.expensive

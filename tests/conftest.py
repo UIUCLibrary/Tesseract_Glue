@@ -52,12 +52,11 @@ def download_data(url, destination):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def tessdata_eng(request):
+def tessdata_eng(tmpdir_factory):
 
     english_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "eng.traineddata")
     osd_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "osd.traineddata")
-
-    test_path = os.path.dirname(__file__)
+    test_path = tmpdir_factory.mktemp("data")
     tessdata_path = os.path.join(test_path, "tessdata")
 
     if not os.path.exists(tessdata_path):
@@ -69,18 +68,20 @@ def tessdata_eng(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def sample_images(request):
+def sample_images(tmpdir_factory):
 
     test_images = [
         "IlliniLore_1944_00000011.tif"
     ]
 
-    test_path = os.path.dirname(__file__)
+    test_path = tmpdir_factory.mktemp("data")
     sample_images_path = os.path.join(test_path, "sample_images")
     if not os.path.exists(sample_images_path):
         os.makedirs(sample_images_path)
     for test_image in test_images:
         url = "{}/{}".format(USER_CONTENT_URL, test_image)
+
         download_data(url, destination=sample_images_path)
 
-    return sample_images_path
+    yield sample_images_path
+    shutil.rmtree(sample_images_path)
