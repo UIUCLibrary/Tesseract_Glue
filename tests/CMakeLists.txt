@@ -2,8 +2,9 @@ if(BUILD_TESTING)
     include(FetchContent)
     FetchContent_Declare(
         libcatch2
-        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-        GIT_TAG 15cf3ca
+            URL https://github.com/catchorg/Catch2/archive/v2.7.0.tar.gz
+#        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+#        GIT_TAG 15cf3ca
     )
 
     FetchContent_GetProperties(libcatch2)
