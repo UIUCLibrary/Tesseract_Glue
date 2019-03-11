@@ -56,15 +56,16 @@ def tessdata_eng(tmpdir_factory):
 
     english_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "eng.traineddata")
     osd_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "osd.traineddata")
-    test_path = tmpdir_factory.mktemp("data")
-    tessdata_path = os.path.join(test_path, "tessdata")
+    # test_path = tmpdir_factory.mktemp("data")
+    tessdata_path = os.path.join(tmpdir_factory.getbasetemp(), "tessdata")
 
     if not os.path.exists(tessdata_path):
         os.makedirs(tessdata_path)
     download_data(osd_data_url, destination=tessdata_path)
     download_data(english_data_url, destination=tessdata_path)
 
-    return tessdata_path
+    yield tessdata_path
+    shutil.rmtree(tessdata_path)
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -74,8 +75,8 @@ def sample_images(tmpdir_factory):
         "IlliniLore_1944_00000011.tif"
     ]
 
-    test_path = tmpdir_factory.mktemp("data")
-    sample_images_path = os.path.join(test_path, "sample_images")
+    # test_path = tmpdir_factory.mktemp("sample_images")
+    sample_images_path = os.path.join(tmpdir_factory.getbasetemp(), "sample_images")
     if not os.path.exists(sample_images_path):
         os.makedirs(sample_images_path)
     for test_image in test_images:
@@ -85,3 +86,6 @@ def sample_images(tmpdir_factory):
 
     yield sample_images_path
     shutil.rmtree(sample_images_path)
+    # shortcut = os.path.join(tmpdir_factory.getbasetemp(), "datacurrent")
+    # if os.path.exists(shortcut):
+    #     os.unlink(shortcut)
