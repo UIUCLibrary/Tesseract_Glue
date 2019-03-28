@@ -38,9 +38,16 @@ def runtox(){
     // TODO: Make more generic
     script{
         try{
-            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+            bat  (
+                label: "Run Tox",
+                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+            )
+
         } catch (exc) {
-            bat "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+            bat (
+                label: "Run Tox with new environments",
+                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+            )
         }
     }
 
@@ -50,7 +57,7 @@ def runtox(){
 def test_wheel(pkgRegex, python_version){
     script{
 
-        bat "python -m venv venv\\${NODE_NAME}\\${python_version} && venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install tox --upgrade"
+        bat "python -m venv venv\\${NODE_NAME}\\${python_version} && venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install \"tox<3.8\" --upgrade"
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
         dir("source"){
@@ -291,7 +298,7 @@ pipeline {
             stages{
                 stage("Installing Package Testing Tools"){
                     steps{
-                        bat "venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install \"tox>=3.7\""
+                        bat "venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install \"tox<3.8\""
 
                     }
                 }
@@ -331,6 +338,19 @@ pipeline {
                                             runtox()
                                         }
                                     }
+                                }
+
+                            }
+                            post{
+                                always{
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: '.tox/py*/log/*.log,.tox/log/*.log,logs/tox_report.json'
+                                }
+                                cleanup{
+                                    cleanWs deleteDirs: true, patterns: [
+                                        [pattern: '.tox/py*/log/*.log', type: 'INCLUDE'],
+                                        [pattern: '.tox/log/*.log', type: 'INCLUDE'],
+                                        [pattern: 'logs/rox_report.json', type: 'INCLUDE']
+                                    ]
                                 }
 
                             }
