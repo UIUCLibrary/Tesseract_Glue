@@ -44,9 +44,7 @@ def test_no_osd_file(tmpdir_factory):
     version = e.get_version()
     english_data_url = "{}/{}/{}".format(TESSDATA_SOURCE_URL_BASE, version, "eng.traineddata")
 
-    # test_path = os.path.dirname(__file__)
-    test_path = tmpdir_factory.mktemp("data")
-    tessdata_path = os.path.join(test_path, "no_osd_tessdata")
+    tessdata_path = tmpdir_factory.mktemp("no_osd_tessdata", numbered=False)
 
     if not os.path.exists(tessdata_path):
         os.makedirs(tessdata_path)
@@ -57,7 +55,7 @@ def test_no_osd_file(tmpdir_factory):
             language_code="eng",
             tesseract_data_path=tessdata_path
         )
-    shutil.rmtree(test_path)
+    shutil.rmtree(tessdata_path)
 
 #
 # @pytest.mark.expensive
