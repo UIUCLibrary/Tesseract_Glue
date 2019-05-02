@@ -1,3 +1,12 @@
+set(TEST_FILES_BASE_URL "https://jenkins.library.illinois.edu/nexus/repository/sample-data/ocr_test_images")
+
+list(APPEND test_image_files blankpage.tif)
+list(APPEND test_image_files engwithheadings.tif)
+list(APPEND test_image_files engwithpicture.tif)
+list(APPEND test_image_files ita.tif)
+list(APPEND test_image_files productionnotes.tif)
+
+
 if(BUILD_TESTING)
     include(FetchContent)
     FetchContent_Declare(
@@ -16,18 +25,12 @@ if(BUILD_TESTING)
 #
     file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/4.0.0/eng.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/eng.traineddata)
     file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/4.0.0/osd.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/osd.traineddata)
-#    file(DOWNLOAD https://github.com/tesseract-ocr/tessdata/raw/4.00/eng.traineddata ${CMAKE_CURRENT_BINARY_DIR}/tessdata/eng.traineddata)
-#    file(DOWNLOAD https://jenkins.library.illinois.edu/userContent/IlliniLore_1944_00000011.tif ${CMAKE_CURRENT_BINARY_DIR}/IlliniLore_1944_00000011.tif)
 
-    FetchContent_Declare(
-        test_images
-        URL        https://jenkins.library.illinois.edu/userContent/ocr_test_images.zip
-    )
-
-    FetchContent_GetProperties(test_images)
-    if(NOT test_images_POPULATED)
-        FetchContent_Populate(test_images)
-    endif()
+    foreach(image_file ${test_image_files})
+        if(NOT EXISTS "${CMAKE_BINARY_DIR}/ocr_test_images/${image_file}")
+            file(DOWNLOAD "${TEST_FILES_BASE_URL}/${image_file}" "${CMAKE_BINARY_DIR}/ocr_test_images/${image_file}")
+        endif()
+    endforeach()
 
 
 
@@ -37,7 +40,7 @@ if(BUILD_TESTING)
     target_link_libraries(tester PRIVATE Catch2 glue)
     target_compile_definitions(tester PRIVATE 
         -DTESS_DATA="${CMAKE_CURRENT_BINARY_DIR}/tessdata"
-        -DTEST_IMAGE_PATH="${test_images_SOURCE_DIR}"
+        -DTEST_IMAGE_PATH="${CMAKE_BINARY_DIR}/ocr_test_images"
     )
     catch_discover_tests(tester)
 #    add_test(NAME test_basic COMMAND tester)
