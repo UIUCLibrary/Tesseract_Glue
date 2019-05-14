@@ -85,13 +85,24 @@ class AbsCMakeToolchain(metaclass=abc.ABCMeta):
         for r in []:
             yield r
 
+    def get_compiler(self):
+
+        return self.builder.compiler
+
 
 class MSVCToolChain(AbsCMakeToolchain):
+
+    def get_compiler(self):
+        self.builder.compiler = self.builder.shlib_compiler
+        if not self.builder.compiler.initialized:
+            self.builder.compiler.initialize()
+        return self.builder.compiler
+
     def create_toolchain(self, output_cmake_file):
         if not self.builder.compiler.initialized:
             self.builder.compiler.initialize()
 
-        self.builder.mkpath(self.builder.build_temp)
+        # self.builder.mkpath(self.builder.build_temp)
         writer = CMakeToolchainWriter()
         writer.add_string(key="CMAKE_SYSTEM_NAME", value=platform.system())
 
@@ -134,8 +145,7 @@ class MSVCToolChain(AbsCMakeToolchain):
 
             wf.write(";$ENV{PATH}\")\n")
 
-        self.builder.announce(
-            "Generated CMake Toolchain file: {}".format(output_cmake_file))
+
 
     def compiler_spawn(self, cmd):
         old_env_vars = os.environ.copy()
@@ -260,6 +270,28 @@ class CMakeToolchainWriter:
         self._cache_values[key] = value
 
 
+class ClangToolChain(AbsCMakeToolchain):
+    def create_toolchain(self, output_cmake_file):
+        writer = CMakeToolchainWriter()
+        writer.write(output_cmake_file)
+
+
+    def run_cmake_configure(self, ext):
+        pass
+
+    def run_cmake_build(self, ext):
+        pass
+
+    def run_cmake_install(self, ext):
+        pass
+
+    def get_linking_library_extension(self) -> str:
+        pass
+
+    def get_shared_library_filename(self, library_name):
+        return f"{library_name}.dylib"
+
+
 class BuildExt(build_ext):
     user_options = build_ext.user_options + [
         ('cmake-exec=', None, "Location of the CMake executable. "
@@ -276,7 +308,11 @@ class BuildExt(build_ext):
         self._env_vars = None
         self.library_install_dir = ""
         self.build_configuration = "release"
-        self.toolchain = MSVCToolChain(self)
+
+        if "MSC" in platform.python_compiler():
+            self.toolchain = MSVCToolChain(self)
+        elif "Clang" in platform.python_compiler():
+            self.toolchain = ClangToolChain(self)
 
 
 
@@ -349,10 +385,7 @@ class BuildExt(build_ext):
                     or isinstance(ext, CMakeExtension):
                 if ext.url:
                     self.get_source(ext)
-                self.compiler = self.shlib_compiler
-
-                if not self.compiler.initialized:
-                    self.compiler.initialize()
+                self.compiler = self.toolchain.get_compiler()
                 self.mkpath(ext.cmake_binary_dir)
 
                 self.configure_cmake(ext)
@@ -403,7 +436,10 @@ class BuildExt(build_ext):
         self.toolchain.run_cmake_configure(ext)
 
     def write_toolchain_file(self, toolchain_file):
+        self.mkpath(self.build_temp)
         self.toolchain.create_toolchain(toolchain_file)
+        self.builder.announce(
+            "Generated CMake Toolchain file: {}".format(toolchain_file))
 
     def get_install_prefix(self, ext):
         if ext.cmake_install_prefix is not None:
