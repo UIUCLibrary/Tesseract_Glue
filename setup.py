@@ -727,9 +727,9 @@ openjpeg = CMakeDependency(
 )
 
 leptonica = CMakeDependency(
-    name="leptonica-1.77.0",
-    url="https://github.com/DanBloomberg/leptonica/archive/1.77.0.tar.gz",
-    starting_path="leptonica-1.77.0",
+    name="leptonica-1.78.0",
+    url="https://github.com/DanBloomberg/leptonica/releases/download/1.78.0/leptonica-1.78.0.tar.gz",
+    starting_path="leptonica-1.78.0",
     cmake_args=[
         ("-DZLIB_INCLUDE_DIR:PATH:",
             lambda: os.path.join(zlib.cmake_install_prefix, "include")),
