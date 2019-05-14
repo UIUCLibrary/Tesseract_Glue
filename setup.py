@@ -4,19 +4,17 @@ import setuptools
 from setuptools.command.build_ext import build_ext
 import shutil
 import os
+import abc
 import sys
 from distutils.version import StrictVersion
-# from distutils.file_util import copy_file
-# import distutils.ccompiler
 import urllib.request
 import platform
-from typing import List, Tuple, Union
+from typing import List, Tuple, Union, Iterable
 import tarfile
 import zipfile
 
 PACKAGE_NAME = "uiucprescon.ocr"
 
-# nasm = shutil.which("nasm")
 
 if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
     print('your setuptools version does not support using setup.cfg. '
@@ -29,6 +27,213 @@ if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
 
 class CMakeException(RuntimeError):
     pass
+
+
+def find_local_library(library_name, path) -> str:
+    file_name_conventions = [
+        f"{library_name}.lib",
+    ]
+
+    for possible_file_name in file_name_conventions:
+        full_path = os.path.join(path, possible_file_name)
+        if os.path.exists(full_path):
+            return full_path
+
+    raise FileNotFoundError("No library named {} located".format(library_name))
+
+
+class AbsCMakeToolchain(metaclass=abc.ABCMeta):
+
+    def __init__(self, builder: build_ext) -> None:
+        super().__init__()
+        self.builder = builder
+
+    @abc.abstractmethod
+    def create_toolchain(self, output_cmake_file):
+        """Generate a toolchain file"""
+
+    def compiler_spawn(self, cmd):
+        self.builder.compiler.spawn(cmd)
+
+    @abc.abstractmethod
+    def run_cmake_configure(self, ext):
+        pass
+
+    @abc.abstractmethod
+    def run_cmake_build(self, ext):
+        pass
+
+    @abc.abstractmethod
+    def run_cmake_install(self, ext):
+        pass
+
+    @abc.abstractmethod
+    def get_linking_library_extension(self) -> str:
+        pass
+
+    @abc.abstractmethod
+    def get_shared_library_filename(self, library_name):
+        """What the file name should be called when it's compiled"""
+
+    def runtime_file_deps(self) -> Iterable[Tuple[str, str]]:
+        """files that need to be bundled along with the library built,
+
+        Returns:
+            Tuple. name of item, file name
+
+        """
+        for r in []:
+            yield r
+
+
+class MSVCToolChain(AbsCMakeToolchain):
+    def create_toolchain(self, output_cmake_file):
+        if not self.builder.compiler.initialized:
+            self.builder.compiler.initialize()
+
+        self.builder.mkpath(self.builder.build_temp)
+        writer = CMakeToolchainWriter()
+        writer.add_string(key="CMAKE_SYSTEM_NAME", value=platform.system())
+
+        writer.add_string(
+            key="CMAKE_SYSTEM_PROCESSOR", value=platform.machine())
+
+        writer.add_string(
+            key="CMAKE_HOST_SYSTEM_PROCESSOR", value=platform.machine())
+
+        writer.add_path(key="CMAKE_C_COMPILER", value=self.builder.compiler.cc)
+        writer.add_path(
+            key="CMAKE_CXX_COMPILER", value=self.builder.compiler.cc)
+
+        writer.add_path(key="CMAKE_LINKER", value=self.builder.compiler.linker)
+        writer.add_path(
+            key="CMAKE_RC_COMPILER", value=self.builder.compiler.rc)
+
+        writer.add_path(
+            key="CMAKE_MT_COMPILER", value=self.builder.compiler.mt)
+
+        if platform.machine() == "AMD64":
+            writer.add_string("CMAKE_LIBRARY_ARCHITECTURE", value="x64")
+            writer.add_string("CMAKE_C_LIBRARY_ARCHTECTURE ", value="x64")
+            writer.add_string("CMAKE_CXX_LIBRARY_ARCHTECTURE ", value="x64")
+
+        writer.add_path(key="FETCHCONTENT_BASE_DIR",
+                        value=os.path.abspath(
+                            os.path.join(
+                                self.builder.build_temp, "thirdparty")))
+
+        if self.builder.nasm_exec:
+            writer.add_path(key="CMAKE_ASM_NASM_COMPILER",
+                            value=os.path.normcase(self.builder.nasm_exec))
+
+        writer.write(output_cmake_file)
+        with open(output_cmake_file, "a+") as wf:
+            wf.write("\nset(ENV{PATH} \"")
+            wf.write(os.path.dirname(
+                self.builder.compiler.cc).replace("\\", "\\\\"))
+
+            wf.write(";$ENV{PATH}\")\n")
+
+        self.builder.announce(
+            "Generated CMake Toolchain file: {}".format(output_cmake_file))
+
+    def compiler_spawn(self, cmd):
+        old_env_vars = os.environ.copy()
+        old_path = os.getenv("Path")
+        try:
+            os.environ["LIB"] = ";".join(self.builder.compiler.library_dirs)
+            os.environ["INCLUDE"] = ";".join(
+                self.builder.compiler.include_dirs)
+
+            paths = []
+            paths += old_path.split(";")
+            paths += self.builder.compiler._paths.split(";")
+            new_value_path = ";".join(paths)
+            os.environ["Path"] = new_value_path
+            self.builder.compiler.spawn(cmd)
+        finally:
+            os.environ = old_env_vars
+            os.environ["Path"] = old_path
+
+    def run_cmake_configure(self, ext):
+        install_prefix = os.path.abspath(ext.cmake_install_prefix)
+        temp_output = os.path.abspath(self.builder.build_temp)
+
+        configure_command = [
+            self.builder.cmake_exec,
+            f"-S{os.path.abspath(ext.cmake_source_dir)}",
+            f"-B{os.path.abspath(ext.cmake_binary_dir)}",
+            f"-DCMAKE_INSTALL_PREFIX={install_prefix}",
+            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={temp_output}",
+        ]
+
+        if self.builder.debug is not None:
+            configure_command.append(
+                f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={temp_output}")
+        else:
+            configure_command.append(
+                f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={temp_output}")
+
+        try:
+
+            if self.builder.cmake_generator is not None:
+                configure_command += ["-G", self.builder.cmake_generator]
+            else:
+
+                if 'MSC v.19' in platform.python_compiler():
+                    configure_command += ["-T", "v140"]
+
+            configure_command.insert(
+                2, "-DCMAKE_TOOLCHAIN_FILE:FILEPATH=\"{}\"".format(
+                    self.builder.toolchain_file))
+
+        except KeyError as e:
+
+            message = "No known build system generator for the current " \
+                      "implementation of Python's compiler {}".format(e)
+
+            raise CMakeException(message)
+
+        for k, v in ext.cmake_args:
+            # To delay any evaluation
+            if callable(v):
+                v = v()
+            configure_command.append(f"{k}={v}")
+        configure_command += [
+            "-DCMAKE_BUILD_TYPE={}".format(self.builder.build_configuration),
+        ]
+        self.compiler_spawn(configure_command)
+
+    def get_shared_library_filename(self, library_name):
+        return f"{library_name}.dll"
+
+    def runtime_file_deps(self) -> Iterable[Tuple[str, str]]:
+        open_mp_library = find_library("VCOMP140")
+        if open_mp_library is not None:
+            yield "OpenMP runtime", open_mp_library
+
+    def run_cmake_install(self, ext):
+        install_command = [
+            self.builder.cmake_exec,
+            "--build", os.path.abspath(ext.cmake_binary_dir),
+            "--config", self.builder.build_configuration,
+            "--target", "install"
+        ]
+        self.compiler_spawn(install_command)
+
+    def run_cmake_build(self, ext):
+        build_command = [
+            self.builder.cmake_exec,
+            "--build", os.path.abspath(ext.cmake_binary_dir),
+            "--config", self.builder.build_configuration,
+        ]
+        if self.builder.parallel is not None:
+            build_command += ["--parallel", str(self.builder.parallel)]
+
+        self.compiler_spawn(build_command)
+
+    def get_linking_library_extension(self) -> str:
+        return ".lib"
 
 
 class CMakeToolchainWriter:
@@ -71,6 +276,9 @@ class BuildExt(build_ext):
         self._env_vars = None
         self.library_install_dir = ""
         self.build_configuration = "release"
+        self.toolchain = MSVCToolChain(self)
+
+
 
     @property
     def package_dir(self):
@@ -86,7 +294,6 @@ class BuildExt(build_ext):
         else:
             self.cmake_generator = None
 
-
     def finalize_options(self):
         super().finalize_options()
 
@@ -96,20 +303,23 @@ class BuildExt(build_ext):
         if not os.path.exists(self.cmake_exec):
             raise Exception(
                 "Invalid location set to CMake")
-        pass
 
     def get_ext_filename(self, fullname):
         ext = self.ext_map[fullname]
         if isinstance(ext, CMakeDependency):
-            return os.path.join("bin", f"{fullname}.dll")
+            return os.path.join(
+                "bin", self.toolchain.get_shared_library_filename(fullname))
         else:
             return super().get_ext_filename(fullname)
 
     def build_extensions(self):
-        self.toolchain_file = os.path.abspath(os.path.join(self.build_temp, "toolchain.cmake"))
+        self.toolchain_file = os.path.abspath(
+            os.path.join(self.build_temp, "toolchain.cmake"))
 
         if os.path.exists(self.toolchain_file):
-            self.announce("Using CMake Toolchain file {}.".format(self.toolchain_file), 2)
+            self.announce("Using CMake Toolchain file {}.".format(
+                self.toolchain_file), 2)
+
         else:
             self.write_toolchain_file(self.toolchain_file)
 
@@ -117,17 +327,26 @@ class BuildExt(build_ext):
             with self._filter_build_errors(ext):
                 self.build_extension(ext)
 
+        for runtime, runtime_file in self.toolchain.runtime_file_deps():
+            self.announce("Including {}".format(runtime))
+            self.copy_file(runtime_file, os.path.join(self.build_lib,
+                                                      self.package_dir,
+                                                      "tesseract",
+                                                      "bin"))
+
     def run(self):
         for ext in self.extensions:
             ext.cmake_install_prefix = self.get_install_prefix(ext)
-            ext.cmake_binary_dir = os.path.join(self.build_temp, "{}-build".format(ext.name))
+            ext.cmake_binary_dir = os.path.join(self.build_temp,
+                                                "{}-build".format(ext.name))
         super().run()
 
     def build_extension(self, ext):
         _compiler = self.compiler
 
         try:
-            if isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension):
+            if isinstance(ext, CMakeDependency) \
+                    or isinstance(ext, CMakeExtension):
                 if ext.url:
                     self.get_source(ext)
                 self.compiler = self.shlib_compiler
@@ -143,11 +362,6 @@ class BuildExt(build_ext):
                 if self.needs_to_install(ext):
                     self.install_cmake(ext)
 
-            # Tesseract 4.0 uses OpenMP on Windows
-            openMP_library = find_library("VCOMP140")
-            if openMP_library is not None:
-                self.announce("Including OpenMP runtime")
-                self.copy_file(openMP_library, os.path.join(self.build_lib, self.package_dir, "tesseract", "bin"))
 
             if ext._needs_stub:
                 cmd = self.get_finalized_command('build_py').build_lib
@@ -155,7 +369,6 @@ class BuildExt(build_ext):
 
         finally:
             self.compiler = _compiler
-
 
     def needs_to_run_configure(self, ext) -> bool:
 
@@ -187,94 +400,21 @@ class BuildExt(build_ext):
         return False
 
     def configure_cmake(self, ext):
-
-        configure_command = [
-            self.cmake_exec,
-            f"-S{os.path.abspath(ext.cmake_source_dir)}",
-            f"-B{os.path.abspath(ext.cmake_binary_dir)}",
-            f"-DCMAKE_INSTALL_PREFIX={os.path.abspath(ext.cmake_install_prefix)}",
-            f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={os.path.abspath(self.build_temp)}",
-        ]
-
-        if self.debug is not None:
-            configure_command.append(f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG={os.path.abspath(self.build_temp)}")
-        else:
-            configure_command.append(f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE={os.path.abspath(self.build_temp)}")
-
-        try:
-
-            if self.cmake_generator is not None:
-                configure_command += ["-G", self.cmake_generator]
-            else:
-
-                if 'MSC v.19' in platform.python_compiler():
-                    configure_command += ["-T", "v140"]
-
-            configure_command.insert(2, f"-DCMAKE_TOOLCHAIN_FILE:FILEPATH=\"{self.toolchain_file}\"")
-
-        except KeyError as e:
-
-            message = "No known build system generator for the current " \
-                      "implementation of Python's compiler {}".format(e)
-
-            raise CMakeException(message)
-
-        for k, v in ext.cmake_args:
-            # To delay any evaluation
-            if callable(v):
-                v = v()
-            configure_command.append(f"{k}={v}")
-        configure_command += [
-            "-DCMAKE_BUILD_TYPE={}".format(self.build_configuration),
-        ]
-        self.compiler_spawn(configure_command)
+        self.toolchain.run_cmake_configure(ext)
 
     def write_toolchain_file(self, toolchain_file):
+        self.toolchain.create_toolchain(toolchain_file)
 
-        self.announce("Generating CMake Toolchain file", 2)
-        if not self.compiler.initialized:
-            self.compiler.initialize()
-
-        self.mkpath(self.build_temp)
-        writer = CMakeToolchainWriter()
-        writer.add_string(key="CMAKE_SYSTEM_NAME", value=platform.system())
-
-        writer.add_string(key="CMAKE_SYSTEM_PROCESSOR", value=platform.machine())
-        writer.add_string(key="CMAKE_HOST_SYSTEM_PROCESSOR", value=platform.machine())
-        writer.add_path(key="CMAKE_C_COMPILER", value=self.compiler.cc)
-        writer.add_path(key="CMAKE_CXX_COMPILER", value=self.compiler.cc)
-        writer.add_path(key="CMAKE_LINKER", value=self.compiler.linker)
-        writer.add_path(key="CMAKE_RC_COMPILER", value=self.compiler.rc)
-        writer.add_path(key="CMAKE_MT_COMPILER", value=self.compiler.mt)
-        if platform.machine() == "AMD64":
-            writer.add_string("CMAKE_LIBRARY_ARCHITECTURE", value="x64")
-            writer.add_string("CMAKE_C_LIBRARY_ARCHTECTURE ", value="x64")
-            writer.add_string("CMAKE_CXX_LIBRARY_ARCHTECTURE ", value="x64")
-        writer.add_path(key="FETCHCONTENT_BASE_DIR", value=os.path.abspath(os.path.join(self.build_temp, "thirdparty")))
-        # set(CMAKE_HOST_SYSTEM_PROCESSOR "AMD64")
-        # paths = [os.path.abspath(self.build_temp)]
-        # old_path = os.getenv("Path")
-        # paths += old_path.split(";")
-        # paths += self.compiler._paths.split(";")
-        # new_value_path = ";".join(paths)
-        if self.nasm_exec:
-            writer.add_path(key="CMAKE_ASM_NASM_COMPILER", value=os.path.normcase(self.nasm_exec))
-
-        writer.write(toolchain_file)
-        with open(toolchain_file, "a+") as wf:
-            wf.write("\nset(ENV{PATH} \"")
-            wf.write(os.path.dirname(self.compiler.cc).replace("\\", "\\\\"))
-            wf.write(";$ENV{PATH}\")\n")
-        self.announce("Generated CMake Toolchain file: {}".format(toolchain_file))
-        #
     def get_install_prefix(self, ext):
         if ext.cmake_install_prefix is not None:
             return os.path.abspath(ext.cmake_install_prefix)
-        #
+
         if isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension):
 
             if isinstance(ext, CMakeDependency):
-                install_prefix = os.path.join(self.build_lib, self.package_dir, self.library_install_dir)
+                install_prefix = os.path.join(self.build_lib,
+                                              self.package_dir,
+                                              self.library_install_dir)
             else:
                 install_prefix = self.build_lib
 
@@ -293,7 +433,10 @@ class BuildExt(build_ext):
         for ext in self.extensions:
             fullname = self.get_ext_fullname(ext.name)
             filename = self.get_ext_filename(fullname)
-            if ext.shared_library and (isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension)):
+            if ext.shared_library \
+                    and (isinstance(ext, CMakeDependency)
+                         or isinstance(ext, CMakeExtension)):
+
                 src_filename = os.path.join(self.build_lib, self.package_dir)
                 if isinstance(ext, CMakeDependency):
                     src_filename = os.path.join(src_filename, "tesseract")
@@ -347,47 +490,13 @@ class BuildExt(build_ext):
             return "Visual Studio 14 2015"
 
     def build_cmake(self, ext):
-
-        build_command = [
-            self.cmake_exec,
-            "--build", os.path.abspath(ext.cmake_binary_dir),
-            "--config", self.build_configuration,
-        ]
-        if self.parallel is not None:
-            build_command += ["--parallel", str(self.parallel)]
-
-        self.compiler_spawn(build_command)
-        pass
+        self.toolchain.run_cmake_build(ext)
 
     def compiler_spawn(self, cmd):
-        old_env_vars = os.environ.copy()
-        old_path = os.getenv("Path")
-        try:
-            os.environ["LIB"] = ";".join(self.compiler.library_dirs)
-            os.environ["INCLUDE"] = ";".join(self.compiler.include_dirs)
-
-            paths = []
-            paths += old_path.split(";")
-            paths += self.compiler._paths.split(";")
-            new_value_path = ";".join(paths)
-            os.environ["Path"] = new_value_path
-            self.compiler.spawn(cmd)
-        finally:
-            os.environ = old_env_vars
-            os.environ["Path"] = old_path
+        self.toolchain.compiler_spawn(cmd)
 
     def install_cmake(self, ext):
-
-        install_command = [
-            self.cmake_exec,
-            "--build", os.path.abspath(ext.cmake_binary_dir),
-            "--config", self.build_configuration,
-            "--target", "install"
-        ]
-        self.compiler_spawn(install_command)
-        # p = Popen(install_command)
-        # p.communicate()
-        pass
+        self.toolchain.run_cmake_install(ext)
 
     @staticmethod
     def _get_file_extension(url) -> str:
@@ -532,15 +641,11 @@ libpng = CMakeDependency(
     starting_path="libpng-1.6.36",
     cmake_args=[
         ("-DZLIB_INCLUDE_DIR:PATH",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "include")),
+            lambda: os.path.join(zlib.cmake_install_prefix, "include")),
         ("-DPNG_TESTS:BOOL", "FALSE"),
         ("-DZLIB_LIBRARY_RELEASE:FILEPATH",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "lib", "zlib.lib")),
-        ("-DZLIB_LIBRARY_DEBUG:FILEPATH",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+            lambda: find_local_library(
+                "zlib", path=os.path.join(zlib.cmake_install_prefix, "lib"))),
     ]
 )
 
@@ -564,17 +669,14 @@ tiff = CMakeDependency(
             lambda: os.path.join(
                 zlib.cmake_install_prefix, "include")),
         ("-DZLIB_LIBRARY_RELEASE:FILEPATH",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "lib", "zlib.lib")),
-        ("-DZLIB_LIBRARY_DEBUG:FILEPATH",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+            lambda: find_local_library(
+                "zlib", path=os.path.join(zlib.cmake_install_prefix, "lib"))),
         ("-DJPEG_INCLUDE_DIR:PATH",
-            lambda: os.path.join(
-                libjpeg.cmake_install_prefix, "include")),
+            lambda: os.path.join(libjpeg.cmake_install_prefix, "include")),
         ("-DJPEG_LIBRARY:FILEPATH",
-            lambda: os.path.join(
-                libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
+            lambda: find_local_library(
+                "jpeg", path=os.path.join(libjpeg.cmake_install_prefix,
+                                          "lib"))),
        ],
     starting_path="tiff-4.0.10",
    )
@@ -594,39 +696,35 @@ leptonica = CMakeDependency(
     starting_path="leptonica-1.77.0",
     cmake_args=[
         ("-DZLIB_INCLUDE_DIR:PATH:",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "include")),
-        ("-DZLIB_LIBRARY_DEBUG:FILEPATH",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "lib", "zlibd.lib")),
+            lambda: os.path.join(zlib.cmake_install_prefix, "include")),
         ("-DZLIB_LIBRARY_RELEASE:FILEPATH",
-            lambda: os.path.join(
-                zlib.cmake_install_prefix, "lib", "zlib.lib")),
+            lambda: find_local_library(
+                "zlib", path=os.path.join(zlib.cmake_install_prefix, "lib"))),
         ("-DTIFF_INCLUDE_DIR:PATH",
-            lambda: os.path.join(
-                tiff.cmake_install_prefix, "include")),
+            lambda: os.path.join(tiff.cmake_install_prefix, "include")),
         ("-DTIFF_LIBRARY:FILEPATH",
-            lambda: os.path.join(
-                tiff.cmake_install_prefix, "lib", "tiff.lib")),
+            lambda: find_local_library(
+                "tiff", os.path.join(tiff.cmake_install_prefix, "lib"))),
         ("-DJPEG_INCLUDE_DIR:PATH",
             lambda: os.path.join(
                 libjpeg.cmake_install_prefix, "include")),
         ("-DJPEG_LIBRARY:FILEPATH",
-            lambda: os.path.join(
-                libjpeg.cmake_install_prefix, "lib", "jpeg.lib")),
+            lambda: find_local_library(
+                "jpeg", path=os.path.join(libjpeg.cmake_install_prefix,
+                                          "lib"))),
         ("-DPNG_PNG_INCLUDE_DIR:PATH",
-            lambda: os.path.join(
-                libpng.cmake_install_prefix, "include")),
+            lambda: os.path.join(libpng.cmake_install_prefix, "include")),
         ("-DPNG_LIBRARY_RELEASE:FILEPATH",
-            lambda: os.path.join(
-                libpng.cmake_install_prefix, "lib", "libpng16.lib")),
+            lambda: find_local_library(
+                "libpng16", os.path.join(libpng.cmake_install_prefix, "lib"))),
         ("-DJP2K_FOUND:BOOL", "TRUE"),
         ("-DJP2K_INCLUDE_DIRS:PATH",
             lambda: os.path.join(
                 openjpeg.cmake_install_prefix, "include", "openjpeg-2.3")),
         ("-DJP2K_LIBRARIES:FILEPATH",
-            lambda: os.path.join(
-                openjpeg.cmake_install_prefix, "lib", "openjp2.lib"))
+            lambda: find_local_library(
+                "openjp2", path=os.path.join(openjpeg.cmake_install_prefix,
+                                             "lib",))),
     ])
 
 tesseract = CMakeDependency(
