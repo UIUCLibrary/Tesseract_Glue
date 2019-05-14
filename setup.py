@@ -438,7 +438,7 @@ class BuildExt(build_ext):
     def write_toolchain_file(self, toolchain_file):
         self.mkpath(self.build_temp)
         self.toolchain.create_toolchain(toolchain_file)
-        self.builder.announce(
+        self.announce(
             "Generated CMake Toolchain file: {}".format(toolchain_file))
 
     def get_install_prefix(self, ext):
