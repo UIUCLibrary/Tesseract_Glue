@@ -57,7 +57,7 @@ def runtox(){
 def test_wheel(pkgRegex, python_version){
     script{
 
-        bat "python -m venv venv\\${NODE_NAME}\\${python_version} && venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install \"tox<3.8\" --upgrade"
+        bat "python -m venv venv\\${NODE_NAME}\\${python_version} && venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install \"tox<3.10\" --upgrade"
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
         dir("source"){
@@ -298,7 +298,7 @@ pipeline {
             stages{
                 stage("Installing Package Testing Tools"){
                     steps{
-                        bat "venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install \"tox<3.8\""
+                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
 
                     }
                 }
