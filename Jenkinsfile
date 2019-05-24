@@ -54,7 +54,7 @@ def runtox(){
 }
 
 
-def test_wheel(pkgRegex, python_version){
+def test_wheel(pkgRegex, python_version, tox_version="<3.10"){
     script{
 
         bat(
@@ -67,7 +67,7 @@ def test_wheel(pkgRegex, python_version){
             )
 
         bat(label: "Installing tox to Python virtual environment",
-            script: "venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install \"tox<3.10\" --upgrade"
+            script: "venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install \"tox${tox_version}\" --upgrade"
             )
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
