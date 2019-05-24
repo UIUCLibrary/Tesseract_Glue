@@ -50,6 +50,9 @@ def download_data(url, destination):
 
         shutil.move(test_file_path, destination)
 
+        print("{} successfully downloaded".format(
+            os.path.split(test_file_path)[-1]))
+
 
 @pytest.fixture(scope="session", autouse=True)
 def tessdata_eng(tmpdir_factory):
