@@ -54,28 +54,30 @@ def runtox(){
 }
 
 
-def test_wheel(pkgRegex, python_version, tox_version="<3.10"){
+def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="source"){
     script{
+        def venv_home_path = "venv\\${NODE_NAME}\\${python_version}"
+        def venv_scripts_path = "venv\\${NODE_NAME}\\${python_version}\\Scripts"
 
         bat(
             label: "Installing Python virtual environment based on version ${python_version}",
-            script:"python -m venv venv\\${NODE_NAME}\\${python_version}"
+            script:"python -m venv ${venv_home_path}"
             )
 
         bat(label: "Upgrading pip to latest version",
-            script: "venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade"
+            script: "${venv_scripts_path}\\python.exe -m pip install pip --upgrade"
             )
 
         bat(label: "Installing tox to Python virtual environment",
-            script: "venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install \"tox${tox_version}\" --upgrade"
+            script: "venv\\${venv_scripts_path}\\pip.exe install \"tox${tox_version}\" --upgrade"
             )
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
 
-        dir("source"){
+        dir("${subdirectory}"){
             python_wheel.each{
                 bat(label: "Testing ${it}",
-                    script: "${WORKSPACE}\\venv\\${NODE_NAME}\\${python_version}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
+                    script: "${venv_scripts_path}\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
                     )
             }
 
