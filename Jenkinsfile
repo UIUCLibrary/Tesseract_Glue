@@ -54,16 +54,31 @@ def runtox(){
 }
 
 
-def test_wheel(pkgRegex, python_version){
+def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="source", venv_root="venv"){
     script{
+        def venv_home_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}"
+        def venv_scripts_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}\\Scripts"
 
-        bat "python -m venv venv\\${NODE_NAME}\\${python_version} && venv\\${NODE_NAME}\\${python_version}\\Scripts\\python.exe -m pip install pip --upgrade && venv\\${NODE_NAME}\\${python_version}\\Scripts\\pip.exe install \"tox<3.8\" --upgrade"
+        bat(
+            label: "Installing Python virtual environment based on version ${python_version}",
+            script:"python -m venv ${venv_home_path}"
+            )
+
+        bat(label: "Upgrading pip to latest version",
+            script: "${venv_scripts_path}\\python.exe -m pip install pip --upgrade"
+            )
+
+        bat(label: "Installing tox to Python virtual environment",
+            script: "${venv_scripts_path}\\pip.exe install \"tox${tox_version}\" --upgrade"
+            )
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
-        dir("source"){
+
+        dir("${subdirectory}"){
             python_wheel.each{
-                echo "Testing ${it}"
-                bat "${WORKSPACE}\\venv\\${NODE_NAME}\\${python_version}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
+                bat(label: "Testing ${it}",
+                    script: "${venv_scripts_path}\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
+                    )
             }
 
         }
@@ -298,7 +313,7 @@ pipeline {
             stages{
                 stage("Installing Package Testing Tools"){
                     steps{
-                        bat "venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install \"tox<3.8\""
+                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
 
                     }
                 }
