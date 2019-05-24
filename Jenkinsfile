@@ -74,8 +74,9 @@ def test_wheel(pkgRegex, python_version, tox_version="<3.10"){
 
         dir("source"){
             python_wheel.each{
-                echo "Testing ${it}"
-                bat "${WORKSPACE}\\venv\\${NODE_NAME}\\${python_version}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
+                bat(label: "Testing ${it}",
+                    script: "${WORKSPACE}\\venv\\${NODE_NAME}\\${python_version}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
+                    )
             }
 
         }
