@@ -56,8 +56,8 @@ def runtox(){
 
 def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="source", venv_root="venv"){
     script{
-        def venv_home_path = "${venv_root}\\${NODE_NAME}\\${python_version}"
-        def venv_scripts_path = "${venv_root}\\${NODE_NAME}\\${python_version}\\Scripts"
+        def venv_home_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}"
+        def venv_scripts_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}\\Scripts"
 
         bat(
             label: "Installing Python virtual environment based on version ${python_version}",
