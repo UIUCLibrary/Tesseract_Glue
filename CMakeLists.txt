@@ -8,6 +8,18 @@ project(ocr)
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${output_dir})
 
 find_package(Tesseract REQUIRED)
+
+# If google isn't going to make importable targets, then I am
+if(NOT TARGET tesseract::tesseract)
+    add_library(tesseract::tesseract INTERFACE IMPORTED )
+    set_target_properties(tesseract::tesseract PROPERTIES
+        INTERFACE_INCLUDE_DIRECTORIES "${tesseract_INCLUDE_DIRS}"
+        INTERFACE_LINK_LIBRARIES "${Tesseract_LIBRARIES}"
+         INTERFACE_COMPILE_DEFINITIONS "${tesseract_COMPILE_DEFINITIONS}"
+        )
+#    Tesseract_LIBRARIES
+endif(NOT TARGET tesseract::tesseract)
+
 find_package(Leptonica REQUIRED)
 include(FetchContent)
 
