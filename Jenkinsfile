@@ -859,8 +859,10 @@ pipeline {
             }
             post {
                 success {
-                    // echo "it Worked. Pushing file to ${env.BRANCH_NAME} index"
-                    bat "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}"
+                    bat(
+                        script: "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}",
+                        label: "Pushing file to ${env.BRANCH_NAME} index"
+                    )
 
                 }
                 cleanup{
@@ -875,43 +877,15 @@ pipeline {
             steps{
                 unstash "DOCS_ARCHIVE"
                 deploy_docs(env.PKG_NAME, "build/docs/html")
-                // dir("build/docs/html/"){
-                //     script{
-                //         try{
-                //             timeout(30) {
-                //                 input 'Update project documentation?'
-                //             }
-                //             sshPublisher(
-                //                 publishers: [
-                //                     sshPublisherDesc(
-                //                         configName: 'apache-ns - lib-dccuser-updater',
-                //                         sshLabel: [label: 'Linux'],
-                //                         transfers: [sshTransfer(excludes: '',
-                //                         execCommand: '',
-                //                         execTimeout: 120000,
-                //                         flatten: false,
-                //                         makeEmptyDirs: false,
-                //                         noDefaultExcludes: false,
-                //                         patternSeparator: '[, ]+',
-                //                         remoteDirectory: "${params.DEPLOY_DOCS_URL_SUBFOLDER}",
-                //                         remoteDirectorySDF: false,
-                //                         removePrefix: '',
-                //                         sourceFiles: '**')],
-                //                     usePromotionTimestamp: false,
-                //                     useWorkspaceInPromotion: false,
-                //                     verbose: true
-                //                     )
-                //                 ]
-                //             )
-                //         } catch(exc){
-                //             echo "User response timed out. Documentation not published."
-                //         }
-                //     }
-                // }
             }
         }
     }
     post {
+        failure{
+            // might be a dependency caching issue. So delete the workspace
+            // and try again
+            deleteDir()
+        }
         cleanup{
             cleanWs(
                 deleteDirs: true,
