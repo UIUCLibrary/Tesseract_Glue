@@ -139,6 +139,7 @@ pipeline {
         timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
         checkoutToSubdirectory("source")
         preserveStashes()
+        buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
         PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
