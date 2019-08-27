@@ -190,7 +190,6 @@ pipeline {
                     post{
                         success{
                             bat "(if not exist logs mkdir logs) && python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
-                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
                         }
                     }
 
@@ -204,11 +203,6 @@ pipeline {
                             bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
                         }
                     }
-                    post{
-                        success{
-                            archiveArtifacts artifacts: "logs/pippackages_pipenv_${NODE_NAME}.log"
-                        }
-                    }
                 }
                 stage("Creating Virtualenv for Building"){
                     steps {
@@ -217,7 +211,7 @@ pipeline {
                     post{
                         success{
                             bat "venv\\36\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
-                            archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log"
+
                         }
 
                     }
@@ -225,6 +219,7 @@ pipeline {
             }
             post{
                 success{
+                    archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log,logs/pippackages_pipenv_${NODE_NAME}.log,logs/pippackages_system_${NODE_NAME}.log"
                     echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
                 }
                 failure {
