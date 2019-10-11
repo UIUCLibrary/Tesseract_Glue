@@ -501,7 +501,7 @@ pipeline {
                             }
                         }
                         stage("Testing 3.6 wheel on a computer without Visual Studio"){
-                            agent { label 'Windows && !VS2015 && Python3' }
+                            agent { label 'Windows && Python3' }
                             environment {
                                 PATH = "${tool 'CPython-3.6'};$PATH"
                             }
@@ -568,7 +568,7 @@ pipeline {
                             }
                         }
                         stage("Testing 3.7 wheel on a computer without Visual Studio"){
-                            agent { label 'Windows && !VS2015 && Python3' }
+                            agent { label 'Windows  && Python3' }
                             environment {
                                 PATH = "${tool 'CPython-3.7'};$PATH"
                             }
@@ -710,7 +710,7 @@ pipeline {
                         stage("Testing DevPi .whl Package with Python 3.6"){
                             agent {
                                 node {
-                                    label "Windows && Python3 && !VS2015"
+                                    label "Windows && Python3"
                                 }
                             }
 
@@ -773,7 +773,7 @@ pipeline {
                         stage("Testing DevPi .whl Package with Python 3.7"){
                             agent {
                                 node {
-                                    label "Windows && Python3 && !VS2015"
+                                    label "Windows && Python3"
                                 }
                             }
 
