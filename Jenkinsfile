@@ -125,6 +125,30 @@ def deploy_docs(pkgName, prefix){
     }
 }
 
+
+
+def get_package_version(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Version
+        }
+    }
+}
+
+def get_package_name(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Name
+        }
+    }
+}
+
 pipeline {
     agent {
         label "Windows && VS2015 && Python3 && longfilenames"
@@ -142,21 +166,13 @@ pipeline {
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
-        PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
-        PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
-        DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
-        DEVPI = credentials("DS_devpi")
+
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
         WORKON_HOME ="${WORKSPACE}\\pipenv\\"
 
     }
     parameters {
         booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
-//        booleanParam(name: "BUILD_DOCS", defaultValue: true, description: "Build documentation")
-        booleanParam(name: "TEST_RUN_DOCTEST", defaultValue: true, description: "Test documentation")
-        booleanParam(name: "TEST_RUN_PYTEST", defaultValue: true, description: "Run PyTest unit tests")
-        booleanParam(name: "TEST_RUN_FLAKE8", defaultValue: true, description: "Run Flake8 static analysis")
-        booleanParam(name: "TEST_RUN_MYPY", defaultValue: true, description: "Run MyPy static analysis")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
 
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -178,6 +194,24 @@ pipeline {
                         deleteDir()
                         dir("source"){
                             checkout scm
+                        }
+                    }
+                }
+                stage("Getting Distribution Info"){
+                    environment{
+                        PATH = "${tool 'CPython-3.7'};${tool 'cmake3.13'};$PATH"
+                    }
+                    steps{
+                        dir("source"){
+                            bat "python setup.py dist_info"
+                        }
+                    }
+                    post{
+                        success{
+                            dir("source"){
+                                stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
+                                archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
+                            }
                         }
                     }
                 }
@@ -220,7 +254,6 @@ pipeline {
             post{
                 success{
                     archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log,logs/pippackages_pipenv_${NODE_NAME}.log,logs/pippackages_system_${NODE_NAME}.log"
-                    echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
                 }
                 failure {
                     deleteDir()
@@ -281,6 +314,8 @@ pipeline {
                 stage("Building Documentation"){
                     environment {
                         PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                     }
                     steps{
                         // echo "Building docs on ${env.NODE_NAME}"
@@ -296,7 +331,10 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+                            script{
+                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
+                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                            }
                             stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
                         }
                         // failure{
@@ -368,9 +406,6 @@ pipeline {
                             }
                         }
                         stage("Run Pytest Unit Tests"){
-                            when {
-                               equals expected: true, actual: params.TEST_RUN_PYTEST
-                            }
                             environment{
                                 junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
@@ -395,9 +430,6 @@ pipeline {
                             }
                         }
                         stage("Run Doctest Tests"){
-                            when {
-                                equals expected: true, actual: params.TEST_RUN_DOCTEST
-                            }
                             steps {
                                 dir("source"){
                                     bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
@@ -411,9 +443,6 @@ pipeline {
                             }
                         }
                         stage("Run Flake8 Static Analysis") {
-                            when {
-                                equals expected: true, actual: params.TEST_RUN_FLAKE8
-                            }
                             steps{
                                 dir("source"){
                                     bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
@@ -427,9 +456,6 @@ pipeline {
                             }
                         }
                         stage("Run MyPy Static Analysis") {
-                            when {
-                                equals expected: true, actual: params.TEST_RUN_MYPY
-                            }
                             stages{
                                 stage("Generate Stubs") {
                                     steps{
@@ -625,6 +651,9 @@ pipeline {
             environment{
                 PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
                 PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};$PATH"
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                DEVPI = credentials("DS_devpi")
             }
             stages{
                 stage("Upload to DevPi Staging"){
@@ -870,6 +899,9 @@ pipeline {
         stage("Deploy Online Documentation") {
             when{
                 equals expected: true, actual: params.DEPLOY_DOCS
+            }
+            environment{
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
             }
             steps{
                 unstash "DOCS_ARCHIVE"
