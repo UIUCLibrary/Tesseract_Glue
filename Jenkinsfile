@@ -125,6 +125,30 @@ def deploy_docs(pkgName, prefix){
     }
 }
 
+
+
+def get_package_version(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Version
+        }
+    }
+}
+
+def get_package_name(stashName, metadataFile){
+    ws {
+        unstash "${stashName}"
+        script{
+            def props = readProperties interpolate: true, file: "${metadataFile}"
+            deleteDir()
+            return props.Name
+        }
+    }
+}
+
 pipeline {
     agent {
         label "Windows && VS2015 && Python3 && longfilenames"
@@ -142,10 +166,7 @@ pipeline {
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
-        PKG_NAME = pythonPackageName(toolName: "CPython-3.6")
-        PKG_VERSION = pythonPackageVersion(toolName: "CPython-3.6")
-        DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
-        DEVPI = credentials("DS_devpi")
+
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
         WORKON_HOME ="${WORKSPACE}\\pipenv\\"
 
@@ -178,6 +199,24 @@ pipeline {
                         deleteDir()
                         dir("source"){
                             checkout scm
+                        }
+                    }
+                }
+                stage("Getting Distribution Info"){
+                    environment{
+                        PATH = "${tool 'CPython-3.7'};$PATH"
+                    }
+                    steps{
+                        dir("scm"){
+                            bat "python setup.py dist_info"
+                        }
+                    }
+                    post{
+                        success{
+                            dir("scm"){
+                                stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
+                                archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
+                            }
                         }
                     }
                 }
@@ -220,7 +259,6 @@ pipeline {
             post{
                 success{
                     archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log,logs/pippackages_pipenv_${NODE_NAME}.log,logs/pippackages_system_${NODE_NAME}.log"
-                    echo "Configured ${env.PKG_NAME}, version ${env.PKG_VERSION}, for testing."
                 }
                 failure {
                     deleteDir()
@@ -296,7 +334,10 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+                            script{
+                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
+                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${env.DOC_ZIP_FILENAME}"
+                            }
                             stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
                         }
                         // failure{
@@ -625,6 +666,9 @@ pipeline {
             environment{
                 PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
                 PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};$PATH"
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                DEVPI = credentials("DS_devpi")
             }
             stages{
                 stage("Upload to DevPi Staging"){
@@ -870,6 +914,9 @@ pipeline {
         stage("Deploy Online Documentation") {
             when{
                 equals expected: true, actual: params.DEPLOY_DOCS
+            }
+            environment{
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
             }
             steps{
                 unstash "DOCS_ARCHIVE"
