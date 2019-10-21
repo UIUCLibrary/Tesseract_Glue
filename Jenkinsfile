@@ -202,13 +202,13 @@ pipeline {
                         PATH = "${tool 'CPython-3.7'};$PATH"
                     }
                     steps{
-                        dir("scm"){
+                        dir("source"){
                             bat "python setup.py dist_info"
                         }
                     }
                     post{
                         success{
-                            dir("scm"){
+                            dir("source"){
                                 stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
                                 archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
                             }
