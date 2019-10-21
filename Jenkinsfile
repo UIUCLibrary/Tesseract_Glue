@@ -314,6 +314,8 @@ pipeline {
                 stage("Building Documentation"){
                     environment {
                         PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                     }
                     steps{
                         // echo "Building docs on ${env.NODE_NAME}"
