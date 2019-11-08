@@ -199,6 +199,7 @@ pipeline {
                 stage("Getting Distribution Info"){
 
                     steps{
+                        bat "where cmake"
                         bat "python setup.py dist_info"
                     }
                     post{
