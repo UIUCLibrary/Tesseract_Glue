@@ -146,9 +146,10 @@ def get_package_name(stashName, metadataFile){
 }
 
 pipeline {
-    agent {
-        label "Windows && VS2015 && Python3 && longfilenames"
-    }
+    agent none
+    //agent {
+    //    label "Windows && VS2015 && Python3 && longfilenames"
+    //}
 
     triggers {
         cron('@daily')
