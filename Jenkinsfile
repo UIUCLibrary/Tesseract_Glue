@@ -199,7 +199,7 @@ pipeline {
                 stage("Getting Distribution Info"){
 
                     steps{
-                        bat "where cmake"
+                        bat "C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat -arch=amd64 -host_arch=amd64 && where cmake"
                         bat "python setup.py dist_info"
                     }
                     post{
