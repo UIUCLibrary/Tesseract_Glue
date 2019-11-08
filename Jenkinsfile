@@ -37,19 +37,17 @@ def create_venv(python_exe, venv_path){
 def runtox(subdirectory){
     // TODO: Make more generic
     script{
-        dir("${subdirectory}"){
-            try{
-                bat  (
-                    label: "Run Tox",
-                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
-                )
+        try{
+            bat  (
+                label: "Run Tox",
+                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+            )
 
-            } catch (exc) {
-                bat (
-                    label: "Run Tox with new environments",
-                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
-                )
-            }
+        } catch (exc) {
+            bat (
+                label: "Run Tox with new environments",
+                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+            )
         }
 
     }
@@ -77,14 +75,12 @@ def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="sour
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
 
-        dir("${subdirectory}"){
-            python_wheel.each{
-                bat(label: "Testing ${it}",
-                    script: "${venv_scripts_path}\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
-                    )
-            }
-
+        python_wheel.each{
+            bat(label: "Testing ${it}",
+                script: "${venv_scripts_path}\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
+                )
         }
+
 
 
     }
@@ -161,8 +157,6 @@ pipeline {
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
         timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
-        checkoutToSubdirectory("source")
-        //preserveStashes()
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
@@ -192,9 +186,7 @@ pipeline {
                     }
                     steps{
                         deleteDir()
-                        dir("source"){
-                            checkout scm
-                        }
+                        checkout scm
                     }
                 }
                 stage("Getting Distribution Info"){
@@ -202,16 +194,12 @@ pipeline {
                         PATH = "${tool 'CPython-3.7'};${tool 'cmake3.13'};$PATH"
                     }
                     steps{
-                        dir("source"){
-                            bat "python setup.py dist_info"
-                        }
+                        bat "python setup.py dist_info"
                     }
                     post{
                         success{
-                            dir("source"){
-                                stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
-                                archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
-                            }
+                            stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
                         }
                     }
                 }
@@ -233,9 +221,7 @@ pipeline {
                         timeout(5)
                     }
                     steps {
-                        dir("source"){
-                            bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
-                        }
+                        bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
                     }
                 }
                 stage("Creating Virtualenv for Building"){
@@ -269,12 +255,7 @@ pipeline {
                         PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
                     }
                     steps {
-
-                        dir("source"){
-
-                            powershell "& python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
-
-                        }
+                        powershell "& python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
 
 //                        dir("build\\36\\lib\\tests"){
 //                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -318,10 +299,7 @@ pipeline {
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                     }
                     steps{
-                        // echo "Building docs on ${env.NODE_NAME}"
-                        dir("source"){
-                            bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
-                        }
+                        bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                     }
                     post{
                         always {
@@ -410,10 +388,8 @@ pipeline {
                                 junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
                             steps{
-                                dir("source"){
-                                    bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
+                                bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/setup.cfg"
 //                                    bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
-                                }
                             }
                             post {
                                 always {
@@ -431,9 +407,7 @@ pipeline {
                         }
                         stage("Run Doctest Tests"){
                             steps {
-                                dir("source"){
-                                    bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
-                                }
+                                bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
                             }
                             post{
                                 always {
@@ -444,9 +418,7 @@ pipeline {
                         }
                         stage("Run Flake8 Static Analysis") {
                             steps{
-                                dir("source"){
-                                    bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
-                                }
+                                bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
                             }
                             post {
                                 always {
@@ -459,9 +431,7 @@ pipeline {
                             stages{
                                 stage("Generate Stubs") {
                                     steps{
-                                        dir("source"){
-                                          bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
-                                        }
+                                      bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
                                     }
 
                                 }
@@ -472,9 +442,7 @@ pipeline {
 
                                     steps{
                                         bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
-                                        dir("source"){
-                                            bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
-                                        }
+                                        bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
                                     }
                                 }
                             }
@@ -516,9 +484,7 @@ pipeline {
                             }
                             steps {
 
-                                dir("source"){
-                                    bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
-                                }
+                                bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
                             }
                             post{
                                success{
@@ -549,9 +515,7 @@ pipeline {
                         PATH = "${tool 'CPython-3.6'};$PATH"
                     }
                     steps {
-                        dir("source"){
-                            bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
-                        }
+                        bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
                     }
                     post{
                         success{
@@ -582,9 +546,7 @@ pipeline {
                                 PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};$PATH"
                             }
                             steps {
-                                dir("source"){
-                                    bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
-                                }
+                                bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
                             }
                             post{
                                 success{
@@ -647,7 +609,7 @@ pipeline {
                     }
                 }
             }
-
+//
             environment{
                 PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
                 PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};$PATH"
@@ -681,7 +643,7 @@ pipeline {
                             }
                             options {
                                 skipDefaultCheckout(true)
-
+//
                             }
                             stages{
                                 stage("Creating venv to test sdist"){
@@ -689,12 +651,12 @@ pipeline {
                                             lock("system_python_${NODE_NAME}"){
                                                 bat "python -m venv venv\\venv36 && venv\\venv36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\venv36\\Scripts\\pip.exe install setuptools --upgrade && venv\\venv36\\Scripts\\pip.exe install devpi-client \"tox<3.7\""
                                             }
-
+//
                                         }
-
+//
                                 }
                                 stage("Testing DevPi zip Package"){
-
+//
                                     environment {
                                         CMAKE_PATH = "${tool 'cmake3.13'}"
                                         NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
@@ -703,7 +665,7 @@ pipeline {
                                     }
                                     steps {
                                         // echo "Testing Source zip package in devpi"
-
+//
                                         timeout(40){
                                             devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
@@ -733,16 +695,16 @@ pipeline {
                                     deleteDir()
                                 }
                             }
-
+//
                         }
-
+//
                         stage("Testing DevPi .whl Package with Python 3.6"){
                             agent {
                                 node {
                                     label "Windows && Python3"
                                 }
                             }
-
+//
                             options {
                                 skipDefaultCheckout(true)
                             }
@@ -753,10 +715,10 @@ pipeline {
                                     }
                                     steps {
                                         create_venv("python.exe", "venv\\36")
-
+//
                                         bat "venv\\36\\Scripts\\pip.exe install setuptools --upgrade && venv\\36\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
-
+//
                                 }
                                 stage("Testing DevPi .whl Package with Python 3.6"){
                                     options{
@@ -765,9 +727,9 @@ pipeline {
                                     environment {
                                         PATH = "${WORKSPACE}\\venv\\36\\Scripts;$PATH"
                                     }
-
+//
                                     steps {
-
+//
                                         devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                                 url: "https://devpi.library.illinois.edu",
@@ -778,7 +740,7 @@ pipeline {
                                                 detox: false,
                                                 toxEnvironment: "py36"
                                             )
-
+//
                                     }
                                 }
                             }
@@ -805,7 +767,7 @@ pipeline {
                                     label "Windows && Python3"
                                 }
                             }
-
+//
                             options {
                                 skipDefaultCheckout(true)
                             }
@@ -818,7 +780,7 @@ pipeline {
                                        create_venv("python.exe", "venv\\37")
                                        bat "venv\\37\\Scripts\\pip.exe install setuptools --upgrade && venv\\37\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
-
+//
                                 }
                                 stage("Testing DevPi .whl Package with Python 3.7"){
                                     options{
@@ -827,9 +789,9 @@ pipeline {
                                     environment {
                                         PATH = "${WORKSPACE}\\venv\\37\\Scripts;$PATH"
                                     }
-
+//
                                     steps {
-
+//
                                         devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                                 url: "https://devpi.library.illinois.edu",
@@ -840,7 +802,7 @@ pipeline {
                                                 detox: false,
                                                 toxEnvironment: "py37"
                                             )
-
+//
                                     }
                                 }
                             }
@@ -889,7 +851,7 @@ pipeline {
                         script: "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}",
                         label: "Pushing file to ${env.BRANCH_NAME} index"
                     )
-
+//
                 }
                 cleanup{
                     remove_from_devpi("venv\\36\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
