@@ -177,23 +177,27 @@ pipeline {
     }
     stages {
         stage("Configure") {
-            environment {
-                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+            agent {
+                dockerfile {
+                    filename 'ci/docker/windows/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
             }
+            //environment {
+            //    PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+            //}
             stages{
-                stage("Purge all existing data in workspace"){
-                    when{
-                        equals expected: true, actual: params.FRESH_WORKSPACE
-                    }
-                    steps{
-                        deleteDir()
-                        checkout scm
-                    }
-                }
+                //stage("Purge all existing data in workspace"){
+                //    when{
+                //        equals expected: true, actual: params.FRESH_WORKSPACE
+                //    }
+                //    steps{
+                //        deleteDir()
+                //        checkout scm
+                //    }
+                //}
                 stage("Getting Distribution Info"){
-                    environment{
-                        PATH = "${tool 'CPython-3.7'};${tool 'cmake3.13'};$PATH"
-                    }
+
                     steps{
                         bat "python setup.py dist_info"
                     }
