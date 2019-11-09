@@ -1,2 +1,4 @@
 @echo off
-set TEST_VAR=something
+if not defined DevEnvDir (
+    CALL C:\BuildTools\Common7\Tools\VsDevCmd.bat  -arch=amd64
+    )
