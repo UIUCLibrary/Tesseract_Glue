@@ -34,6 +34,9 @@ RUN (C:\\TEMP\\vs_buildtools.exe `
   && del /S /F /Q %Windir%\Temp `
   && @echo Done cleaning up files in temp directories
 
+RUN REG ADD "HKLM\Software\Microsoft\Command Processor" /v AutoRun /t REG_SZ /d c:\temp\startup.bat
+ADD ci/docker/windows/startup.bat c:\temp\startup.bat
+
 ADD ci/docker/windows/Profile.ps1 C:\Windows\System32\WindowsPowerShell\v1.0\Profile.ps1
 SHELL ["powershell", "-command"]
 
