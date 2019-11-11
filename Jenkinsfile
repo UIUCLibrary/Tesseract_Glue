@@ -163,7 +163,7 @@ pipeline {
     environment {
 
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
-        WORKON_HOME ="${WORKSPACE}\\pipenv\\"
+//        WORKON_HOME ="${WORKSPACE}\\pipenv\\"
 
     }
     parameters {
