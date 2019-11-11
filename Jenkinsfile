@@ -254,12 +254,17 @@ pipeline {
 
         }
         stage("Building") {
-
+            agent {
+                dockerfile {
+                    filename 'ci/docker/windows/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+            }
             stages{
                 stage("Building Python Package"){
-                    environment {
-                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
-                    }
+//                    environment {
+//                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
+//                    }
                     steps {
                         powershell "& python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
 
@@ -300,7 +305,7 @@ pipeline {
                 }
                 stage("Building Documentation"){
                     environment {
-                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+//                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                         PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                     }
