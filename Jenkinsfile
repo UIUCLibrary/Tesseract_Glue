@@ -266,7 +266,7 @@ pipeline {
 //                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
 //                    }
                     steps {
-                        bat "python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace"
+                        bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib build_ext --inplace"
 
 //                        dir("build\\36\\lib\\tests"){
 //                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -310,7 +310,7 @@ pipeline {
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                     }
                     steps{
-                        bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        bat "python -m sphinx docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                     }
                     post{
                         always {
@@ -335,20 +335,26 @@ pipeline {
         }
 
         stage("Testing") {
+            agent {
+                dockerfile {
+                    filename 'ci/docker/windows/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+            }
             failFast true
             stages{
-                stage("Installing Package Testing Tools"){
-                    steps{
-                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
-
-                    }
-                }
+//                stage("Installing Package Testing Tools"){
+//                    steps{
+//                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
+//
+//                    }
+//                }
                 stage("Running Tests"){
-                    environment{
-                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
-                        PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"
-                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${env.PYTHON_SYSTEM_SCRIPTS_PATH};${tool 'cmake3.13'};$PATH"
-                    }
+//                    environment{
+//                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
+//                        PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"
+//                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${env.PYTHON_SYSTEM_SCRIPTS_PATH};${tool 'cmake3.13'};$PATH"
+//                    }
                     parallel {
                         stage("Run Tox test") {
                             when {
