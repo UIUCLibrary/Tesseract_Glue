@@ -209,39 +209,39 @@ pipeline {
                         }
                     }
                 }
-                stage("Installing Required System Level Dependencies"){
-                    steps{
-                        lock("system_python_${NODE_NAME}"){
-                            bat "python -m pip install pip --upgrade --quiet && python -m pip install --upgrade pipenv --quiet"
-                        }
-                    }
-                    post{
-                        success{
-                            bat "(if not exist logs mkdir logs) && python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
-                        }
-                    }
-
-                }
-                stage("Installing Pipfile"){
-                    options{
-                        timeout(5)
-                    }
-                    steps {
-                        bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
-                    }
-                }
-                stage("Creating Virtualenv for Building"){
-                    steps {
-                        create_venv("python.exe", "venv\\36")
-                    }
-                    post{
-                        success{
-                            bat "venv\\36\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
-
-                        }
-
-                    }
-                }
+//                stage("Installing Required System Level Dependencies"){
+//                    steps{
+//                        lock("system_python_${NODE_NAME}"){
+//                            bat "python -m pip install pip --upgrade --quiet && python -m pip install --upgrade pipenv --quiet"
+//                        }
+//                    }
+//                    post{
+//                        success{
+//                            bat "(if not exist logs mkdir logs) && python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
+//                        }
+//                    }
+//
+//                }
+//                stage("Installing Pipfile"){
+//                    options{
+//                        timeout(5)
+//                    }
+//                    steps {
+//                        bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
+//                    }
+//                }
+//                stage("Creating Virtualenv for Building"){
+//                    steps {
+//                        create_venv("python.exe", "venv\\36")
+//                    }
+//                    post{
+//                        success{
+//                            bat "venv\\36\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
+//
+//                        }
+//
+//                    }
+//                }
             }
             post{
                 success{
