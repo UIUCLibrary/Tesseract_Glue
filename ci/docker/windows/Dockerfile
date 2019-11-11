@@ -59,6 +59,8 @@ RUN $ErrorActionPreference = 'Stop'; `
     $env:PATH = $env:PATH + ';C:\nasm\;C:\nasm'; `
     Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH
 
+RUN ls c:\nasm\
+
 RUN certutil -generateSSTFromWU roots.sst ; `
     certutil -addstore -f root roots.sst ; `
     del roots.sst
