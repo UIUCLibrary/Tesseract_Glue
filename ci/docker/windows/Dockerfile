@@ -56,7 +56,7 @@ RUN $ErrorActionPreference = 'Stop'; `
 RUN $ErrorActionPreference = 'Stop'; `
     Invoke-WebRequest 'https://www.nasm.us/pub/nasm/releasebuilds/2.14.02/win64/nasm-2.14.02-win64.zip' -OutFile nasm-win64.zip ; `
     Expand-Archive c:\nasm-win64.zip -DestinationPath c:\nasm; `
-    Remove-Item c:\nasm-win64.zip -Force `
+    Remove-Item c:\nasm-win64.zip -Force ;`
     $env:PATH = $env:PATH + ';C:\nasm\;C:\nasm'; `
     Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH
 
