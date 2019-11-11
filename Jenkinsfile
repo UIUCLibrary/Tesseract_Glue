@@ -266,7 +266,7 @@ pipeline {
 //                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
 //                    }
                     steps {
-                        bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib build_ext --inplace"
+                        bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
 
 //                        dir("build\\36\\lib\\tests"){
 //                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -289,6 +289,9 @@ pipeline {
 //                            // }
 //                            // archiveArtifacts "logs/built_package.log"
 //                        }
+                        success{
+                            stash includes: 'build/37/lib/**,uiucprescon/**/*.dll,uiucprescon/**/*.pyd', name: 'BUILD_FILES'
+                        }
                         cleanup{
                             cleanWs(
                                 patterns: [
@@ -344,12 +347,13 @@ pipeline {
             }
             failFast true
             stages{
-//                stage("Installing Package Testing Tools"){
-//                    steps{
+                stage("Installing Package Testing Tools"){
+                    steps{
+                        unstash "BUILD_FILES"
 //                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
 //
-//                    }
-//                }
+                    }
+                }
                 stage("Running Tests"){
 //                    environment{
 //                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
@@ -374,15 +378,15 @@ pipeline {
 
                                 }
                                 stage("Run Tox"){
-                                    environment {
-                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
-                                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-                                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'};${env.NASM_PATH};$PATH"
-                                        CL = "/MP"
-                                    }
+//                                    environment {
+//                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
+//                                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
+//                                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'};${env.NASM_PATH};$PATH"
+//                                        CL = "/MP"
+//                                    }
 
                                     steps {
-                                        runtox("source")
+                                        runtox("{WORKSPACE}")
                                     }
                                 }
 
@@ -425,7 +429,7 @@ pipeline {
                         }
                         stage("Run Doctest Tests"){
                             steps {
-                                bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
+                                bat "python -m sphinx -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
                             }
                             post{
                                 always {
