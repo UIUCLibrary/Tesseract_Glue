@@ -243,10 +243,7 @@ pipeline {
 //                    }
 //                }
             }
-            post{
-                success{
-                    archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log,logs/pippackages_pipenv_${NODE_NAME}.log,logs/pippackages_system_${NODE_NAME}.log"
-                }
+            post
                 failure {
                     deleteDir()
                 }
