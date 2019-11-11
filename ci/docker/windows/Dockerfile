@@ -53,6 +53,13 @@ RUN $ErrorActionPreference = 'Stop'; `
     $env:PATH = $env:PATH + ';C:\MinGit\cmd\;C:\MinGit\cmd'; `
     Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH
 
+RUN $ErrorActionPreference = 'Stop'; `
+    Invoke-WebRequest 'https://www.nasm.us/pub/nasm/releasebuilds/2.14.02/win64/nasm-2.14.02-win64.zip' -OutFile nasm-win64.zip ; `
+    Expand-Archive c:\nasm-win64.zip -DestinationPath c:\nasm; `
+    Remove-Item c:\nasm-win64.zip -Force `
+    $env:PATH = $env:PATH + ';C:\nasm\;C:\nasm'; `
+    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH
+
 RUN certutil -generateSSTFromWU roots.sst ; `
     certutil -addstore -f root roots.sst ; `
     del roots.sst
@@ -75,6 +82,7 @@ RUN python -m pip install --upgrade pip ; `
 #
 ADD Pipfile Pipfile.lock c:/temp/
 RUN cd c:\temp ; pipenv install --dev --verbose
+
 
 # TODO: set this
 # REG ADD "HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor" /v AutoRun /t REG_SZ /d c:\BuildTools\Common7\Tools\vsdevcmd.bat"
