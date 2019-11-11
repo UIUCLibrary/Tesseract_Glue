@@ -242,12 +242,7 @@ pipeline {
 //
 //                    }
 //                }
-            
-            post{
-                failure {
-                    deleteDir()
-                }
-            }
+           }
 
         }
         stage("Building") {
