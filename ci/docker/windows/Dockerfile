@@ -37,7 +37,6 @@ RUN (C:\\TEMP\\vs_buildtools.exe `
 RUN REG ADD "HKLM\Software\Microsoft\Command Processor" /v AutoRun /t REG_SZ /d c:\temp\startup.bat
 ADD ci/docker/windows/startup.bat c:\temp\startup.bat
 
-ADD ci/docker/windows/Profile.ps1 C:\Windows\System32\WindowsPowerShell\v1.0\Profile.ps1
 SHELL ["powershell", "-command"]
 
 #RUN $ErrorActionPreference = 'Stop'; `
@@ -75,6 +74,8 @@ ENV PIPENV_CACHE_DIR=c:\pipenv_cache `
     WORKON_HOME=c:\venvs `
     PIPENV_NOSPIN=True `
     PIP_DOWNLOAD_CACHE=c:\pip_cache
+
+ADD ci/docker/windows/Profile.ps1 C:\Windows\System32\WindowsPowerShell\v1.0\Profile.ps1
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
