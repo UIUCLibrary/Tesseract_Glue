@@ -71,7 +71,7 @@ ENV PIPENV_CACHE_DIR=c:\pipenv_cache `
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
-    pip install pipenv
+    pip install wheel pipenv
 #
 #ADD Pipfile Pipfile.lock c:/temp/
 #RUN cd c:\temp ; pipenv install --dev --verbose
