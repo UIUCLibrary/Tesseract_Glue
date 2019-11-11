@@ -266,7 +266,7 @@ pipeline {
 //                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
 //                    }
                     steps {
-                        powershell "& python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
+                        bat "python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace"
 
 //                        dir("build\\36\\lib\\tests"){
 //                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -278,17 +278,17 @@ pipeline {
 //                        }
                     }
                     post{
-                        always{
-                            recordIssues(tools: [
-                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
-                                    msBuild(name: 'Setuptools Build: MSBuild', pattern: 'logs/build.log')
-                                ]
-                                )
-                            // dir("source"){
-                            //     bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
-                            // }
-                            // archiveArtifacts "logs/built_package.log"
-                        }
+//                        always{
+//                            recordIssues(tools: [
+//                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
+//                                    msBuild(name: 'Setuptools Build: MSBuild', pattern: 'logs/build.log')
+//                                ]
+//                                )
+//                            // dir("source"){
+//                            //     bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
+//                            // }
+//                            // archiveArtifacts "logs/built_package.log"
+//                        }
                         cleanup{
                             cleanWs(
                                 patterns: [
