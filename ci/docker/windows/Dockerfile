@@ -56,10 +56,8 @@ RUN $ErrorActionPreference = 'Stop'; `
     Invoke-WebRequest 'https://www.nasm.us/pub/nasm/releasebuilds/2.14.02/win64/nasm-2.14.02-win64.zip' -OutFile nasm-win64.zip ; `
     Expand-Archive c:\nasm-win64.zip -DestinationPath c:\nasm; `
     Remove-Item c:\nasm-win64.zip -Force ;`
-    $env:PATH = $env:PATH + ';C:\nasm\;C:\nasm'; `
+    $env:PATH = $env:PATH + ';C:\nasm\nasm-2.14.02\;C:\nasm\nasm-2.14.02'; `
     Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH
-
-RUN ls c:\nasm\
 
 RUN certutil -generateSSTFromWU roots.sst ; `
     certutil -addstore -f root roots.sst ; `
