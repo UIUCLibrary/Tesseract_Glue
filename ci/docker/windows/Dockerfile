@@ -79,7 +79,7 @@ ADD ci/docker/windows/Profile.ps1 C:\Windows\System32\WindowsPowerShell\v1.0\Pro
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
-    pip install wheel pipenv sphinx
+    pip install wheel pipenv sphinx mypy lxml pytest flake8 pytest-cov pytest-bdd
 #
 ADD Pipfile Pipfile.lock c:/temp/
 RUN cd c:\temp ; pipenv install --dev --verbose
