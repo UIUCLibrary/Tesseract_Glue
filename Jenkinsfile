@@ -243,7 +243,7 @@ pipeline {
 //                    }
 //                }
             
-            post
+            post{
                 failure {
                     deleteDir()
                 }
