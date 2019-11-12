@@ -449,7 +449,7 @@ pipeline {
                             stages{
                                 stage("Generate Stubs") {
                                     steps{
-                                      bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
+                                      bat "stubgen -p uiucprescon -o mypy_stubs"
                                     }
 
                                 }
