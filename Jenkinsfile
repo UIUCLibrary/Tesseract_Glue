@@ -157,7 +157,7 @@ pipeline {
 
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
-        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
+//        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
@@ -197,7 +197,9 @@ pipeline {
                 //    }
                 //}
                 stage("Getting Distribution Info"){
-
+                    options{
+                        timeout(2)
+                    }
                     steps{
                         bat "C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat -arch=amd64 -host_arch=amd64 && where cmake"
                         bat "python setup.py dist_info"
@@ -254,6 +256,9 @@ pipeline {
             }
             stages{
                 stage("Building Python Package"){
+                    options{
+                        timeout(20)
+                    }
 //                    environment {
 //                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
 //                    }
@@ -304,6 +309,9 @@ pipeline {
                         PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                     }
+                    options{
+                        timeout(3)
+                    }
                     steps{
                         bat "if not exist logs mkdir logs"
                         bat "python -m sphinx docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
@@ -340,6 +348,9 @@ pipeline {
             failFast true
             stages{
                 stage("Setting up Tests"){
+                    options{
+                        timeout(3)
+                    }
                     steps{
                         unstash "BUILD_FILES"
                         unstash "DOCS_ARCHIVE"
@@ -374,6 +385,9 @@ pipeline {
 
                                 }
                                 stage("Run Tox"){
+                                    options{
+                                        timeout(20)
+                                    }
 //                                    environment {
 //                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
 //                                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
@@ -405,6 +419,9 @@ pipeline {
                             environment{
                                 junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
+                            options{
+                                timeout(3)
+                            }
                             steps{
                                 bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/setup.cfg"
 //                                    bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
@@ -424,6 +441,9 @@ pipeline {
                             }
                         }
                         stage("Run Doctest Tests"){
+                            options{
+                                timeout(3)
+                            }
                             steps {
                                 bat "python -m sphinx -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
                             }
@@ -435,6 +455,9 @@ pipeline {
                             }
                         }
                         stage("Run Flake8 Static Analysis") {
+                            options{
+                                timeout(2)
+                            }
                             steps{
                                 bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
                             }
@@ -448,6 +471,9 @@ pipeline {
                         stage("Run MyPy Static Analysis") {
                             stages{
                                 stage("Generate Stubs") {
+                                    options{
+                                        timeout(2)
+                                    }
                                     steps{
                                         bat "stubgen -o mypy_stubs"
                                     }
@@ -457,7 +483,9 @@ pipeline {
                                     environment{
                                         MYPYPATH = "${WORKSPACE}\\mypy_stubs"
                                     }
-
+                                    options{
+                                        timeout(3)
+                                    }
                                     steps{
                                         bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
                                         bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
