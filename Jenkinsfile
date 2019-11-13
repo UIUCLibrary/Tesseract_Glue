@@ -475,7 +475,7 @@ pipeline {
                                         timeout(2)
                                     }
                                     steps{
-                                        bat "stubgen -o mypy_stubs"
+                                        bat "stubgen uiucprescon -o mypy_stubs"
                                     }
 
                                 }
