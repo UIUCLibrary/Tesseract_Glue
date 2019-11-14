@@ -567,8 +567,11 @@ pipeline {
                     }
                 }
                 stage("Python sdist"){
-                    environment {
-                        PATH = "${tool 'CPython-3.6'};$PATH"
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/windows/Dockerfile'
+                            label 'Windows&&Docker'
+                          }
                     }
                     steps {
                         bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
