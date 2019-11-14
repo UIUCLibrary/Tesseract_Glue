@@ -538,7 +538,7 @@ pipeline {
                                 dockerfile {
                                     filename 'ci/docker/windows/Dockerfile'
                                     label 'Windows&&Docker'
-                                    additionalBuildArgs 'PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
+                                    additionalBuildArgs '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
                                   }
                             }
 //                            environment {
