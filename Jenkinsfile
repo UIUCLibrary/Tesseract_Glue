@@ -517,30 +517,38 @@ pipeline {
             parallel{
                 stage("Python 3.6 whl"){
 
-                    environment {
-                        CMAKE_PATH = "${tool 'cmake3.13'}"
-                        PATH = "${env.CMAKE_PATH};$PATH"
-                        CL = "/MP"
-                    }
+//                    environment {
+//                        CMAKE_PATH = "${tool 'cmake3.13'}"
+//                        PATH = "${env.CMAKE_PATH};$PATH"
+//                        CL = "/MP"
+//                    }
                     stages{
-                        stage("Create venv for 3.6"){
-                            environment {
-                                PATH = "${tool 'CPython-3.6'};$PATH"
-                            }
+//                        stage("Create venv for 3.6"){
+//                            environment {
+//                                PATH = "${tool 'CPython-3.6'};$PATH"
+//                            }
+//
+//                            steps {
+//                                bat "python -m venv venv\\36 && venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
+//                            }
+//                        }
 
-                            steps {
-                                bat "python -m venv venv\\36 && venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
-                            }
-                        }
                         stage("Creating bdist wheel for 3.6"){
-                            environment {
-                                NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-                                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\scripts"
-                                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/windows/Dockerfile'
+                                    label 'Windows&&Docker'
+                                    additionalBuildArgs 'PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
+                                  }
                             }
+//                            environment {
+//                                NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
+//                                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\scripts"
+//                                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
+//                            }
                             steps {
 
-                                bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
+                                bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
                             }
                             post{
                                success{
