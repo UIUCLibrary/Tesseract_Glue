@@ -388,15 +388,23 @@ pipeline {
                                     options{
                                         timeout(20)
                                     }
-//                                    environment {
-//                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
-//                                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-//                                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'};${env.NASM_PATH};$PATH"
-//                                        CL = "/MP"
-//                                    }
 
                                     steps {
-                                        runtox("{WORKSPACE}")
+                                        script{
+                                            try{
+                                                bat  (
+                                                    label: "Run Tox",
+                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+                                                )
+
+                                            } catch (exc) {
+                                                bat (
+                                                    label: "Run Tox with new environments",
+                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
+                                                )
+                                            }
+
+                                        }
                                     }
                                 }
 
@@ -420,7 +428,7 @@ pipeline {
                                 junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
                             options{
-                                timeout(3)
+                                timeout(6)
                             }
                             steps{
                                 bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/setup.cfg"
