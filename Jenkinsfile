@@ -516,6 +516,7 @@ pipeline {
 
             parallel{
                 stage("Python 3.6 whl"){
+
                     environment {
                         CMAKE_PATH = "${tool 'cmake3.13'}"
                         PATH = "${env.CMAKE_PATH};$PATH"
@@ -579,30 +580,31 @@ pipeline {
                     }
                 }
                 stage("Python 3.7 whl"){
-                    agent {
-                        dockerfile {
-                            filename 'ci/docker/windows/Dockerfile'
-                            label 'Windows&&Docker'
-                          }
-                    }
-                    environment {
-                        CMAKE_PATH = "${tool 'cmake3.13'}"
-                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-                        PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${tool 'CPython-3.7'};$PATH"
-                        // CL = "/MP"
-                    }
+
+//                    environment {
+//                        CMAKE_PATH = "${tool 'cmake3.13'}"
+//                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
+//                        PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${tool 'CPython-3.7'};$PATH"
+//                        // CL = "/MP"
+//                    }
                     stages{
-                        stage("create venv for 3.7"){
-                            steps {
-                                bat "python -m venv venv\\37 && venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install wheel setuptools --upgrade"
-                            }
-                        }
+//                        stage("create venv for 3.7"){
+//                            steps {
+//                                bat "python -m venv venv\\37 && venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install wheel setuptools --upgrade"
+//                            }
+//                        }
 
                         stage("Creating bdist wheel for 3.7"){
-                            environment {
-                                PYTHON37_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\37\\scripts"
-                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};$PATH"
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/windows/Dockerfile'
+                                    label 'Windows&&Docker'
+                                  }
                             }
+//                            environment {
+//                                PYTHON37_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\37\\scripts"
+//                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};$PATH"
+//                            }
                             steps {
                                 bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
                             }
