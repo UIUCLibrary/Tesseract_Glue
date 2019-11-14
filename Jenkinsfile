@@ -55,10 +55,9 @@ def runtox(subdirectory){
 }
 
 
-def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="source", venv_root="venv"){
+def test_wheel(pkgRegex, python_version){
     script{
-        def venv_home_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}"
-        def venv_scripts_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}\\Scripts"
+        def venv_home_path = "${WORKSPACE}\\venv"
 
         bat(
             label: "Installing Python virtual environment based on version ${python_version}",
@@ -66,18 +65,18 @@ def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="sour
             )
 
         bat(label: "Upgrading pip to latest version",
-            script: "${venv_scripts_path}\\python.exe -m pip install pip --upgrade"
+            script: "${venv_home_path}\\Scripts\\python.exe -m pip install pip --upgrade"
             )
 
         bat(label: "Installing tox to Python virtual environment",
-            script: "${venv_scripts_path}\\pip.exe install \"tox${tox_version}\" --upgrade"
+            script: "${venv_home_path}\\Scripts\\pip.exe install tox --upgrade"
             )
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
 
         python_wheel.each{
             bat(label: "Testing ${it}",
-                script: "${venv_scripts_path}\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
+                script: "${venv_home_path}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
                 )
         }
 
@@ -557,10 +556,14 @@ pipeline {
                             }
                         }
                         stage("Testing 3.6 wheel on a computer without Visual Studio"){
-                            agent { label 'Windows && Python3' }
-                            environment {
-                                PATH = "${tool 'CPython-3.6'};$PATH"
+//                            agent { label 'Windows && Python3' }
+                            agent {
+                              docker {
+                                image 'python:3.6'
+                                label 'windows && docker'
+                              }
                             }
+
                             steps{
                                 unstash "whl 3.6"
                                 test_wheel("*cp36*.whl", "36")
@@ -627,10 +630,17 @@ pipeline {
                             }
                         }
                         stage("Testing 3.7 wheel on a computer without Visual Studio"){
-                            agent { label 'Windows  && Python3' }
-                            environment {
-                                PATH = "${tool 'CPython-3.7'};$PATH"
+//                            agent { label 'Windows  && Python3' }
+//                            environment {
+//                                PATH = "${tool 'CPython-3.7'};$PATH"
+//                            }
+                            agent {
+                              docker {
+                                image 'python:3.7'
+                                label 'windows && docker'
+                              }
                             }
+
                             steps{
                                 unstash "whl 3.7"
                                 test_wheel("*cp37*.whl", "37")
