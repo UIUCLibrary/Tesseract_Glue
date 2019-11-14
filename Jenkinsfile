@@ -609,7 +609,7 @@ pipeline {
 //                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};$PATH"
 //                            }
                             steps {
-                                bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
+                                bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext bdist_wheel -d ${WORKSPACE}\\dist"
                             }
                             post{
                                 success{
