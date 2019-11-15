@@ -559,7 +559,7 @@ pipeline {
 //                            agent { label 'Windows && Python3' }
                             agent {
                               docker {
-                                image 'python:3.6'
+                                image 'python:3.6-windowsservercore'
                                 label 'windows && docker'
                               }
                             }
