@@ -75,9 +75,15 @@ def test_wheel(pkgRegex, python_version){
         def python_wheel = findFiles glob: "**/${pkgRegex}"
 
         python_wheel.each{
-            bat(label: "Testing ${it}",
-                script: "${venv_home_path}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
-                )
+            try{
+                bat(label: "Testing ${it}",
+                    script: "${venv_home_path}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
+                    )
+            } catch (Exception ex) {
+                bat "pip install wheel"
+                bat "wheel unpack ${it}"
+                bat "tree /f /a"
+            }
         }
 
 
