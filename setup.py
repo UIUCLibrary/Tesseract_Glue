@@ -370,6 +370,9 @@ class BuildExt(build_ext):
                                                       "tesseract",
                                                       "bin"))
 
+            self.copy_file(runtime_file, os.path.join(self.build_lib,
+                                                      self.package_dir))
+
     def run(self):
         for ext in self.extensions:
             ext.cmake_install_prefix = self.get_install_prefix(ext)
