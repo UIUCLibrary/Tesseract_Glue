@@ -214,6 +214,11 @@ pipeline {
                             stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
                             archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
                         }
+                        cleanup{
+                             cleanWs(
+                                notFailBuild: true
+                                )
+                        }
                     }
                 }
 //                stage("Installing Required System Level Dependencies"){
