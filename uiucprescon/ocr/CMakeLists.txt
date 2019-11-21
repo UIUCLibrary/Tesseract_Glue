@@ -23,3 +23,33 @@ install(TARGETS
         RUNTIME DESTINATION uiucprescon/ocr
         LIBRARY DESTINATION uiucprescon/ocr
         )
+
+install(CODE [[
+    include(BundleUtilities)
+    get_filename_component(deps_path "${CMAKE_SOURCE_DIR}/../../bin" ABSOLUTE)
+    
+    message(WARNING "USING ${deps_path} to find deps")
+    find_program(TESSERACT 
+        NAMES
+            tesseract
+        PATHS
+            "${deps_path}"
+    )
+
+    file(COPY ${TESSERACT}
+        DESTINATION ${CMAKE_INSTALL_PREFIX}/uiucprescon/ocr/tesseract/bin/
+    )
+
+    find_program(TESSERACT_INSTALLED 
+        NAMES
+            tesseract
+        PATHS
+            "${CMAKE_INSTALL_PREFIX}/uiucprescon/ocr/tesseract/bin/"
+    )
+
+    fixup_bundle(
+        "${TESSERACT_INSTALLED}"
+        ""
+        "${deps_path}"
+    )
+]])
