@@ -580,6 +580,9 @@ pipeline {
 
                             }
                             post{
+                                always{
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*.whl"
+                                }
                                 cleanup{
                                     deleteDir()
                                 }
