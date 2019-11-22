@@ -6,6 +6,8 @@ project(ocr)
 
 #set(output_dir ${CMAKE_BINARY_DIR}/uiucprescon/ocr)
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${output_dir})
+set(CMAKE_INSTALL_OPENMP_LIBRARIES TRUE)
+set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION uiucprescon/ocr/tesseract/bin)
 include(InstallRequiredSystemLibraries)
 find_package(Tesseract REQUIRED)
 
