@@ -184,7 +184,7 @@ pipeline {
         stage("Configure") {
             agent {
                 dockerfile {
-                    filename 'ci/docker/windows/Dockerfile'
+                    filename 'ci/docker/windows/build/msvc/Dockerfile'
                     label 'Windows&&Docker'
                   }
             }
@@ -260,7 +260,7 @@ pipeline {
         stage("Building") {
             agent {
                 dockerfile {
-                    filename 'ci/docker/windows/Dockerfile'
+                    filename 'ci/docker/windows/build/msvc/Dockerfile'
                     label 'Windows&&Docker'
                   }
             }
@@ -350,7 +350,7 @@ pipeline {
         stage("Testing") {
             agent {
                 dockerfile {
-                    filename 'ci/docker/windows/Dockerfile'
+                    filename 'ci/docker/windows/build/msvc/Dockerfile'
                     label 'Windows&&Docker'
                   }
             }
@@ -545,7 +545,7 @@ pipeline {
                         stage("Creating bdist wheel for 3.6"){
                             agent {
                                 dockerfile {
-                                    filename 'ci/docker/windows/Dockerfile'
+                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
                                     label 'Windows&&Docker'
                                     additionalBuildArgs '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
                                   }
@@ -568,10 +568,15 @@ pipeline {
                         stage("Testing 3.6 wheel on a computer without Visual Studio"){
 //                            agent { label 'Windows && Python3' }
                             agent {
-                              docker {
-                                image 'python:3.6-windowsservercore'
+                            dockerfile {
+                                filename 'ci/docker/windows/test/msvc/Dockerfile'
+                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                                 label 'windows && docker'
                               }
+                              //docker {
+                              //  image 'python:3.6-windowsservercore'
+                              //  label 'windows && docker'
+                              //}
                             }
 
                             steps{
@@ -593,7 +598,7 @@ pipeline {
                 stage("Python sdist"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/windows/Dockerfile'
+                            filename 'ci/docker/windows/build/msvc/Dockerfile'
                             label 'Windows&&Docker'
                           }
                     }
@@ -624,7 +629,7 @@ pipeline {
                         stage("Creating bdist wheel for 3.7"){
                             agent {
                                 dockerfile {
-                                    filename 'ci/docker/windows/Dockerfile'
+                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
                                     label 'Windows&&Docker'
                                   }
                             }
@@ -648,8 +653,9 @@ pipeline {
 //                                PATH = "${tool 'CPython-3.7'};$PATH"
 //                            }
                             agent {
-                              docker {
-                                image 'python:3.7'
+                              dockerfile {
+                                filename 'ci/docker/windows/test/msvc/Dockerfile'
+                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
                                 label 'windows && docker'
                               }
                             }
