@@ -614,20 +614,7 @@ pipeline {
                     }
                 }
                 stage("Python 3.7 whl"){
-
-//                    environment {
-//                        CMAKE_PATH = "${tool 'cmake3.13'}"
-//                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-//                        PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${tool 'CPython-3.7'};$PATH"
-//                        // CL = "/MP"
-//                    }
                     stages{
-//                        stage("create venv for 3.7"){
-//                            steps {
-//                                bat "python -m venv venv\\37 && venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install wheel setuptools --upgrade"
-//                            }
-//                        }
-
                         stage("Creating bdist wheel for 3.7"){
                             agent {
                                 dockerfile {
@@ -635,10 +622,6 @@ pipeline {
                                     label 'Windows&&Docker'
                                   }
                             }
-//                            environment {
-//                                PYTHON37_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\37\\scripts"
-//                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};$PATH"
-//                            }
                             steps {
                                 bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext bdist_wheel -d ${WORKSPACE}\\dist"
                             }
@@ -650,10 +633,6 @@ pipeline {
                             }
                         }
                         stage("Testing 3.7 wheel on a computer without Visual Studio"){
-//                            agent { label 'Windows  && Python3' }
-//                            environment {
-//                                PATH = "${tool 'CPython-3.7'};$PATH"
-//                            }
                             agent {
                               dockerfile {
                                 filename 'ci/docker/windows/test/msvc/Dockerfile'
@@ -682,14 +661,6 @@ pipeline {
 
                 }
             }
-            //post{
-            //    success{
-            //        unstash "whl 3.7"
-            //        unstash "whl 3.6"
-            //        unstash "sdist"
-            //        archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
-            //    }
-            //}
         }
         stage("Deploy to DevPi") {
             when {
@@ -738,7 +709,6 @@ pipeline {
                             }
                             options {
                                 skipDefaultCheckout(true)
-//
                             }
                             stages{
                                 stage("Creating venv to test sdist"){
@@ -746,12 +716,9 @@ pipeline {
                                             lock("system_python_${NODE_NAME}"){
                                                 bat "python -m venv venv\\venv36 && venv\\venv36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\venv36\\Scripts\\pip.exe install setuptools --upgrade && venv\\venv36\\Scripts\\pip.exe install devpi-client \"tox<3.7\""
                                             }
-//
                                         }
-//
                                 }
                                 stage("Testing DevPi zip Package"){
-//
                                     environment {
                                         CMAKE_PATH = "${tool 'cmake3.13'}"
                                         NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
@@ -759,8 +726,6 @@ pipeline {
                                         PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${env.PYTHON_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                                     }
                                     steps {
-                                        // echo "Testing Source zip package in devpi"
-//
                                         timeout(40){
                                             devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
@@ -790,16 +755,13 @@ pipeline {
                                     deleteDir()
                                 }
                             }
-//
                         }
-//
                         stage("Testing DevPi .whl Package with Python 3.6"){
                             agent {
                                 node {
                                     label "Windows && Python3"
                                 }
                             }
-//
                             options {
                                 skipDefaultCheckout(true)
                             }
@@ -810,10 +772,8 @@ pipeline {
                                     }
                                     steps {
                                         create_venv("python.exe", "venv\\36")
-//
                                         bat "venv\\36\\Scripts\\pip.exe install setuptools --upgrade && venv\\36\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
-//
                                 }
                                 stage("Testing DevPi .whl Package with Python 3.6"){
                                     options{
@@ -822,9 +782,7 @@ pipeline {
                                     environment {
                                         PATH = "${WORKSPACE}\\venv\\36\\Scripts;$PATH"
                                     }
-//
                                     steps {
-//
                                         devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                                 url: "https://devpi.library.illinois.edu",
@@ -835,13 +793,11 @@ pipeline {
                                                 detox: false,
                                                 toxEnvironment: "py36"
                                             )
-//
                                     }
                                 }
                             }
                             post {
                                 failure {
-                                    // archiveArtifacts allowEmptyArchive: true, artifacts: "**/MSBuild_*.failure.txt"
                                     deleteDir()
                                 }
                                 cleanup{
@@ -875,7 +831,6 @@ pipeline {
                                        create_venv("python.exe", "venv\\37")
                                        bat "venv\\37\\Scripts\\pip.exe install setuptools --upgrade && venv\\37\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
-//
                                 }
                                 stage("Testing DevPi .whl Package with Python 3.7"){
                                     options{
@@ -884,9 +839,7 @@ pipeline {
                                     environment {
                                         PATH = "${WORKSPACE}\\venv\\37\\Scripts;$PATH"
                                     }
-//
                                     steps {
-//
                                         devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                                 url: "https://devpi.library.illinois.edu",
@@ -897,7 +850,6 @@ pipeline {
                                                 detox: false,
                                                 toxEnvironment: "py37"
                                             )
-//
                                     }
                                 }
                             }
@@ -946,7 +898,6 @@ pipeline {
                         script: "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}",
                         label: "Pushing file to ${env.BRANCH_NAME} index"
                     )
-//
                 }
                 cleanup{
                     remove_from_devpi("venv\\36\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
