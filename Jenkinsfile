@@ -917,30 +917,4 @@ pipeline {
             }
         }
     }
-    post {
-        failure{
-            // might be a dependency caching issue. So delete the workspace
-            // and try again
-            deleteDir()
-        }
-        cleanup{
-            cleanWs(
-                deleteDirs: true,
-                disableDeferredWipeout: true,
-                patterns: [
-                    [pattern: 'dist', type: 'INCLUDE'],
-                    [pattern: 'reports', type: 'INCLUDE'],
-                    [pattern: 'logs', type: 'INCLUDE'],
-                    [pattern: 'certs', type: 'INCLUDE'],
-                    [pattern: '*tmp', type: 'INCLUDE'],
-                    [pattern: 'source', type: 'INCLUDE'],
-                    [pattern: 'mypy_stubs', type: 'INCLUDE'],
-                    [pattern: "source", type: 'INCLUDE'],
-//                    [pattern: "source/**/*.pyd", type: 'INCLUDE'],
-//                    [pattern: "source/**/*.exe", type: 'INCLUDE'],
-//                    [pattern: "source/**/*.exe", type: 'INCLUDE']
-                    ]
-                )
-        }
-    }
 }
