@@ -81,8 +81,8 @@ def test_wheel(pkgRegex, python_version){
                     )
             } catch (Exception ex) {
                 bat "pip install wheel"
-                bat "wheel unpack ${it}"
-                bat "tree /f /a"
+                bat "wheel unpack ${it} -d dist"
+                bat "cd dist && tree /f /a"
             }
         }
 
