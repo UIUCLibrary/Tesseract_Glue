@@ -35,7 +35,7 @@ RUN (C:\\TEMP\\vs_buildtools.exe `
   && @echo Done cleaning up files in temp directories
 
 RUN REG ADD "HKLM\Software\Microsoft\Command Processor" /v AutoRun /t REG_SZ /d c:\temp\startup.bat
-ADD ci/docker/windows/startup.bat c:\temp\startup.bat
+ADD ci/docker/windows/build/msvc/startup.bat c:\temp\startup.bat
 
 SHELL ["powershell", "-command"]
 
@@ -75,7 +75,7 @@ ENV PIPENV_CACHE_DIR=c:\pipenv_cache `
     PIPENV_NOSPIN=True `
     PIP_DOWNLOAD_CACHE=c:\pip_cache
 
-ADD ci/docker/windows/Profile.ps1 C:\Windows\System32\WindowsPowerShell\v1.0\Profile.ps1
+ADD ci/docker/windows/build/msvc/Profile.ps1 C:\Windows\System32\WindowsPowerShell\v1.0\Profile.ps1
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `

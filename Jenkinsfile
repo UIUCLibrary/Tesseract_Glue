@@ -568,10 +568,15 @@ pipeline {
                         stage("Testing 3.6 wheel on a computer without Visual Studio"){
 //                            agent { label 'Windows && Python3' }
                             agent {
-                              docker {
-                                image 'python:3.6-windowsservercore'
+                            dockerfile {
+                                filename 'ci/docker/windows/test/msvc/Dockerfile'
+                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                                 label 'windows && docker'
                               }
+                              //docker {
+                              //  image 'python:3.6-windowsservercore'
+                              //  label 'windows && docker'
+                              //}
                             }
 
                             steps{
@@ -649,7 +654,8 @@ pipeline {
 //                            }
                             agent {
                               dockerfile {
-                                image 'python:3.7'
+                                filename 'ci/docker/windows/test/msvc/Dockerfile'
+                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
                                 label 'windows && docker'
                               }
                             }
