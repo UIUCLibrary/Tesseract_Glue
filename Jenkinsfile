@@ -585,8 +585,8 @@ pipeline {
 
                             }
                             post{
-                                always{
-                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*.whl"
+                                success{
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*cp36*.whl"
                                 }
                                 cleanup{
                                     cleanWs(
@@ -668,6 +668,9 @@ pipeline {
 
                             }
                             post{
+                                success{
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*cp37*.whl"
+                                }
                                 cleanup{
                                     cleanWs(
                                         notFailBuild: true
@@ -676,19 +679,7 @@ pipeline {
                             }
                         }
                     }
-                    //post{
-                    //    cleanup{
-                    //        cleanWs(
-                    //            deleteDirs: true,
-                    //            disableDeferredWipeout: true,
-                    //            patterns: [
-                    //                [pattern: 'dist', type: 'INCLUDE'],
-                    //                [pattern: 'source', type: 'INCLUDE'],
-                    //                [pattern: '*tmp', type: 'INCLUDE'],
-                    //                ]
-                    //            )
-                    //    }
-                    //}
+
                 }
             }
             //post{
