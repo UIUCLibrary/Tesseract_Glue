@@ -700,14 +700,14 @@ pipeline {
                     }
                 }
             }
-            post{
-                success{
-                    unstash "whl 3.7"
-                    unstash "whl 3.6"
-                    unstash "sdist"
-                    archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
-                }
-            }
+            //post{
+            //    success{
+            //        unstash "whl 3.7"
+            //        unstash "whl 3.6"
+            //        unstash "sdist"
+            //        archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+            //    }
+            //}
         }
         stage("Deploy to DevPi") {
             when {
