@@ -6,7 +6,7 @@ project(ocr)
 
 #set(output_dir ${CMAKE_BINARY_DIR}/uiucprescon/ocr)
 #set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${output_dir})
-
+include(InstallRequiredSystemLibraries)
 find_package(Tesseract REQUIRED)
 
 # If google isn't going to make importable targets, then I am
