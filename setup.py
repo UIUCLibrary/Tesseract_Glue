@@ -364,14 +364,14 @@ class BuildExt(build_ext):
             with self._filter_build_errors(ext):
                 self.build_extension(ext)
         #
-        # for runtime, runtime_file in self.toolchain.runtime_file_deps():
-        #     self.announce("Including {}".format(runtime))
-        #     dst = os.path.join(self.build_lib,
-        #                        self.package_dir,
-        #                        "tesseract",
-        #                        "bin")
-        #     self.mkpath(dst)
-        #     self.copy_file(runtime_file, dst)
+        for runtime, runtime_file in self.toolchain.runtime_file_deps():
+            self.announce("Including {}".format(runtime))
+            dst = os.path.join(self.build_lib,
+                               self.package_dir,
+                               "tesseract",
+                               "bin")
+            self.mkpath(dst)
+            self.copy_file(runtime_file, dst)
 
             # self.copy_file(runtime_file, os.path.join(self.build_lib,
             #                                           self.package_dir))
