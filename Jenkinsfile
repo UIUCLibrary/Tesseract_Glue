@@ -84,19 +84,6 @@ def test_wheel(pkgRegex, python_version){
                 bat "wheel unpack ${it} -d dist"
                 bat "cd dist && tree /f /a"
             }
-            try{
-                PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
-                dir("dist/uiucprescon_ocr-${PKG_VERSION}/uiucprescon/ocr/tesseract/bin"){
-                    bat(
-                        script: "tesseract --version",
-                        returnStatus: true
-                    )
-
-                }
-            }
-            catch (Exception ex) {
-                echo "Unable to test tesseract version"
-            }
         }
 
 
@@ -602,7 +589,9 @@ pipeline {
                                     archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*.whl"
                                 }
                                 cleanup{
-                                    deleteDir()
+                                    cleanWs(
+                                        notFailBuild: true
+                                    )
                                 }
                             }
                         }
