@@ -669,24 +669,26 @@ pipeline {
                             }
                             post{
                                 cleanup{
-                                    deleteDir()
+                                    cleanWs(
+                                        notFailBuild: true
+                                    )
                                 }
                             }
                         }
                     }
-                    post{
-                        cleanup{
-                            cleanWs(
-                                deleteDirs: true,
-                                disableDeferredWipeout: true,
-                                patterns: [
-                                    [pattern: 'dist', type: 'INCLUDE'],
-                                    [pattern: 'source', type: 'INCLUDE'],
-                                    [pattern: '*tmp', type: 'INCLUDE'],
-                                    ]
-                                )
-                        }
-                    }
+                    //post{
+                    //    cleanup{
+                    //        cleanWs(
+                    //            deleteDirs: true,
+                    //            disableDeferredWipeout: true,
+                    //            patterns: [
+                    //                [pattern: 'dist', type: 'INCLUDE'],
+                    //                [pattern: 'source', type: 'INCLUDE'],
+                    //                [pattern: '*tmp', type: 'INCLUDE'],
+                    //                ]
+                    //            )
+                    //    }
+                    //}
                 }
             }
             //post{
