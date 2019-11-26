@@ -401,7 +401,7 @@ pipeline {
                                     steps {
                                         bat  (
                                             label: "Run Tox",
-                                            script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox  --recreate -vv"
+                                            script: "tox -e py  --recreate -vv"
                                         )
                                     }
                                 }
