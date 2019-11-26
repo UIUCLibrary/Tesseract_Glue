@@ -395,25 +395,14 @@ pipeline {
                                 }
                                 stage("Run Tox"){
                                     options{
-                                        timeout(20)
+                                        timeout(30)
                                     }
 
                                     steps {
-                                        script{
-                                            try{
-                                                bat  (
-                                                    label: "Run Tox",
-                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
-                                                )
-
-                                            } catch (exc) {
-                                                bat (
-                                                    label: "Run Tox with new environments",
-                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
-                                                )
-                                            }
-
-                                        }
+                                        bat  (
+                                            label: "Run Tox",
+                                            script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
+                                        )
                                     }
                                 }
 
