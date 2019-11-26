@@ -404,6 +404,16 @@ pipeline {
                                             script: "tox -e py  --recreate -vv"
                                         )
                                     }
+                                    post{
+                                        cleanup{
+                                            cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: '.tox', type: 'INCLUDE'],
+                                                ]
+                                            )
+                                        }
+                                    }
                                 }
 
                             }
