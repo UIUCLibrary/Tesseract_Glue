@@ -345,6 +345,19 @@ pipeline {
                     }
                 }
             }
+            post{
+                cleanup{
+                    cleanWs(
+                        patterns: [
+                                [pattern: 'build', type: 'INCLUDE'],
+                            ],
+                        notFailBuild: true,
+                        deleteDirs: true
+                        )
+
+
+                }
+            }
         }
 
         stage("Testing") {
