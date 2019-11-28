@@ -34,25 +34,26 @@ def create_venv(python_exe, venv_path){
         }
     }
 }
-def runtox(subdirectory){
-    // TODO: Make more generic
-    script{
-        try{
-            bat  (
-                label: "Run Tox",
-                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv"
-            )
-
-        } catch (exc) {
-            bat (
-                label: "Run Tox with new environments",
-                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv"
-            )
-        }
-
-    }
-
-}
+// def runtox(subdirectory){
+//     // TODO: Make more generic
+//     script{
+//             try{
+//                 bat  (
+//                     label: "Run Tox",
+//                     script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+//                 )
+//
+//             } catch (exc) {
+//                 bat (
+//                     label: "Run Tox with new environments",
+//                     script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+//                 )
+//             }
+//         }
+//
+//     }
+//
+// }
 
 
 def test_wheel(pkgRegex, python_version){
@@ -412,10 +413,24 @@ pipeline {
                                     }
 
                                     steps {
-                                        bat  (
-                                            label: "Run Tox",
-                                            script: "tox -e py  --recreate -vv"
-                                        )
+                                        script{
+                                            try{
+                                                bat  (
+                                                    label: "Run Tox",
+                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+                                                )
+
+                                            } catch (exc) {
+                                                bat (
+                                                    label: "Run Tox with new environments",
+                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+                                                )
+                                            }
+                                        }
+//                                         bat  (
+//                                             label: "Run Tox",
+//                                             script: "tox -e py  --recreate -vv"
+//                                         )
                                     }
                                     post{
                                         cleanup{
