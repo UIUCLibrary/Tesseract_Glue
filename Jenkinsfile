@@ -34,31 +34,31 @@ def create_venv(python_exe, venv_path){
         }
     }
 }
-def runtox(subdirectory){
-    // TODO: Make more generic
+// def runtox(subdirectory){
+//     // TODO: Make more generic
+//     script{
+//             try{
+//                 bat  (
+//                     label: "Run Tox",
+//                     script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+//                 )
+//
+//             } catch (exc) {
+//                 bat (
+//                     label: "Run Tox with new environments",
+//                     script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
+//                 )
+//             }
+//         }
+//
+//     }
+//
+// }
+
+
+def test_wheel(pkgRegex, python_version){
     script{
-        try{
-            bat  (
-                label: "Run Tox",
-                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
-            )
-
-        } catch (exc) {
-            bat (
-                label: "Run Tox with new environments",
-                script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv --result-json=${WORKSPACE}\\logs\\tox_report.json"
-            )
-        }
-
-    }
-
-}
-
-
-def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="source", venv_root="venv"){
-    script{
-        def venv_home_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}"
-        def venv_scripts_path = "${WORKSPACE}\\${venv_root}\\${NODE_NAME}\\${python_version}\\Scripts"
+        def venv_home_path = "${WORKSPACE}\\venv"
 
         bat(
             label: "Installing Python virtual environment based on version ${python_version}",
@@ -66,19 +66,25 @@ def test_wheel(pkgRegex, python_version, tox_version="<3.10", subdirectory="sour
             )
 
         bat(label: "Upgrading pip to latest version",
-            script: "${venv_scripts_path}\\python.exe -m pip install pip --upgrade"
+            script: "${venv_home_path}\\Scripts\\python.exe -m pip install pip --upgrade"
             )
 
         bat(label: "Installing tox to Python virtual environment",
-            script: "${venv_scripts_path}\\pip.exe install \"tox${tox_version}\" --upgrade"
+            script: "${venv_home_path}\\Scripts\\pip.exe install tox --upgrade"
             )
 
         def python_wheel = findFiles glob: "**/${pkgRegex}"
 
         python_wheel.each{
-            bat(label: "Testing ${it}",
-                script: "${venv_scripts_path}\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py${python_version}"
-                )
+            try{
+                bat(label: "Testing ${it}",
+                    script: "${venv_home_path}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
+                    )
+            } catch (Exception ex) {
+                bat "pip install wheel"
+                bat "wheel unpack ${it} -d dist"
+                bat "cd dist && tree /f /a"
+            }
         }
 
 
@@ -146,9 +152,10 @@ def get_package_name(stashName, metadataFile){
 }
 
 pipeline {
-    agent {
-        label "Windows && VS2015 && Python3 && longfilenames"
-    }
+    agent none
+    //agent {
+    //    label "Windows && VS2015 && Python3 && longfilenames"
+    //}
 
     triggers {
         cron('@daily')
@@ -156,13 +163,13 @@ pipeline {
 
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
-        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
+//        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
 
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
-        WORKON_HOME ="${WORKSPACE}\\pipenv\\"
+//        WORKON_HOME ="${WORKSPACE}\\pipenv\\"
 
     }
     parameters {
@@ -176,24 +183,31 @@ pipeline {
     }
     stages {
         stage("Configure") {
-            environment {
-                PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+            agent {
+                dockerfile {
+                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
             }
+            //environment {
+            //    PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+            //}
             stages{
-                stage("Purge all existing data in workspace"){
-                    when{
-                        equals expected: true, actual: params.FRESH_WORKSPACE
-                    }
-                    steps{
-                        deleteDir()
-                        checkout scm
-                    }
-                }
+                //stage("Purge all existing data in workspace"){
+                //    when{
+                //        equals expected: true, actual: params.FRESH_WORKSPACE
+                //    }
+                //    steps{
+                //        deleteDir()
+                //        checkout scm
+                //    }
+                //}
                 stage("Getting Distribution Info"){
-                    environment{
-                        PATH = "${tool 'CPython-3.7'};${tool 'cmake3.13'};$PATH"
+                    options{
+                        timeout(2)
                     }
                     steps{
+                        bat "C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat -arch=amd64 -host_arch=amd64 && where cmake"
                         bat "python setup.py dist_info"
                     }
                     post{
@@ -201,61 +215,66 @@ pipeline {
                             stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
                             archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
                         }
-                    }
-                }
-                stage("Installing Required System Level Dependencies"){
-                    steps{
-                        lock("system_python_${NODE_NAME}"){
-                            bat "python -m pip install pip --upgrade --quiet && python -m pip install --upgrade pipenv --quiet"
+                        cleanup{
+                             cleanWs(
+                                notFailBuild: true
+                                )
                         }
                     }
-                    post{
-                        success{
-                            bat "(if not exist logs mkdir logs) && python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
-                        }
-                    }
-
                 }
-                stage("Installing Pipfile"){
-                    options{
-                        timeout(5)
-                    }
-                    steps {
-                        bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
-                    }
-                }
-                stage("Creating Virtualenv for Building"){
-                    steps {
-                        create_venv("python.exe", "venv\\36")
-                    }
-                    post{
-                        success{
-                            bat "venv\\36\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
-
-                        }
-
-                    }
-                }
-            }
-            post{
-                success{
-                    archiveArtifacts artifacts: "logs/pippackages_system_${NODE_NAME}.log,logs/pippackages_pipenv_${NODE_NAME}.log,logs/pippackages_system_${NODE_NAME}.log"
-                }
-                failure {
-                    deleteDir()
-                }
-            }
+//                stage("Installing Required System Level Dependencies"){
+//                    steps{
+//                        lock("system_python_${NODE_NAME}"){
+//                            bat "python -m pip install pip --upgrade --quiet && python -m pip install --upgrade pipenv --quiet"
+//                        }
+//                    }
+//                    post{
+//                        success{
+//                            bat "(if not exist logs mkdir logs) && python.exe -m pip list > logs/pippackages_system_${NODE_NAME}.log"
+//                        }
+//                    }
+//
+//                }
+//                stage("Installing Pipfile"){
+//                    options{
+//                        timeout(5)
+//                    }
+//                    steps {
+//                        bat "python.exe -m pipenv install --dev --deploy && python.exe -m pipenv check && python.exe -m pipenv run pip list > ${WORKSPACE}/logs/pippackages_pipenv_${NODE_NAME}.log"
+//                    }
+//                }
+//                stage("Creating Virtualenv for Building"){
+//                    steps {
+//                        create_venv("python.exe", "venv\\36")
+//                    }
+//                    post{
+//                        success{
+//                            bat "venv\\36\\Scripts\\pip.exe list > logs/pippackages_venv_${NODE_NAME}.log"
+//
+//                        }
+//
+//                    }
+//                }
+           }
 
         }
         stage("Building") {
-
+            agent {
+                dockerfile {
+                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+            }
             stages{
                 stage("Building Python Package"){
-                    environment {
-                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
+                    options{
+                        timeout(20)
                     }
+//                    environment {
+//                        PATH = "${WORKSPACE}\\venv\\36\\Scripts;${tool 'cmake3.13'};${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'};$PATH"
+//                    }
                     steps {
-                        powershell "& python setup.py build -b ${WORKSPACE}\\build\\36 -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib build_ext --inplace | tee ${WORKSPACE}\\logs\\build.log"
+                        bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
 
 //                        dir("build\\36\\lib\\tests"){
 //                            bat "copy ${WORKSPACE}\\source\\tests\\*.py"
@@ -267,16 +286,19 @@ pipeline {
 //                        }
                     }
                     post{
-                        always{
-                            recordIssues(tools: [
-                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
-                                    msBuild(name: 'Setuptools Build: MSBuild', pattern: 'logs/build.log')
-                                ]
-                                )
-                            // dir("source"){
-                            //     bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
-                            // }
-                            // archiveArtifacts "logs/built_package.log"
+//                        always{
+//                            recordIssues(tools: [
+//                                    pyLint(name: 'Setuptools Build: PyLint', pattern: 'logs/build.log'),
+//                                    msBuild(name: 'Setuptools Build: MSBuild', pattern: 'logs/build.log')
+//                                ]
+//                                )
+//                            // dir("source"){
+//                            //     bat "tree /F /A > ${WORKSPACE}\\logs\\built_package.log"
+//                            // }
+//                            // archiveArtifacts "logs/built_package.log"
+//                        }
+                        success{
+                            stash includes: 'build/37/lib/**,uiucprescon/**/*.dll,uiucprescon/**/*.pyd', name: 'BUILD_FILES'
                         }
                         cleanup{
                             cleanWs(
@@ -294,12 +316,15 @@ pipeline {
                 }
                 stage("Building Documentation"){
                     environment {
-                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
+//                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                         PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                     }
+                    options{
+                        timeout(3)
+                    }
                     steps{
-                        bat "python -m pipenv run sphinx-build docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        bat "if not exist logs mkdir logs && python -m sphinx docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                     }
                     post{
                         always {
@@ -321,23 +346,50 @@ pipeline {
                     }
                 }
             }
+            post{
+                cleanup{
+                    cleanWs(
+                        patterns: [
+                                [pattern: 'build', type: 'INCLUDE'],
+                            ],
+                        notFailBuild: true,
+                        deleteDirs: true
+                        )
+
+
+                }
+            }
         }
 
         stage("Testing") {
+            agent {
+                dockerfile {
+                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+            }
             failFast true
             stages{
-                stage("Installing Package Testing Tools"){
+                stage("Setting up Tests"){
+                    options{
+                        timeout(3)
+                    }
                     steps{
-                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
+                        unstash "BUILD_FILES"
+                        unstash "DOCS_ARCHIVE"
 
+                        bat "if not exist logs mkdir logs"
+
+//                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
+//
                     }
                 }
                 stage("Running Tests"){
-                    environment{
-                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
-                        PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"
-                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${env.PYTHON_SYSTEM_SCRIPTS_PATH};${tool 'cmake3.13'};$PATH"
-                    }
+//                    environment{
+//                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
+//                        PYTHON_SYSTEM_SCRIPTS_PATH = "${tool 'CPython-3.6'}\\Scripts"
+//                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${env.PYTHON_SYSTEM_SCRIPTS_PATH};${tool 'cmake3.13'};$PATH"
+//                    }
                     parallel {
                         stage("Run Tox test") {
                             when {
@@ -356,15 +408,39 @@ pipeline {
 
                                 }
                                 stage("Run Tox"){
-                                    environment {
-                                        PYTHON_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\venv36\\Scripts"
-                                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-                                        PATH = "${env.PYTHON_VENV_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};${tool 'cmake3.13'};${env.NASM_PATH};$PATH"
-                                        CL = "/MP"
+                                    options{
+                                        timeout(30)
                                     }
 
                                     steps {
-                                        runtox("source")
+                                        script{
+                                            try{
+                                                bat  (
+                                                    label: "Run Tox",
+                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv "
+                                                )
+
+                                            } catch (exc) {
+                                                bat (
+                                                    label: "Run Tox with new environments",
+                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv "
+                                                )
+                                            }
+                                        }
+//                                         bat  (
+//                                             label: "Run Tox",
+//                                             script: "tox -e py  --recreate -vv"
+//                                         )
+                                    }
+                                    post{
+                                        cleanup{
+                                            cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: '.tox', type: 'INCLUDE'],
+                                                ]
+                                            )
+                                        }
                                     }
                                 }
 
@@ -387,6 +463,9 @@ pipeline {
                             environment{
                                 junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
+                            options{
+                                timeout(10)
+                            }
                             steps{
                                 bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/setup.cfg"
 //                                    bat "${WORKSPACE}\\venv\\36\\Scripts\\python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/source/setup.cfg"
@@ -406,8 +485,11 @@ pipeline {
                             }
                         }
                         stage("Run Doctest Tests"){
+                            options{
+                                timeout(3)
+                            }
                             steps {
-                                bat "pipenv run sphinx-build -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
+                                bat "python -m sphinx -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
                             }
                             post{
                                 always {
@@ -417,6 +499,9 @@ pipeline {
                             }
                         }
                         stage("Run Flake8 Static Analysis") {
+                            options{
+                                timeout(2)
+                            }
                             steps{
                                 bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
                             }
@@ -430,8 +515,11 @@ pipeline {
                         stage("Run MyPy Static Analysis") {
                             stages{
                                 stage("Generate Stubs") {
+                                    options{
+                                        timeout(2)
+                                    }
                                     steps{
-                                      bat "stubgen -p uiucprescon -o ${WORKSPACE}\\mypy_stubs"
+                                        bat "stubgen uiucprescon -o mypy_stubs"
                                     }
 
                                 }
@@ -439,7 +527,9 @@ pipeline {
                                     environment{
                                         MYPYPATH = "${WORKSPACE}\\mypy_stubs"
                                     }
-
+                                    options{
+                                        timeout(3)
+                                    }
                                     steps{
                                         bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
                                         bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
@@ -459,32 +549,42 @@ pipeline {
 
         }
         stage("Packaging") {
-            environment {
-                CMAKE_PATH = "${tool 'cmake3.13'}"
-                PATH = "${env.CMAKE_PATH};$PATH"
-                CL = "/MP"
-            }
+
             parallel{
                 stage("Python 3.6 whl"){
+
+//                    environment {
+//                        CMAKE_PATH = "${tool 'cmake3.13'}"
+//                        PATH = "${env.CMAKE_PATH};$PATH"
+//                        CL = "/MP"
+//                    }
                     stages{
-                        stage("Create venv for 3.6"){
-                            environment {
-                                PATH = "${tool 'CPython-3.6'};$PATH"
-                            }
+//                        stage("Create venv for 3.6"){
+//                            environment {
+//                                PATH = "${tool 'CPython-3.6'};$PATH"
+//                            }
+//
+//                            steps {
+//                                bat "python -m venv venv\\36 && venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
+//                            }
+//                        }
 
-                            steps {
-                                bat "python -m venv venv\\36 && venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
-                            }
-                        }
                         stage("Creating bdist wheel for 3.6"){
-                            environment {
-                                NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-                                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\scripts"
-                                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                                    label 'Windows&&Docker'
+                                    additionalBuildArgs '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
+                                  }
                             }
+//                            environment {
+//                                NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
+//                                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\scripts"
+//                                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
+//                            }
                             steps {
 
-                                bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
+                                bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
                             }
                             post{
                                success{
@@ -493,26 +593,43 @@ pipeline {
                             }
                         }
                         stage("Testing 3.6 wheel on a computer without Visual Studio"){
-                            agent { label 'Windows && Python3' }
-                            environment {
-                                PATH = "${tool 'CPython-3.6'};$PATH"
+//                            agent { label 'Windows && Python3' }
+                            agent {
+                            dockerfile {
+                                filename 'ci/docker/windows/test/msvc/Dockerfile'
+                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
+                                label 'windows && docker'
+                              }
+                              //docker {
+                              //  image 'python:3.6-windowsservercore'
+                              //  label 'windows && docker'
+                              //}
                             }
+
                             steps{
                                 unstash "whl 3.6"
                                 test_wheel("*cp36*.whl", "36")
 
                             }
                             post{
+                                success{
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*cp36*.whl"
+                                }
                                 cleanup{
-                                    deleteDir()
+                                    cleanWs(
+                                        notFailBuild: true
+                                    )
                                 }
                             }
                         }
                     }
                 }
                 stage("Python sdist"){
-                    environment {
-                        PATH = "${tool 'CPython-3.6'};$PATH"
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/windows/build/msvc/Dockerfile'
+                            label 'Windows&&Docker'
+                          }
                     }
                     steps {
                         bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
@@ -524,29 +641,16 @@ pipeline {
                     }
                 }
                 stage("Python 3.7 whl"){
-                    agent {
-                        label "Windows && Python3 && VS2015"
-                    }
-                    environment {
-                        CMAKE_PATH = "${tool 'cmake3.13'}"
-                        NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-                        PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${tool 'CPython-3.7'};$PATH"
-                        // CL = "/MP"
-                    }
                     stages{
-                        stage("create venv for 3.7"){
-                            steps {
-                                bat "python -m venv venv\\37 && venv\\37\\Scripts\\python.exe -m pip install pip --upgrade && venv\\37\\Scripts\\pip.exe install wheel setuptools --upgrade"
-                            }
-                        }
-
                         stage("Creating bdist wheel for 3.7"){
-                            environment {
-                                PYTHON37_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\37\\scripts"
-                                PATH = "${env.PYTHON37_VENV_SCRIPTS_PATH};$PATH"
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                                    label 'Windows&&Docker'
+                                  }
                             }
                             steps {
-                                bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext --cmake-exec=${env.CMAKE_PATH}\\cmake.exe bdist_wheel -d ${WORKSPACE}\\dist"
+                                bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext bdist_wheel -d ${WORKSPACE}\\dist"
                             }
                             post{
                                 success{
@@ -556,43 +660,32 @@ pipeline {
                             }
                         }
                         stage("Testing 3.7 wheel on a computer without Visual Studio"){
-                            agent { label 'Windows  && Python3' }
-                            environment {
-                                PATH = "${tool 'CPython-3.7'};$PATH"
+                            agent {
+                              dockerfile {
+                                filename 'ci/docker/windows/test/msvc/Dockerfile'
+                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
+                                label 'windows && docker'
+                              }
                             }
+
                             steps{
                                 unstash "whl 3.7"
                                 test_wheel("*cp37*.whl", "37")
 
                             }
                             post{
+                                success{
+                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*cp37*.whl"
+                                }
                                 cleanup{
-                                    deleteDir()
+                                    cleanWs(
+                                        notFailBuild: true
+                                    )
                                 }
                             }
                         }
                     }
-                    post{
-                        cleanup{
-                            cleanWs(
-                                deleteDirs: true,
-                                disableDeferredWipeout: true,
-                                patterns: [
-                                    [pattern: 'dist', type: 'INCLUDE'],
-                                    [pattern: 'source', type: 'INCLUDE'],
-                                    [pattern: '*tmp', type: 'INCLUDE'],
-                                    ]
-                                )
-                        }
-                    }
-                }
-            }
-            post{
-                success{
-                    unstash "whl 3.7"
-                    unstash "whl 3.6"
-                    unstash "sdist"
-                    archiveArtifacts artifacts: "dist/*.whl,dist/*.tar.gz,dist/*.zip", fingerprint: true
+
                 }
             }
         }
@@ -643,7 +736,6 @@ pipeline {
                             }
                             options {
                                 skipDefaultCheckout(true)
-//
                             }
                             stages{
                                 stage("Creating venv to test sdist"){
@@ -651,12 +743,9 @@ pipeline {
                                             lock("system_python_${NODE_NAME}"){
                                                 bat "python -m venv venv\\venv36 && venv\\venv36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\venv36\\Scripts\\pip.exe install setuptools --upgrade && venv\\venv36\\Scripts\\pip.exe install devpi-client \"tox<3.7\""
                                             }
-//
                                         }
-//
                                 }
                                 stage("Testing DevPi zip Package"){
-//
                                     environment {
                                         CMAKE_PATH = "${tool 'cmake3.13'}"
                                         NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
@@ -664,8 +753,6 @@ pipeline {
                                         PATH = "${env.CMAKE_PATH};${env.NASM_PATH};${env.PYTHON_SCRIPTS_PATH};${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                                     }
                                     steps {
-                                        // echo "Testing Source zip package in devpi"
-//
                                         timeout(40){
                                             devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
@@ -695,16 +782,13 @@ pipeline {
                                     deleteDir()
                                 }
                             }
-//
                         }
-//
                         stage("Testing DevPi .whl Package with Python 3.6"){
                             agent {
                                 node {
                                     label "Windows && Python3"
                                 }
                             }
-//
                             options {
                                 skipDefaultCheckout(true)
                             }
@@ -715,10 +799,8 @@ pipeline {
                                     }
                                     steps {
                                         create_venv("python.exe", "venv\\36")
-//
                                         bat "venv\\36\\Scripts\\pip.exe install setuptools --upgrade && venv\\36\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
-//
                                 }
                                 stage("Testing DevPi .whl Package with Python 3.6"){
                                     options{
@@ -727,9 +809,7 @@ pipeline {
                                     environment {
                                         PATH = "${WORKSPACE}\\venv\\36\\Scripts;$PATH"
                                     }
-//
                                     steps {
-//
                                         devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                                 url: "https://devpi.library.illinois.edu",
@@ -740,13 +820,11 @@ pipeline {
                                                 detox: false,
                                                 toxEnvironment: "py36"
                                             )
-//
                                     }
                                 }
                             }
                             post {
                                 failure {
-                                    // archiveArtifacts allowEmptyArchive: true, artifacts: "**/MSBuild_*.failure.txt"
                                     deleteDir()
                                 }
                                 cleanup{
@@ -780,7 +858,6 @@ pipeline {
                                        create_venv("python.exe", "venv\\37")
                                        bat "venv\\37\\Scripts\\pip.exe install setuptools --upgrade && venv\\37\\Scripts\\pip.exe install \"tox<3.7\" devpi-client"
                                     }
-//
                                 }
                                 stage("Testing DevPi .whl Package with Python 3.7"){
                                     options{
@@ -789,9 +866,7 @@ pipeline {
                                     environment {
                                         PATH = "${WORKSPACE}\\venv\\37\\Scripts;$PATH"
                                     }
-//
                                     steps {
-//
                                         devpiTest(
                                                 devpiExecutable: "${powershell(script: '(Get-Command devpi).path', returnStdout: true).trim()}",
                                                 url: "https://devpi.library.illinois.edu",
@@ -802,7 +877,6 @@ pipeline {
                                                 detox: false,
                                                 toxEnvironment: "py37"
                                             )
-//
                                     }
                                 }
                             }
@@ -851,7 +925,6 @@ pipeline {
                         script: "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} ${env.DEVPI_USR}/${env.BRANCH_NAME}",
                         label: "Pushing file to ${env.BRANCH_NAME} index"
                     )
-//
                 }
                 cleanup{
                     remove_from_devpi("venv\\36\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
@@ -869,32 +942,6 @@ pipeline {
                 unstash "DOCS_ARCHIVE"
                 deploy_docs(env.PKG_NAME, "build/docs/html")
             }
-        }
-    }
-    post {
-        failure{
-            // might be a dependency caching issue. So delete the workspace
-            // and try again
-            deleteDir()
-        }
-        cleanup{
-            cleanWs(
-                deleteDirs: true,
-                disableDeferredWipeout: true,
-                patterns: [
-                    [pattern: 'dist', type: 'INCLUDE'],
-                    [pattern: 'reports', type: 'INCLUDE'],
-                    [pattern: 'logs', type: 'INCLUDE'],
-                    [pattern: 'certs', type: 'INCLUDE'],
-                    [pattern: '*tmp', type: 'INCLUDE'],
-                    [pattern: 'source', type: 'INCLUDE'],
-                    [pattern: 'mypy_stubs', type: 'INCLUDE'],
-                    [pattern: "source", type: 'INCLUDE'],
-//                    [pattern: "source/**/*.pyd", type: 'INCLUDE'],
-//                    [pattern: "source/**/*.exe", type: 'INCLUDE'],
-//                    [pattern: "source/**/*.exe", type: 'INCLUDE']
-                    ]
-                )
         }
     }
 }
