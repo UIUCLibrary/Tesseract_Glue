@@ -530,6 +530,17 @@ pipeline {
                                     recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                                 }
+                                cleanup{
+                                    cleanWs(
+                                        deleteDirs: true, patterns: [
+                                            [pattern: '.eggs', type: 'INCLUDE'],
+                                            [pattern: '*egg-info', type: 'INCLUDE'],
+                                            [pattern: 'mypy_stubs', type: 'INCLUDE'],
+                                            [pattern: 'reports', type: 'INCLUDE'],
+                                            [pattern: 'build', type: 'INCLUDE']
+                                        ]
+                                    )
+                                }
                             }
                         }
                     }
@@ -541,22 +552,8 @@ pipeline {
 
             parallel{
                 stage("Python 3.6 whl"){
-
-//                    environment {
-//                        CMAKE_PATH = "${tool 'cmake3.13'}"
-//                        PATH = "${env.CMAKE_PATH};$PATH"
-//                        CL = "/MP"
-//                    }
                     stages{
-//                        stage("Create venv for 3.6"){
-//                            environment {
-//                                PATH = "${tool 'CPython-3.6'};$PATH"
-//                            }
-//
-//                            steps {
-//                                bat "python -m venv venv\\36 && venv\\36\\Scripts\\python.exe -m pip install pip --upgrade && venv\\36\\Scripts\\pip.exe install wheel setuptools --upgrade"
-//                            }
-//                        }
+
 
                         stage("Creating bdist wheel for 3.6"){
                             agent {
@@ -566,11 +563,6 @@ pipeline {
                                     additionalBuildArgs '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
                                   }
                             }
-//                            environment {
-//                                NASM_PATH = "${tool name: 'nasm_2_x64', type: 'com.cloudbees.jenkins.plugins.customtools.CustomTool'}"
-//                                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\scripts"
-//                                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};${env.NASM_PATH};${tool 'CPython-3.6'};$PATH"
-//                            }
                             steps {
 
                                 bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
@@ -582,17 +574,12 @@ pipeline {
                             }
                         }
                         stage("Testing 3.6 wheel on a computer without Visual Studio"){
-//                            agent { label 'Windows && Python3' }
                             agent {
-                            dockerfile {
-                                filename 'ci/docker/windows/test/msvc/Dockerfile'
-                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
-                                label 'windows && docker'
-                              }
-                              //docker {
-                              //  image 'python:3.6-windowsservercore'
-                              //  label 'windows && docker'
-                              //}
+                                dockerfile {
+                                    filename 'ci/docker/windows/test/msvc/Dockerfile'
+                                    additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
+                                    label 'windows && docker'
+                                  }
                             }
 
                             steps{
@@ -694,7 +681,6 @@ pipeline {
 //
             environment{
                 PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
-                PATH = "${env.PYTHON36_VENV_SCRIPTS_PATH};$PATH"
                 PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                 PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                 DEVPI = credentials("DS_devpi")
