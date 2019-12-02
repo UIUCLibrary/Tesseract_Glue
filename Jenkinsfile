@@ -699,6 +699,7 @@ pipeline {
                         unstash "whl 3.6"
                         unstash "whl 3.7"
                         unstash "sdist"
+                        sh("pip install devpi-client --user")
                         sh(
                             label: "Uploading to DevPi Staging",
                             script: """devpi use https://devpi.library.illinois.edu
