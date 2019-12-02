@@ -699,7 +699,13 @@ pipeline {
                         unstash "whl 3.6"
                         unstash "whl 3.7"
                         unstash "sdist"
-                        sh "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+                        sh(
+                            label: "Uploading to DevPi Staging",
+                            script: """devpi use https://devpi.library.illinois.edu
+devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW}
+devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging
+devpi upload --from-dir dist"""
+                        )
                         //bat "pip install devpi-client && devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
                     }
                     post{
