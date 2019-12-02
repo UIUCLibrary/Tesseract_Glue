@@ -667,6 +667,7 @@ pipeline {
             }
         }
         stage("Deploy to DevPi") {
+            agent any
             when {
                 allOf{
                     anyOf{
