@@ -396,17 +396,6 @@ pipeline {
                                equals expected: true, actual: params.TEST_RUN_TOX
                             }
                             stages{
-                                stage("Removing Previous Tox Environment"){
-                                    when{
-                                        equals expected: true, actual: params.FRESH_WORKSPACE
-                                    }
-                                    steps{
-                                        dir(".tox"){
-                                            deleteDir()
-                                        }
-                                    }
-
-                                }
                                 stage("Run Tox"){
                                     options{
                                         timeout(30)
