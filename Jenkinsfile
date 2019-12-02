@@ -379,6 +379,7 @@ pipeline {
                         unstash "DOCS_ARCHIVE"
 
                         bat "if not exist logs mkdir logs"
+                        bat "if not exist reports mkdir reports"
 
 //                        bat 'venv\\36\\Scripts\\pip.exe install mypy lxml sphinx pytest flake8 pytest-cov pytest-bdd --upgrade-strategy only-if-needed && venv\\36\\Scripts\\pip.exe install "tox<3.10"'
 //
