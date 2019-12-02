@@ -680,7 +680,6 @@ pipeline {
             }
 //
             environment{
-                PYTHON36_VENV_SCRIPTS_PATH = "${WORKSPACE}\\venv\\36\\Scripts"
                 PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                 PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                 DEVPI = credentials("DS_devpi")
@@ -700,6 +699,13 @@ pipeline {
                         unstash "sdist"
                         sh "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
                         //bat "pip install devpi-client && devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                notFailBuild: true
+                            )
+                        }
                     }
                 }
                 stage("Test DevPi packages") {
