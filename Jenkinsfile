@@ -692,6 +692,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/deploy/devpi/Dockerfile'
                             label 'linux&&docker'
+                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                           }
                     }
                     steps {
@@ -701,10 +702,16 @@ pipeline {
                         unstash "sdist"
                         sh("pip install devpi-client --user")
                         sh(
+                            label: "Selecting DevPi Server",
+                            script: "devpi use https://devpi.library.illinois.edu"
+                        )
+                        sh(
+                            label: "Connecting to DevPi Server",
+                            script: 'devpi login $DEVPI_USR --password $DEVPI_PSW'
+                        )
+                        sh(
                             label: "Uploading to DevPi Staging",
-                            script: """devpi use https://devpi.library.illinois.edu
-devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW}
-devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging
+                            script: """devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging
 devpi upload --from-dir dist"""
                         )
                         //bat "pip install devpi-client && devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
