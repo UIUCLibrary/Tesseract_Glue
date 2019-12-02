@@ -701,12 +701,19 @@ pipeline {
             }
             stages{
                 stage("Upload to DevPi Staging"){
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/deploy/devpi/Dockerfile'
+                            label 'linux&&docker'
+                          }
+                    }
                     steps {
                         unstash "DOCS_ARCHIVE"
                         unstash "whl 3.6"
                         unstash "whl 3.7"
                         unstash "sdist"
-                        bat "pip install devpi-client && devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+                        sh "devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
+                        //bat "pip install devpi-client && devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
                     }
                 }
                 stage("Test DevPi packages") {
