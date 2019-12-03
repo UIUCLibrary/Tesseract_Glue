@@ -11,18 +11,25 @@ def remove_files(artifacts){
 }
 
 
-def remove_from_devpi(devpiExecutable, pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
-    script {
-            try {
-                bat "${devpiExecutable} login ${devpiUsername} --password ${devpiPassword}"
-                bat "${devpiExecutable} use ${devpiIndex}"
-                bat "${devpiExecutable} remove -y ${pkgName}==${pkgVersion}"
-            } catch (Exception ex) {
-                echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
-        }
+def remove_from_devpi(devpi_agent, pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
+    node('linux && docker') {
 
+        script {
+//            def devpi_docker = docker.build("ci/docker/deploy/devpi/Dockerfile")
+            devpi_agent.inside{
+                sh "devpi remove -y ${pkgName}==${pkgVersion}"
+            }
+//                try {
+//                    bat "${devpiExecutable} login ${devpiUsername} --password ${devpiPassword}"
+//                    bat "${devpiExecutable} use ${devpiIndex}"
+//                    bat "${devpiExecutable} remove -y ${pkgName}==${pkgVersion}"
+//                } catch (Exception ex) {
+//                    echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
+//            }
+
+        }
     }
-}
+    }
 def create_venv(python_exe, venv_path){
     script {
         bat "${python_exe} -m venv ${venv_path}"
@@ -687,35 +694,43 @@ pipeline {
                 PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                 PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
                 DEVPI = credentials("DS_devpi")
+                DEVPI_AGENT = docker.build("devpi", '-f ./ci/docker/deploy/devpi/Dockerfile -build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .')
             }
             stages{
                 stage("Upload to DevPi Staging"){
-                    agent {
-                        dockerfile {
-                            filename 'ci/docker/deploy/devpi/Dockerfile'
-                            label 'linux&&docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                          }
+                    agent{
+                        label "linux&&docker"
                     }
+//                    agent {
+//                        dockerfile {
+//                            filename 'ci/docker/deploy/devpi/Dockerfile'
+//                            label 'linux&&docker'
+//                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                          }
+//                    }
                     steps {
-                        unstash "DOCS_ARCHIVE"
-                        unstash "whl 3.6"
-                        unstash "whl 3.7"
-                        unstash "sdist"
-                        sh("pip install devpi-client --user")
-                        sh(
-                            label: "Selecting DevPi Server",
-                            script: "devpi use https://devpi.library.illinois.edu"
-                        )
-                        sh(
-                            label: "Connecting to DevPi Server",
-                            script: 'devpi login $DEVPI_USR --password $DEVPI_PSW'
-                        )
-                        sh(
-                            label: "Uploading to DevPi Staging",
-                            script: """devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging
-devpi upload --from-dir dist"""
-                        )
+                        script{
+                            DEVPI_AGENT.inside{
+                                unstash "DOCS_ARCHIVE"
+                                unstash "whl 3.6"
+                                unstash "whl 3.7"
+                                unstash "sdist"
+                                sh("pip install devpi-client --user")
+                                sh(
+                                    label: "Selecting DevPi Server",
+                                    script: "devpi use https://devpi.library.illinois.edu"
+                                )
+                                sh(
+                                    label: "Connecting to DevPi Server",
+                                    script: 'devpi login $DEVPI_USR --password $DEVPI_PSW'
+                                )
+                                sh(
+                                    label: "Uploading to DevPi Staging",
+                                    script: """devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging
+        devpi upload --from-dir dist"""
+                                )
+                            }
+                        }
                         //bat "pip install devpi-client && devpi use https://devpi.library.illinois.edu && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging && devpi upload --from-dir dist"
                     }
                     post{
@@ -933,7 +948,7 @@ devpi upload --from-dir dist"""
                     )
                 }
                 cleanup{
-                    remove_from_devpi("venv\\36\\Scripts\\devpi.exe", "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
+                    remove_from_devpi(env.DEVPI_AGENT, "${env.PKG_NAME}", "${env.PKG_VERSION}", "/${env.DEVPI_USR}/${env.BRANCH_NAME}_staging", "${env.DEVPI_USR}", "${env.DEVPI_PSW}")
                 }
             }
         }
