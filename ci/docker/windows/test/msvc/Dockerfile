@@ -9,3 +9,5 @@ RUN c:/VC_redist.x64.exe /quiet /install /norestart
 RUN certutil -generateSSTFromWU roots.sst ; `
     certutil -addstore -f root roots.sst ; `
     del roots.sst
+
+RUN python -m pip install tox

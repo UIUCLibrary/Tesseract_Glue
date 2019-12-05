@@ -39,41 +39,6 @@ def create_venv(python_exe, venv_path){
 }
 
 
-def test_wheel(pkgRegex, python_version){
-    script{
-        def venv_home_path = "${WORKSPACE}\\venv"
-
-        bat(
-            label: "Installing Python virtual environment based on version ${python_version}",
-            script:"python -m venv ${venv_home_path}"
-            )
-
-        bat(label: "Upgrading pip to latest version",
-            script: "${venv_home_path}\\Scripts\\python.exe -m pip install pip --upgrade"
-            )
-
-        bat(label: "Installing tox to Python virtual environment",
-            script: "${venv_home_path}\\Scripts\\pip.exe install tox --upgrade"
-            )
-
-        def python_wheel = findFiles glob: "**/${pkgRegex}"
-
-        python_wheel.each{
-            try{
-                bat(label: "Testing ${it}",
-                    script: "${venv_home_path}\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
-                    )
-            } catch (Exception ex) {
-                bat "pip install wheel"
-                bat "wheel unpack ${it} -d dist"
-                bat "cd dist && tree /f /a"
-            }
-        }
-
-
-
-    }
-}
 
               
 def deploy_docs(pkgName, prefix){
@@ -133,6 +98,49 @@ def get_package_name(stashName, metadataFile){
         }
     }
 }
+
+def CONFIGURATIONS = [
+        "3.6" : [
+            agents: [
+                build: [
+                    dockerfile: [
+                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                        label: 'Windows&&Docker',
+                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
+
+                    ]
+                ],
+                test:[
+                    dockerfile: [
+                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                        label: 'Windows&&Docker',
+                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
+                    ]
+                ]
+            ],
+            pkgRegex: "*cp36*.whl"
+        ],
+        "3.7" : [
+            agents: [
+                build: [
+                    dockerfile: [
+                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                        label: 'Windows&&Docker',
+                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe'
+                    ]
+                ],
+                test: [
+                    dockerfile: [
+                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7',
+                        label: 'windows && docker',
+                    ]
+                ]
+
+            ],
+            pkgRegex: "*cp37*.whl"
+        ],
+    ]
 
 pipeline {
     agent none
@@ -439,120 +447,116 @@ pipeline {
             }
 
         }
-        stage("Packaging") {
-
-            parallel{
-                stage("Python 3.6 whl"){
-                    stages{
-
-
-                        stage("Creating bdist wheel for 3.6"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                                    label 'Windows&&Docker'
-                                    additionalBuildArgs '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
-                                  }
-                            }
-                            steps {
-
-                                bat "python setup.py build -b ../build/36/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/36/lib --build-temp ../build/36/temp build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
-                            }
-                            post{
-                               success{
-                                    stash includes: 'dist/*.whl', name: "whl 3.6"
-                                }
-                            }
-                        }
-                        stage("Testing 3.6 wheel on a computer without Visual Studio"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/windows/test/msvc/Dockerfile'
-                                    additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
-                                    label 'windows && docker'
-                                  }
-                            }
-
-                            steps{
-                                unstash "whl 3.6"
-                                test_wheel("*cp36*.whl", "36")
-
-                            }
-                            post{
-                                success{
-                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*cp36*.whl"
-                                }
-                                cleanup{
-                                    cleanWs(
-                                        notFailBuild: true
-                                    )
-                                }
-                            }
-                        }
+        stage("Python sdist"){
+            agent {
+                dockerfile {
+                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                    label 'Windows&&Docker'
+                  }
+            }
+            steps {
+                bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
+            }
+            post{
+                success{
+                    stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
+                }
+            }
+        }
+        stage("Packaging Binary Wheels") {
+            matrix{
+                agent any
+                axes {
+                    axis {
+                        name 'PYTHON_VERSION'
+                        values(
+                            '3.6',
+                            '3.7'
+                            )
                     }
                 }
-                stage("Python sdist"){
-                    agent {
-                        dockerfile {
-                            filename 'ci/docker/windows/build/msvc/Dockerfile'
-                            label 'Windows&&Docker'
-                          }
-                    }
-                    steps {
-                        bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
-                    }
-                    post{
-                        success{
-                            stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
+                stages {
+                    stage("Building whl Package"){
+                        agent {
+                            dockerfile {
+                                filename "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.filename}"
+                                label "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.label}"
+                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.additionalBuildArgs}"
+                             }
                         }
-                    }
-                }
-                stage("Python 3.7 whl"){
-                    stages{
-                        stage("Creating bdist wheel for 3.7"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                                    label 'Windows&&Docker'
-                                  }
-                            }
-                            steps {
-                                bat "python setup.py build -b ../build/37/ -j${env.NUMBER_OF_PROCESSORS} --build-lib ../build/37/lib/ --build-temp ../build/37/temp build_ext bdist_wheel -d ${WORKSPACE}\\dist"
-                            }
-                            post{
-                                success{
-                                    stash includes: 'dist/*.whl', name: "whl 3.7"
-                                }
-
-                            }
+                        steps{
+                            echo "Building Wheel for Python ${PYTHON_VERSION}"
+                            bat "python --version"
+                            bat "python setup.py build -b build -j${env.NUMBER_OF_PROCESSORS} build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
                         }
-                        stage("Testing 3.7 wheel on a computer without Visual Studio"){
-                            agent {
-                              dockerfile {
-                                filename 'ci/docker/windows/test/msvc/Dockerfile'
-                                additionalBuildArgs '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7'
-                                label 'windows && docker'
-                              }
-                            }
-
-                            steps{
-                                unstash "whl 3.7"
-                                test_wheel("*cp37*.whl", "37")
+                        post {
+                            success{
+                                stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}", name: "whl ${PYTHON_VERSION}"
 
                             }
-                            post{
-                                success{
-                                    archiveArtifacts allowEmptyArchive: true, artifacts: "dist/*cp37*.whl"
-                                }
-                                cleanup{
-                                    cleanWs(
-                                        notFailBuild: true
+                            cleanup{
+                                cleanWs(
+                                        deleteDirs: true,
+                                        patterns: [
+                                            [pattern: 'dist', type: 'INCLUDE']
+                                        ]
                                     )
-                                }
                             }
                         }
                     }
+                    stage("Testing wheel on a Different computer"){
+                        agent{
+                            dockerfile {
+                                filename "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.filename}"
+                                label "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.label}"
+                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.additionalBuildArgs}"
+                            }
+                        }
+                        steps{
+                            unstash "whl ${PYTHON_VERSION}"
 
+                            bat(
+                                label: "Installing Python virtual environment",
+                                script:"python -m venv venv"
+                            )
+
+                            bat(
+                                label: "Upgrading pip to latest version",
+                                script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
+                            )
+
+                            bat(
+                                label: "Installing tox to Python virtual environment",
+                                script: "venv\\Scripts\\pip.exe install tox --upgrade"
+                            )
+
+                            script{
+                                def python_wheel = findFiles glob: "**/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}"
+
+                                python_wheel.each{
+                                    try{
+                                        bat(label: "Testing ${it}",
+                                            script: "venv\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
+                                            )
+                                    } catch (Exception ex) {
+                                        bat "pip install wheel"
+                                        bat "wheel unpack ${it} -d dist"
+                                        bat "cd dist && tree /f /a"
+                                    }
+                                }
+                            }
+                        }
+                        post{
+                            success{
+                                archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}"
+                            }
+                            cleanup{
+                                cleanWs(
+                                    notFailBuild: true
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
