@@ -175,7 +175,9 @@ class MSVCToolChain(AbsCMakeToolchain):
             f"-B{os.path.abspath(ext.cmake_binary_dir)}",
             f"-DCMAKE_INSTALL_PREFIX={install_prefix}",
             f"-DCMAKE_RUNTIME_OUTPUT_DIRECTORY={temp_output}",
+            f"-DCMAKE_SYSTEM_PREFIX_PATH={temp_output}/dependencies",
         ]
+        # TODO: Remove CMAKE_RUNTIME_OUTPUT_DIRECTORY overriding
 
         if self.builder.debug is not None:
             configure_command.append(
@@ -203,14 +205,13 @@ class MSVCToolChain(AbsCMakeToolchain):
                       "implementation of Python's compiler {}".format(e)
 
             raise CMakeException(message)
-
         for k, v in ext.cmake_args:
             # To delay any evaluation
             if callable(v):
                 v = v()
             configure_command.append(f"{k}={v}")
         configure_command += [
-            "-DCMAKE_BUILD_TYPE={}".format(self.builder.build_configuration),
+            "-DCMAKE_BUILD_TYPE={}".format(self.builder.build_configuration.title()),
         ]
         self.compiler_spawn(configure_command)
 
@@ -362,19 +363,28 @@ class BuildExt(build_ext):
         for ext in self.extensions:
             with self._filter_build_errors(ext):
                 self.build_extension(ext)
+        #
+        # for runtime, runtime_file in self.toolchain.runtime_file_deps():
+        #     self.announce("Including {}".format(runtime))
+        #     dst = os.path.join(self.build_lib,
+        #                        self.package_dir,
+        #                        "tesseract",
+        #                        "bin")
+        #     self.mkpath(dst)
+        #     self.copy_file(runtime_file, dst)
 
-        for runtime, runtime_file in self.toolchain.runtime_file_deps():
-            self.announce("Including {}".format(runtime))
-            self.copy_file(runtime_file, os.path.join(self.build_lib,
-                                                      self.package_dir,
-                                                      "tesseract",
-                                                      "bin"))
+            # self.copy_file(runtime_file, os.path.join(self.build_lib,
+            #                                           self.package_dir))
 
     def run(self):
         for ext in self.extensions:
             ext.cmake_install_prefix = self.get_install_prefix(ext)
             ext.cmake_binary_dir = os.path.join(self.build_temp,
-                                                "{}-build".format(ext.name))
+                                                "dependencies",
+                                                "build",
+                                                ext.name
+                                                # "{}-build".format(ext.name)
+                                                )
         super().run()
 
     def build_extension(self, ext):
@@ -394,6 +404,9 @@ class BuildExt(build_ext):
 
                 if self.needs_to_install(ext):
                     self.install_cmake(ext)
+                #     print("Installing {}".format(ext.name))
+                # else:
+                #     print("{} already installed".format(ext.name))
 
 
             if ext._needs_stub:
@@ -448,9 +461,11 @@ class BuildExt(build_ext):
         if isinstance(ext, CMakeDependency) or isinstance(ext, CMakeExtension):
 
             if isinstance(ext, CMakeDependency):
-                install_prefix = os.path.join(self.build_lib,
-                                              self.package_dir,
-                                              self.library_install_dir)
+                install_prefix = os.path.join(self.build_temp,
+                                              "dependencies"
+                                              # self.package_dir,
+                                              # self.library_install_dir
+                                              )
             else:
                 install_prefix = self.build_lib
 
@@ -565,9 +580,12 @@ class BuildExt(build_ext):
 
         if not os.path.exists(src_archive_dst):
             self._download_source(ext, src_archive_dst)
-
         source_dest = os.path.join(self.build_temp,
-                                   "{}-source".format(ext.name))
+                                   "dependencies",
+                                   "sources",
+                                   ext.name
+                                   # "{}-source".format(ext.name)
+                                   )
 
         self._extract_source(src_archive_dst, source_dest)
         if ext.starting_path is not None:
