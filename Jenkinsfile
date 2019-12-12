@@ -303,7 +303,7 @@ pipeline {
                             stages{
                                 stage("Run Tox"){
                                     options{
-                                        timeout(30)
+                                        timeout(60)
                                     }
 
                                     steps {
