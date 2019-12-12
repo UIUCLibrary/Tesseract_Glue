@@ -145,9 +145,8 @@ def CONFIGURATIONS = [
 pipeline {
     agent none
     triggers {
-        cron('@daily')
+       parameterizedCron '@daily % DEPLOY_DEVPI=true; TEST_RUN_TOX=true'
     }
-
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
 //        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
@@ -157,8 +156,7 @@ pipeline {
         build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
     }
     parameters {
-        booleanParam(name: "FRESH_WORKSPACE", defaultValue: false, description: "Purge workspace before staring and checking out source")
-        booleanParam(name: "TEST_RUN_TOX", defaultValue: true, description: "Run Tox Tests")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         string(name: 'DEPLOY_DOCS_URL_SUBFOLDER', defaultValue: "ocr", description: 'The directory that the docs should be saved under')
@@ -566,10 +564,7 @@ pipeline {
             }
             when {
                 allOf{
-                    anyOf{
-                        equals expected: true, actual: params.DEPLOY_DEVPI
-                        triggeredBy "TimerTriggerCause"
-                    }
+                    equals expected: true, actual: params.DEPLOY_DEVPI
                     anyOf {
                         equals expected: "master", actual: env.BRANCH_NAME
                         equals expected: "dev", actual: env.BRANCH_NAME
