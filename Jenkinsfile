@@ -309,13 +309,13 @@ pipeline {
                                             try{
                                                 bat  (
                                                     label: "Run Tox",
-                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox -vv "
+                                                    script: "tox -e py --workdir ${WORKSPACE}\\.tox -vv "
                                                 )
 
                                             } catch (exc) {
                                                 bat (
                                                     label: "Run Tox with new environments",
-                                                    script: "tox --parallel=auto --parallel-live --workdir ${WORKSPACE}\\.tox --recreate -vv "
+                                                    script: "tox -e py --workdir ${WORKSPACE}\\.tox --recreate -vv "
                                                 )
                                             }
                                         }
