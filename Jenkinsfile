@@ -309,13 +309,13 @@ pipeline {
                                             try{
                                                 bat  (
                                                     label: "Run Tox",
-                                                    script: "tox -e py --workdir ${WORKSPACE}\\.tox -vv "
+                                                    script: "tox -e py -vv "
                                                 )
 
                                             } catch (exc) {
                                                 bat (
                                                     label: "Run Tox with new environments",
-                                                    script: "tox -e py --workdir ${WORKSPACE}\\.tox --recreate -vv "
+                                                    script: "tox -e py --recreate -vv "
                                                 )
                                             }
                                         }
