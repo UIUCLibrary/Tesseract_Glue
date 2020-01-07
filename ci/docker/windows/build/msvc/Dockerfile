@@ -84,6 +84,8 @@ RUN python -m pip install --upgrade pip ; `
 ADD Pipfile Pipfile.lock c:/temp/
 RUN cd c:\temp ; pipenv install --dev --verbose
 
-
+ENV TEMP c:\temp
+ENV TMP c:\temp
+ENV TMPDIR c:\temp
 # TODO: set this
 # REG ADD "HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor" /v AutoRun /t REG_SZ /d c:\BuildTools\Common7\Tools\vsdevcmd.bat"
