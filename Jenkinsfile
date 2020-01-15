@@ -145,7 +145,7 @@ def CONFIGURATIONS = [
 pipeline {
     agent none
     triggers {
-       parameterizedCron '@daily % DEPLOY_DEVPI=true; TEST_RUN_TOX=true'
+       parameterizedCron '@weekly % DEPLOY_DEVPI=true; TEST_RUN_TOX=true'
     }
     options {
         disableConcurrentBuilds()  //each branch has 1 job running at a time
