@@ -16,7 +16,7 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     Remove-Item C:\ProgramData\chocolatey\bin\cpack.exe
 
 # Install packages that can be installed by chocolatey
-ADD ci/docker/windows_standalone/chocolatey/packages.config choco/packages.config
+ADD ci/docker/windows/build/msvc/chocolatey/packages.config choco/packages.config
 RUN $SOURCE = $(if( -not ([string]::IsNullOrEmpty($Env:CHOCOLATEY_SOURCE ))) `
     { \"--source=$Env:CHOCOLATEY_SOURCE\" } `
     else `
