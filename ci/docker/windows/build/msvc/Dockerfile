@@ -1,5 +1,9 @@
 # escape=`
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8
+
+FROM ${FROM_IMAGE} as certsgen
+RUN certutil -generateSSTFromWU roots.sst
+
 FROM ${FROM_IMAGE}
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
@@ -26,8 +30,8 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
 ADD ci/docker/windows/build/msvc/startup.bat c:\temp\startup.bat
 RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
 
-RUN certutil -generateSSTFromWU roots.sst ; `
-    certutil -addstore -f root roots.sst ; `
+COPY --from=certsgen c:/roots.sst roots.sst
+RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
 
 ARG PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe
@@ -53,5 +57,3 @@ RUN cd c:\temp ; pipenv install --dev --verbose
 ENV TEMP c:\temp
 ENV TMP c:\temp
 ENV TMPDIR c:\temp
-# TODO: set this
-# REG ADD "HKEY_LOCAL_MACHINE\Software\Microsoft\Command Processor" /v AutoRun /t REG_SZ /d c:\BuildTools\Common7\Tools\vsdevcmd.bat"
