@@ -85,9 +85,9 @@ SHELL ["powershell", "-command"]
 #    $env:PATH = $env:PATH + ';C:\nasm\nasm-2.14.02\;C:\nasm\nasm-2.14.02'; `
 #    Set-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\Session Manager\Environment\' -Name Path -Value $env:PATH
 #
-#RUN certutil -generateSSTFromWU roots.sst ; `
-#    certutil -addstore -f root roots.sst ; `
-#    del roots.sst
+RUN certutil -generateSSTFromWU roots.sst ; `
+    certutil -addstore -f root roots.sst ; `
+    del roots.sst
 
 ARG PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe
 
