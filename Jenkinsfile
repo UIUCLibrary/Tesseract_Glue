@@ -204,11 +204,10 @@ pipeline {
             }
             stages{
                 stage("Building Python Package"){
-                    options{
-                        timeout(20)
-                    }
                     steps {
-                        bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
+                        timeout(20){
+                            bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
+                        }
                     }
                     post{
                         success{
@@ -271,7 +270,6 @@ pipeline {
                 }
             }
         }
-
         stage("Testing") {
             agent {
                 dockerfile {
