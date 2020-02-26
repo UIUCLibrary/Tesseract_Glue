@@ -10,7 +10,7 @@ SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 ARG CHOCOLATEY_SOURCE=https://chocolatey.org/api/v2
 
 ARG ChocolateyEnvironmentDebug=false
-ADD ci/docker/windows/build/msvc/chocolatey/install_choco.ps1 choco/install_choco.ps1
+ADD ci/docker/shared/chocolatey/install_choco.ps1 choco/install_choco.ps1
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     ./choco/install_choco.ps1 -packageRepo $env:CHOCOLATEY_SOURCE ; `
     if( -not ([string]::IsNullOrEmpty($Env:CHOCOLATEY_SOURCE ))) `
@@ -21,7 +21,7 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     Remove-Item C:\ProgramData\chocolatey\bin\cpack.exe
 
 # Install packages that can be installed by chocolatey
-ADD ci/docker/windows/build/msvc/chocolatey/packages.config choco/packages.config
+ADD ci/docker/shared/chocolatey/packages.config choco/packages.config
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress choco/packages.config ;`
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
