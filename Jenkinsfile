@@ -106,7 +106,7 @@ def CONFIGURATIONS = [
                     dockerfile: [
                         filename: 'ci/docker/windows/build/msvc/Dockerfile',
                         label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe'
+                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
 
                     ]
                 ],
@@ -114,7 +114,7 @@ def CONFIGURATIONS = [
                     dockerfile: [
                         filename: 'ci/docker/windows/test/msvc/Dockerfile',
                         label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
+                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore --build-arg CHOCOLATEY_SOURCE'
                     ]
                 ]
             ],
@@ -126,7 +126,7 @@ def CONFIGURATIONS = [
                     dockerfile: [
                         filename: 'ci/docker/windows/build/msvc/Dockerfile',
                         label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe'
+                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe --build-arg CHOCOLATEY_SOURCE'
                     ]
                 ],
                 test: [
@@ -168,6 +168,7 @@ pipeline {
                 dockerfile {
                     filename 'ci/docker/windows/build/msvc/Dockerfile'
                     label 'Windows&&Docker'
+                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
                   }
             }
             stages{
@@ -176,7 +177,6 @@ pipeline {
                         timeout(2)
                     }
                     steps{
-                        bat "C:\\BuildTools\\Common7\\Tools\\VsDevCmd.bat -arch=amd64 -host_arch=amd64 && where cmake"
                         bat "python setup.py dist_info"
                     }
                     post{
@@ -199,15 +199,15 @@ pipeline {
                 dockerfile {
                     filename 'ci/docker/windows/build/msvc/Dockerfile'
                     label 'Windows&&Docker'
+                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
                   }
             }
             stages{
                 stage("Building Python Package"){
-                    options{
-                        timeout(20)
-                    }
                     steps {
-                        bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
+                        timeout(20){
+                            bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
+                        }
                     }
                     post{
                         success{
@@ -270,12 +270,12 @@ pipeline {
                 }
             }
         }
-
         stage("Testing") {
             agent {
                 dockerfile {
                     filename 'ci/docker/windows/build/msvc/Dockerfile'
                     label 'Windows&&Docker'
+                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
                   }
             }
             failFast true
@@ -450,6 +450,7 @@ pipeline {
                 dockerfile {
                     filename 'ci/docker/windows/build/msvc/Dockerfile'
                     label 'Windows&&Docker'
+                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
                   }
             }
             steps {
