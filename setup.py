@@ -942,6 +942,9 @@ class BuildConan(setuptools.Command):
             conan_build_info = json.loads(f.read())
 
         for extension in build_ext_cmd.extensions:
+            if "tesseract" in extension.libraries:
+                extension.libraries.remove("tesseract")
+
             for dep in conan_build_info['dependencies']:
                 extension.include_dirs += dep['include_paths']
                 extension.library_dirs += dep['lib_paths']
