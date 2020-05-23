@@ -492,7 +492,13 @@ pipeline {
                         post {
                             success{
                                 stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}", name: "whl ${PYTHON_VERSION}"
+                                script{
 
+                                    def dlls = findFiles excludes: '', glob: '**/*.pyd'
+                                    dlls.each{
+                                        bat "dumpbin /DEPENDENTS ${it.path}"
+                                    }
+                                }
                             }
                             cleanup{
                                 cleanWs(
