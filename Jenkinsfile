@@ -551,6 +551,7 @@ pipeline {
                                         bat "pip install wheel"
                                         bat "wheel unpack ${it} -d dist"
                                         bat "cd dist && tree /f /a"
+                                        raise
                                     }
                                 }
                             }
