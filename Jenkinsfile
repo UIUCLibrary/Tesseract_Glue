@@ -355,6 +355,7 @@ pipeline {
                                 timeout(10)
                             }
                             steps{
+                                bat "mkdir if not exist reports\\pytestcoverage"
                                 bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/setup.cfg"
                             }
                             post {
