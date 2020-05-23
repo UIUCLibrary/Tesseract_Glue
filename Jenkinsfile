@@ -496,7 +496,10 @@ pipeline {
 
                                     def dlls = findFiles excludes: '', glob: '**/*.pyd'
                                     dlls.each{
-                                        bat "dumpbin /DEPENDENTS ${it.path}"
+                                        bat(
+                                            label: "Scanning dll dependencies of ${it.name}",
+                                            script:"dumpbin /DEPENDENTS ${it.path}"
+                                            )
                                     }
                                 }
                             }
