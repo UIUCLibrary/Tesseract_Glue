@@ -10,6 +10,7 @@ import abc
 import sys
 import re
 from distutils.version import StrictVersion
+from distutils.util import check_environ
 import urllib.request
 import platform
 from typing import List, Tuple, Union, Iterable
@@ -813,17 +814,24 @@ def parse_dumpbin_deps(file) -> List[str]:
                 if x.strip() == "":
                     continue
                 dll = x.strip()
-                if dll.startswith("api-ms-win-crt"):
-                    continue
-
-                if dll.startswith("python"):
-                    continue
-
-                if dll == "KERNEL32.dll":
-                    continue
-
                 dlls.append(dll)
         return dlls
+
+
+def remove_system_dlls(dlls):
+    non_system_dlls = []
+    for dll in dlls:
+        if dll.startswith("api-ms-win-crt"):
+            continue
+
+        if dll.startswith("python"):
+            continue
+
+        if dll == "KERNEL32.dll":
+            continue
+        non_system_dlls.append(dll)
+    return non_system_dlls
+
 
 
 class BuildTesseractExt(build_ext):
@@ -847,12 +855,15 @@ class BuildTesseractExt(build_ext):
             self.include_dirs.append(pybind11_include_path)
 
         super().run()
-        print(self.compiler)
         for e in self.extensions:
             dll_name = os.path.join(self.build_lib, self.get_ext_filename(e.name))
             output_file = os.path.join(self.build_temp, f'{e.name}.dependents')
             self.compiler.spawn(['dumpbin', '/dependents', dll_name, f'/out:{output_file}'])
             deps = parse_dumpbin_deps(file=output_file)
+            deps = remove_system_dlls(deps)
+            for lib in deps:
+                r = self.compiler.find_library_file(self.library_dirs, lib)
+                print(r)
             print(deps)
 
     def find_missing_libraries(self, ext):
