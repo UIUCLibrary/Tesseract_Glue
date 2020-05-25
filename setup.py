@@ -861,10 +861,17 @@ class BuildTesseractExt(build_ext):
             self.compiler.spawn(['dumpbin', '/dependents', dll_name, f'/out:{output_file}'])
             deps = parse_dumpbin_deps(file=output_file)
             deps = remove_system_dlls(deps)
-            for lib in deps:
-                r = self.compiler.find_library_file(self.library_dirs, lib)
-                print(r)
-            print(deps)
+            dest =  os.path.dirname(dll_name)
+            for dep in deps:
+                dll = self.find_deps(dep)
+                shutil.copy(dll, dest)
+
+    def find_deps(self, lib):
+
+        for path in os.environ['path'].split(";"):
+            for f in os.scandir(path):
+                if f.name.lower() == lib.lower():
+                    return f.path
 
     def find_missing_libraries(self, ext):
         missing_libs = []
