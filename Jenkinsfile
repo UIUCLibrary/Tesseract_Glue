@@ -140,6 +140,26 @@ def CONFIGURATIONS = [
             ],
             pkgRegex: "*cp37*.whl"
         ],
+        "3.8" : [
+            agents: [
+                build: [
+                    dockerfile: [
+                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                        label: 'Windows&&Docker',
+                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.8.3/python-3.8.3-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                    ]
+                ],
+                test: [
+                    dockerfile: [
+                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8',
+                        label: 'windows && docker',
+                    ]
+                ]
+
+            ],
+            pkgRegex: "*cp38*.whl"
+        ],
     ]
 
 pipeline {
@@ -471,7 +491,8 @@ pipeline {
                         name 'PYTHON_VERSION'
                         values(
                             '3.6',
-                            '3.7'
+                            '3.7',
+                            '3.8'
                             )
                     }
                 }
