@@ -820,6 +820,16 @@ class BuildTesseractExt(build_ext):
             self.include_dirs.append(pybind11_include_path)
 
         super().run()
+        print(self.compiler)
+        for e in self.extensions:
+            dll_name = self.get_ext_filename(e.name)
+            print(dll_name)
+            output_file = os.path.join(self.build_temp, f'{e.name}.dependents')
+            self.compiler.spawn(['dumpbin', '/dependents', dll_name, f'/out:{output_file}'])
+            deps = self.parse_dumpbin_deps(file=output_file)
+
+    def parse_dumpbin_deps(self, file) -> List[str]:
+        return []
 
     def find_missing_libraries(self, ext):
         missing_libs = []
