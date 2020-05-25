@@ -8,6 +8,7 @@ import shutil
 import os
 import abc
 import sys
+import re
 from distutils.version import StrictVersion
 import urllib.request
 import platform
@@ -15,6 +16,8 @@ from typing import List, Tuple, Union, Iterable
 import tarfile
 import zipfile
 from urllib import request
+
+DEPS_REGEX = '(?<=(Image has the following dependencies:(\n){2}))((?<=\s).*\.dll\n)*'
 
 PACKAGE_NAME = "uiucprescon.ocr"
 PYBIND11_DEFAULT_URL = \
@@ -799,6 +802,30 @@ tesseract = CMakeDependency(
 )
 
 
+def parse_dumpbin_deps(file) -> List[str]:
+
+        dlls = []
+        dep_regex = re.compile(DEPS_REGEX)
+
+        with open(file) as f:
+            d = dep_regex.search(f.read())
+            for x in d.group(0).split("\n"):
+                if x.strip() == "":
+                    continue
+                dll = x.strip()
+                if dll.startswith("api-ms-win-crt"):
+                    continue
+
+                if dll.startswith("python"):
+                    continue
+
+                if dll == "KERNEL32.dll":
+                    continue
+
+                dlls.append(dll)
+        return dlls
+
+
 class BuildTesseractExt(build_ext):
     user_options = build_ext.user_options + [
         ('pybind11-url=', None,
@@ -822,17 +849,11 @@ class BuildTesseractExt(build_ext):
         super().run()
         print(self.compiler)
         for e in self.extensions:
-            dll_name = self.get_ext_filename(e.name)
+            dll_name = os.path.join(self.build_lib, self.get_ext_filename(e.name))
             output_file = os.path.join(self.build_temp, f'{e.name}.dependents')
             self.compiler.spawn(['dumpbin', '/dependents', dll_name, f'/out:{output_file}'])
-            deps = self.parse_dumpbin_deps(file=output_file)
-
-    def parse_dumpbin_deps(self, file) -> List[str]:
-
-        with open(file) as f:
-            for l in f:
-                print(l)
-        return []
+            deps = parse_dumpbin_deps(file=output_file)
+            print(deps)
 
     def find_missing_libraries(self, ext):
         missing_libs = []
