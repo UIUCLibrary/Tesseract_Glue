@@ -500,7 +500,6 @@ pipeline {
                 }
                 stage("Testing sdist"){
                     matrix{
-
                         axes {
                             axis {
                                 name 'PYTHON_VERSION'
@@ -539,7 +538,18 @@ pipeline {
                         }
                         stages {
 
-                            stage("Testing"){
+                            stage("Building Wheel"){
+                                agent any
+                                when {
+                                    expression {FORMAT == 'wheel'}
+                                }
+                                steps{
+                                    echo "Building first"
+//                                     unstash "sdist"
+
+                                }
+                            }
+                            stage("Testing package"){
                                 agent any
                                 steps{
                                     unstash "sdist"
