@@ -653,7 +653,7 @@ pipeline {
                                      }
                                 }
                                 when {
-                                    expression {FORMAT == 'wheel'}
+                                    equals expected: 'wheel', actual: FORMAT
                                 }
                                 steps{
                                     script{
