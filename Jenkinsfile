@@ -909,8 +909,9 @@ pipeline {
                     }
                     steps {
                             unstash "DOCS_ARCHIVE"
-                            unstash "whl 3.6"
-                            unstash "whl 3.7"
+                            unstash "wheel 3.6-windows"
+                            unstash "wheel 3.7-windows"
+                            unstash "wheel 3.8-windows"
                             unstash "sdist"
                             sh(
                                 label: "Connecting to DevPi Server",
