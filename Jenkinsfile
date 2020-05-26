@@ -130,14 +130,14 @@ def CONFIGURATIONS = [
                             dockerfile: [
                                 filename: 'ci/docker/linux/build/Dockerfile',
                                 label: 'linux&&docker',
-                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6'
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         test: [
                             dockerfile: [
                                 filename: 'ci/docker/linux/build/Dockerfile',
                                 label: 'linux&&docker',
-                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6'
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ]
                     ],
@@ -178,14 +178,14 @@ def CONFIGURATIONS = [
                             dockerfile: [
                                 filename: 'ci/docker/linux/build/Dockerfile',
                                 label: 'linux&&docker',
-                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7'
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         test: [
                             dockerfile: [
                                 filename: 'ci/docker/linux/build/Dockerfile',
                                 label: 'linux&&docker',
-                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7'
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ]
                     ],
@@ -228,14 +228,14 @@ def CONFIGURATIONS = [
                             dockerfile: [
                                 filename: 'ci/docker/linux/build/Dockerfile',
                                 label: 'linux&&docker',
-                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8'
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ],
                         test: [
                             dockerfile: [
                                 filename: 'ci/docker/linux/build/Dockerfile',
                                 label: 'linux&&docker',
-                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8'
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                             ]
                         ]
                     ],
