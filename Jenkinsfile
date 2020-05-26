@@ -511,11 +511,30 @@ pipeline {
                                 )
                             }
                             axis {
-                                name 'OS'
+                                name 'PLATFORM'
                                 values(
                                     "windows",
                                     "linux"
                                 )
+                            }
+                            axis {
+                                name 'FORMAT'
+                                values(
+                                    "source",
+                                    "wheel"
+                                )
+                            }
+                        }
+                        excludes{
+                            exclude {
+                                axis {
+                                    name 'PLATFORM'
+                                    values 'linux'
+                                }
+                                axis {
+                                    name 'FORMAT'
+                                    values 'wheel'
+                                }
                             }
                         }
                         stages {
