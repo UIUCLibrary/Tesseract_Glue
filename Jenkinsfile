@@ -121,7 +121,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp36*.whl",
-                        sdist:"*.zip"
+                        sdist: "uiucprescon.orc-*.zip"
                     ]
                 ],
                 linux: [
@@ -143,7 +143,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp36*.whl",
-                        sdist: "*.zip"
+                        sdist: "uiucprescon.orc-*.zip"
                     ]
                 ]
             ],
@@ -169,7 +169,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp37*.whl",
-                        sdist: "*.zip"
+                        sdist: "uiucprescon.orc-*.zip"
                     ]
                 ],
                 linux: [
@@ -191,7 +191,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp37*.whl",
-                        sdist: "*.zip"
+                        sdist: "uiucprescon.orc-*.zip"
                     ]
                 ]
 
