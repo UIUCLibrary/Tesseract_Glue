@@ -49,10 +49,17 @@ ENV PIPENV_CACHE_DIR=c:\pipenv_cache `
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
-    pip install wheel pipenv sphinx tox mypy lxml pytest flake8 pytest-cov pytest-bdd
+    pip install wheel ; `
+    pip install sphinx tox mypy pytest flake8 pytest-cov pytest-bdd
+
+RUN pip install lxml; `
+    pip install six==1.14 ; `
+    pip install conan
 #
-ADD Pipfile Pipfile.lock c:/temp/
-RUN cd c:\temp ; pipenv install --dev --verbose
+
+COPY conanfile.py C:/TEMP/
+RUN conan install C:/TEMP/ --build  missing --no-import ;`
+    conan remove * -b --src -f
 
 ENV TEMP c:\temp
 ENV TMP c:\temp

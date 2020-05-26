@@ -101,44 +101,184 @@ def get_package_name(stashName, metadataFile){
 
 def CONFIGURATIONS = [
         "3.6" : [
-            agents: [
-                build: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
-                        label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
-
+            os: [
+                windows:[
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                label: 'Windows&&Docker',
+                                additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                            ]
+                        ],
+                        test:[
+                            wheel: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                                    label: 'Windows&&Docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore --build-arg CHOCOLATEY_SOURCE'
+                                ]
+                            ],
+                            sdist: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                    label: 'Windows&&Docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                ]
+                            ]
+                        ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp36*.whl",
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ],
-                test:[
-                    dockerfile: [
-                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
-                        label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore --build-arg CHOCOLATEY_SOURCE'
+                linux: [
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/linux/build/Dockerfile',
+                                label: 'linux&&docker',
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                            ]
+                        ],
+                        test: [
+                            sdist: [
+                                dockerfile: [
+                                    filename: 'ci/docker/linux/build/Dockerfile',
+                                    label: 'linux&&docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                ]
+                            ]
+                        ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp36*.whl",
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ]
             ],
-            pkgRegex: "*cp36*.whl"
         ],
         "3.7" : [
-            agents: [
-                build: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
-                        label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+            os: [
+                windows: [
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                label: 'Windows&&Docker',
+                                additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                            ]
+                        ],
+                        test: [
+                            sdist: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                    label: 'Windows&&Docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                ]
+                            ],
+                            wheel: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                                    additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7',
+                                    label: 'windows && docker',
+                                ]
+                            ]
+                        ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp37*.whl",
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ],
-                test: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
-                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7',
-                        label: 'windows && docker',
+                linux: [
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/linux/build/Dockerfile',
+                                label: 'linux&&docker',
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                            ]
+                        ],
+                        test: [
+                            sdist: [
+                                dockerfile: [
+                                    filename: 'ci/docker/linux/build/Dockerfile',
+                                    label: 'linux&&docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                ]
+                            ]
+                        ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp37*.whl",
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ]
 
             ],
-            pkgRegex: "*cp37*.whl"
+        ],
+        "3.8" : [
+            os: [
+                windows: [
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                label: 'Windows&&Docker',
+                                additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.8.3/python-3.8.3-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                            ]
+                        ],
+                        test: [
+                            sdist: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                    label: 'Windows&&Docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.8.3/python-3.8.3-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                ]
+                            ],
+                            wheel: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                                    additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8',
+                                    label: 'windows && docker',
+                                ]
+                            ]
+                        ]
+
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp38*.whl",
+                        sdist: "uiucprescon.ocr-*.zip"
+                    ]
+                ],
+                linux: [
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/linux/build/Dockerfile',
+                                label: 'linux&&docker',
+                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                            ]
+                        ],
+                        test: [
+                            sdist: [
+                                dockerfile: [
+                                    filename: 'ci/docker/linux/build/Dockerfile',
+                                    label: 'linux&&docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                ]
+                            ]
+                        ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp38*.whl",
+                        sdist: "uiucprescon.ocr-*.zip"
+                    ]
+                ]
+            ]
+
         ],
     ]
 
@@ -181,8 +321,8 @@ pipeline {
                     }
                     post{
                         success{
-                            stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
-                            archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
+                            stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
                         }
                         cleanup{
                              cleanWs(
@@ -230,8 +370,8 @@ pipeline {
                 stage("Building Documentation"){
                     environment {
 //                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
-                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
+                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                     }
                     options{
                         timeout(3)
@@ -355,6 +495,7 @@ pipeline {
                                 timeout(10)
                             }
                             steps{
+                                bat "mkdir if not exist reports\\pytestcoverage"
                                 bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/setup.cfg"
                             }
                             post {
@@ -445,114 +586,186 @@ pipeline {
             }
 
         }
-        stage("Python sdist"){
-            agent {
-                dockerfile {
-                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                    label 'Windows&&Docker'
-                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                  }
-            }
-            steps {
-                bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
-            }
-            post{
-                success{
-                    stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
-                }
-            }
-        }
-        stage("Packaging Binary Wheels") {
-            matrix{
-                agent any
-                axes {
-                    axis {
-                        name 'PYTHON_VERSION'
-                        values(
-                            '3.6',
-                            '3.7'
-                            )
+        stage("Python packaging"){
+            stages{
+                stage("Build sdist"){
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/windows/build/msvc/Dockerfile'
+                            label 'Windows&&Docker'
+                            additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+                          }
+                    }
+                    steps {
+                        bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
+                    }
+                    post{
+                        success{
+                            stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
+                        }
                     }
                 }
-                stages {
-                    stage("Building whl Package"){
-                        agent {
-                            dockerfile {
-                                filename "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.filename}"
-                                label "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.label}"
-                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.additionalBuildArgs}"
-                             }
-                        }
-                        steps{
-                            echo "Building Wheel for Python ${PYTHON_VERSION}"
-                            bat "python --version"
-                            bat "python setup.py build -b build -j${env.NUMBER_OF_PROCESSORS} build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
-                        }
-                        post {
-                            success{
-                                stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}", name: "whl ${PYTHON_VERSION}"
-
+                stage("Testing Packages"){
+                    matrix{
+                        axes {
+                            axis {
+                                name 'PYTHON_VERSION'
+                                values(
+                                    '3.6',
+                                    '3.7',
+                                    '3.8'
+                                )
                             }
-                            cleanup{
-                                cleanWs(
-                                        deleteDirs: true,
-                                        patterns: [
-                                            [pattern: 'dist', type: 'INCLUDE']
-                                        ]
-                                    )
+                            axis {
+                                name 'PLATFORM'
+                                values(
+                                    "windows",
+                                    "linux"
+                                )
+                            }
+                            axis {
+                                name 'FORMAT'
+                                values(
+                                    "sdist",
+                                    "wheel"
+                                )
                             }
                         }
-                    }
-                    stage("Testing wheel on a Different computer"){
-                        agent{
-                            dockerfile {
-                                filename "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.filename}"
-                                label "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.label}"
-                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.additionalBuildArgs}"
-                            }
-                        }
-                        steps{
-                            unstash "whl ${PYTHON_VERSION}"
-
-                            bat(
-                                label: "Installing Python virtual environment",
-                                script:"python -m venv venv"
-                            )
-
-                            bat(
-                                label: "Upgrading pip to latest version",
-                                script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
-                            )
-
-                            bat(
-                                label: "Installing tox to Python virtual environment",
-                                script: "venv\\Scripts\\pip.exe install tox --upgrade"
-                            )
-
-                            script{
-                                def python_wheel = findFiles glob: "**/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}"
-
-                                python_wheel.each{
-                                    try{
-                                        bat(label: "Testing ${it}",
-                                            script: "venv\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
-                                            )
-                                    } catch (Exception ex) {
-                                        bat "pip install wheel"
-                                        bat "wheel unpack ${it} -d dist"
-                                        bat "cd dist && tree /f /a"
-                                    }
+                        excludes{
+                            exclude {
+                                axis {
+                                    name 'PLATFORM'
+                                    values 'linux'
+                                }
+                                axis {
+                                    name 'FORMAT'
+                                    values 'wheel'
                                 }
                             }
                         }
-                        post{
-                            success{
-                                archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}"
+                        stages {
+                            stage("Building Wheel"){
+                                agent {
+                                    dockerfile {
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.build.dockerfile.filename}"
+                                        label "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.build.dockerfile.label}"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.build.dockerfile.additionalBuildArgs}"
+                                     }
+                                }
+                                when {
+                                    equals expected: 'wheel', actual: FORMAT
+                                }
+                                steps{
+                                    script{
+                                        if(isUnix()){
+                                            sh(
+                                                label: "Building Wheel for Python ${PYTHON_VERSION}",
+                                                script: "python setup.py build -b build build_ext --inplace bdist_wheel -d ${WORKSPACE}/dist"
+                                            )
+                                        } else {
+                                            bat(
+                                                label: "Building Wheel for Python ${PYTHON_VERSION}",
+                                                script: "python setup.py build -b build build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
+                                            )
+                                        }
+                                    }
+                                }
+                                post {
+                                    success{
+                                        stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}", name: "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
+                                        script{
+                                            if(!isUnix()){
+                                                findFiles(excludes: '', glob: '**/*.pyd').each{
+                                                    bat(
+                                                        label: "Scanning dll dependencies of ${it.name}",
+                                                        script:"dumpbin /DEPENDENTS ${it.path}"
+                                                        )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    cleanup{
+                                        cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: 'dist', type: 'INCLUDE']
+                                                ]
+                                            )
+                                    }
+                                }
                             }
-                            cleanup{
-                                cleanWs(
-                                    notFailBuild: true
-                                )
+                            stage("Testing package"){
+                                agent {
+                                    dockerfile {
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test[FORMAT].dockerfile.filename}"
+                                        label "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test[FORMAT].dockerfile.label}"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test[FORMAT].dockerfile.additionalBuildArgs}"
+                                     }
+                                }
+                                steps{
+                                    script{
+                                        if (PLATFORM == "windows"){
+                                            bat(
+                                                label: "Installing Python virtual environment",
+                                                script:"python -m venv venv"
+                                            )
+
+                                            bat(
+                                                label: "Upgrading pip to latest version",
+                                                script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
+                                            )
+
+                                            bat(
+                                                label: "Installing tox to Python virtual environment",
+                                                script: "venv\\Scripts\\pip.exe install tox --upgrade"
+                                            )
+                                        } else {
+                                            sh(
+                                                label: "Installing Python virtual environment",
+                                                script:"python -m venv venv"
+                                            )
+
+                                            sh(
+                                                label: "Upgrading pip to latest version",
+                                                script: "venv/bin/python -m pip install pip --upgrade"
+                                            )
+
+                                            sh(
+                                                label: "Installing tox to Python virtual environment",
+                                                script: "venv/bin/pip install tox --upgrade"
+                                            )
+                                        }
+                                        if (FORMAT == "wheel"){
+                                            unstash "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
+                                        }
+                                        else{
+                                            unstash "sdist"
+                                        }
+                                        findFiles( glob: "dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}").each{
+                                            if(isUnix()){
+                                                sh(
+                                                    label: "Testing ${it}",
+                                                    script: "venv/bin/tox --installpkg=${it.path} -e py"
+                                                    )
+                                            } else {
+                                                bat(
+                                                    label: "Testing ${it}",
+                                                    script: "venv\\Scripts\\tox.exe --installpkg=${it.path} -e py"
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                                post{
+                                    success{
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}"
+                                    }
+                                    cleanup{
+                                        cleanWs(
+                                            notFailBuild: true
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
@@ -573,8 +786,8 @@ pipeline {
                 }
             }
             environment{
-                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
-                PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
+                PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                 DEVPI = credentials("DS_devpi")
             }
             stages{
@@ -588,8 +801,9 @@ pipeline {
                     }
                     steps {
                             unstash "DOCS_ARCHIVE"
-                            unstash "whl 3.6"
-                            unstash "whl 3.7"
+                            unstash "wheel 3.6-windows"
+                            unstash "wheel 3.7-windows"
+                            unstash "wheel 3.8-windows"
                             unstash "sdist"
                             sh(
                                 label: "Connecting to DevPi Server",
@@ -840,7 +1054,7 @@ pipeline {
                 equals expected: true, actual: params.DEPLOY_DOCS
             }
             environment{
-                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
             }
             steps{
                 unstash "DOCS_ARCHIVE"
