@@ -617,6 +617,29 @@ pipeline {
                                         }
                                     }
                                 }
+                                post {
+                                    success{
+                                        stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex}", name: "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                        script{
+                                            if(!isUnix()){
+                                                findFiles(excludes: '', glob: '**/*.pyd').each{
+                                                    bat(
+                                                        label: "Scanning dll dependencies of ${it.name}",
+                                                        script:"dumpbin /DEPENDENTS ${it.path}"
+                                                        )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    cleanup{
+                                        cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: 'dist', type: 'INCLUDE']
+                                                ]
+                                            )
+                                    }
+                                }
                             }
                             stage("Testing package"){
                                 agent any
