@@ -201,8 +201,8 @@ pipeline {
                     }
                     post{
                         success{
-                            stash includes: "uiucprescon_ocr.dist-info/**", name: 'DIST-INFO'
-                            archiveArtifacts artifacts: "uiucprescon_ocr.dist-info/**"
+                            stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
                         }
                         cleanup{
                              cleanWs(
@@ -250,8 +250,8 @@ pipeline {
                 stage("Building Documentation"){
                     environment {
 //                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
-                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
+                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                     }
                     options{
                         timeout(3)
@@ -605,8 +605,8 @@ pipeline {
                 }
             }
             environment{
-                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
-                PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
+                PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                 DEVPI = credentials("DS_devpi")
             }
             stages{
@@ -872,7 +872,7 @@ pipeline {
                 equals expected: true, actual: params.DEPLOY_DOCS
             }
             environment{
-                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon_ocr.dist-info/METADATA")
+                PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
             }
             steps{
                 unstash "DOCS_ARCHIVE"
