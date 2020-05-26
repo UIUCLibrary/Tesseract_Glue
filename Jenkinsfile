@@ -497,11 +497,19 @@ pipeline {
                                     '3.8'
                                 )
                             }
+                            axis {
+                                name 'OS'
+                                values(
+                                    "windows",
+                                    "linux"
+                                )
+                            }
                         }
                         stages {
                             stage("Testing"){
                                 steps{
-                                    echo "Testing "
+                                    unstash "sdist"
+
                                 }
                             }
                         }
