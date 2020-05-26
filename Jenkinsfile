@@ -641,13 +641,13 @@ pipeline {
                                     }
                                 }
                             }
-                            stage("Testing package"){
-                                agent any
-                                steps{
-                                    unstash "sdist"
-
-                                }
-                            }
+//                             stage("Testing package"){
+//                                 agent any
+//                                 steps{
+//                                     unstash "sdist"
+//
+//                                 }
+//                             }
                         }
                     }
                 }
