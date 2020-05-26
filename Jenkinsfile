@@ -467,19 +467,45 @@ pipeline {
 
         }
         stage("Python sdist"){
-            agent {
-                dockerfile {
-                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                    label 'Windows&&Docker'
-                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                  }
-            }
-            steps {
-                bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
-            }
-            post{
-                success{
-                    stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
+            stages{
+                stage("Build sdist"){
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/windows/build/msvc/Dockerfile'
+                            label 'Windows&&Docker'
+                            additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+                          }
+                    }
+                    steps {
+                        bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
+                    }
+                    post{
+                        success{
+                            stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
+                        }
+                    }
+                }
+                stage("Testing sdist"){
+                    matrix{
+                        agent any
+                        axes {
+                            axis {
+                                name 'PYTHON_VERSION'
+                                values(
+                                    '3.6',
+                                    '3.7',
+                                    '3.8'
+                                )
+                            }
+                        }
+                        stages {
+                            stage("Testing"){
+                                steps{
+                                    echo "Testing "
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
