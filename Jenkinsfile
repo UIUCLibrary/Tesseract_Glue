@@ -653,113 +653,113 @@ pipeline {
                 }
             }
         }
-        stage("Packaging Binary Wheels") {
-            matrix{
-                axes {
-                    axis {
-                        name 'PYTHON_VERSION'
-                        values(
-                            '3.6',
-                            '3.7',
-                            '3.8'
-                            )
-                    }
-                }
-                stages {
-                    stage("Building whl Package"){
-                        agent {
-                            dockerfile {
-                                filename "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.filename}"
-                                label "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.label}"
-                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.additionalBuildArgs}"
-                             }
-                        }
-                        steps{
-                            echo "Building Wheel for Python ${PYTHON_VERSION}"
-                            bat "python --version"
-                            bat "python setup.py build -b build -j${env.NUMBER_OF_PROCESSORS} build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
-                        }
-                        post {
-                            success{
-                                stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}", name: "whl ${PYTHON_VERSION}"
-                                script{
-
-                                    def dlls = findFiles excludes: '', glob: '**/*.pyd'
-                                    dlls.each{
-                                        bat(
-                                            label: "Scanning dll dependencies of ${it.name}",
-                                            script:"dumpbin /DEPENDENTS ${it.path}"
-                                            )
-                                    }
-                                }
-                            }
-                            cleanup{
-                                cleanWs(
-                                        deleteDirs: true,
-                                        patterns: [
-                                            [pattern: 'dist', type: 'INCLUDE']
-                                        ]
-                                    )
-                            }
-                        }
-                    }
-                    stage("Testing wheel on a Different computer"){
-                        agent{
-                            dockerfile {
-                                filename "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.filename}"
-                                label "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.label}"
-                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.additionalBuildArgs}"
-                            }
-                        }
-                        steps{
-                            unstash "whl ${PYTHON_VERSION}"
-
-                            bat(
-                                label: "Installing Python virtual environment",
-                                script:"python -m venv venv"
-                            )
-
-                            bat(
-                                label: "Upgrading pip to latest version",
-                                script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
-                            )
-
-                            bat(
-                                label: "Installing tox to Python virtual environment",
-                                script: "venv\\Scripts\\pip.exe install tox --upgrade"
-                            )
-
-                            script{
-                                def python_wheel = findFiles glob: "**/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}"
-
-                                python_wheel.each{
-                                    try{
-                                        bat(label: "Testing ${it}",
-                                            script: "venv\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
-                                            )
-                                    } catch (Exception ex) {
-                                        bat "pip install wheel"
-                                        bat "wheel unpack ${it} -d dist"
-                                        bat "cd dist && tree /f /a"
-                                        raise
-                                    }
-                                }
-                            }
-                        }
-                        post{
-                            success{
-                                archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}"
-                            }
-                            cleanup{
-                                cleanWs(
-                                    notFailBuild: true
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+//         stage("Packaging Binary Wheels") {
+//             matrix{
+//                 axes {
+//                     axis {
+//                         name 'PYTHON_VERSION'
+//                         values(
+//                             '3.6',
+//                             '3.7',
+//                             '3.8'
+//                             )
+//                     }
+//                 }
+//                 stages {
+//                     stage("Building whl Package"){
+//                         agent {
+//                             dockerfile {
+//                                 filename "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.filename}"
+//                                 label "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.label}"
+//                                 additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.additionalBuildArgs}"
+//                              }
+//                         }
+//                         steps{
+//                             echo "Building Wheel for Python ${PYTHON_VERSION}"
+//                             bat "python --version"
+//                             bat "python setup.py build -b build -j${env.NUMBER_OF_PROCESSORS} build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
+//                         }
+//                         post {
+//                             success{
+//                                 stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}", name: "whl ${PYTHON_VERSION}"
+//                                 script{
+//
+//                                     def dlls = findFiles excludes: '', glob: '**/*.pyd'
+//                                     dlls.each{
+//                                         bat(
+//                                             label: "Scanning dll dependencies of ${it.name}",
+//                                             script:"dumpbin /DEPENDENTS ${it.path}"
+//                                             )
+//                                     }
+//                                 }
+//                             }
+//                             cleanup{
+//                                 cleanWs(
+//                                         deleteDirs: true,
+//                                         patterns: [
+//                                             [pattern: 'dist', type: 'INCLUDE']
+//                                         ]
+//                                     )
+//                             }
+//                         }
+//                     }
+//                     stage("Testing wheel on a Different computer"){
+//                         agent{
+//                             dockerfile {
+//                                 filename "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.filename}"
+//                                 label "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.label}"
+//                                 additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.additionalBuildArgs}"
+//                             }
+//                         }
+//                         steps{
+//                             unstash "whl ${PYTHON_VERSION}"
+//
+//                             bat(
+//                                 label: "Installing Python virtual environment",
+//                                 script:"python -m venv venv"
+//                             )
+//
+//                             bat(
+//                                 label: "Upgrading pip to latest version",
+//                                 script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
+//                             )
+//
+//                             bat(
+//                                 label: "Installing tox to Python virtual environment",
+//                                 script: "venv\\Scripts\\pip.exe install tox --upgrade"
+//                             )
+//
+//                             script{
+//                                 def python_wheel = findFiles glob: "**/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}"
+//
+//                                 python_wheel.each{
+//                                     try{
+//                                         bat(label: "Testing ${it}",
+//                                             script: "venv\\Scripts\\tox.exe --installpkg=${WORKSPACE}\\${it} -e py"
+//                                             )
+//                                     } catch (Exception ex) {
+//                                         bat "pip install wheel"
+//                                         bat "wheel unpack ${it} -d dist"
+//                                         bat "cd dist && tree /f /a"
+//                                         raise
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                         post{
+//                             success{
+//                                 archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}"
+//                             }
+//                             cleanup{
+//                                 cleanWs(
+//                                     notFailBuild: true
+//                                 )
+//                             }
+//                         }
+//                     }
+//                 }
+//             }
+//         }
         stage("Deploy to DevPi") {
             agent{
                 label "linux && docker"
