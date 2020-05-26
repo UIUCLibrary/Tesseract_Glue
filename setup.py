@@ -858,15 +858,16 @@ class BuildTesseractExt(build_ext):
         for e in self.extensions:
             dll_name = os.path.join(self.build_lib, self.get_ext_filename(e.name))
             output_file = os.path.join(self.build_temp, f'{e.name}.dependents')
-            if not self.compiler.initialized:
-                self.compiler.initialize()
-            self.compiler.spawn(['dumpbin', '/dependents', dll_name, f'/out:{output_file}'])
-            deps = parse_dumpbin_deps(file=output_file)
-            deps = remove_system_dlls(deps)
-            dest =  os.path.dirname(dll_name)
-            for dep in deps:
-                dll = self.find_deps(dep)
-                shutil.copy(dll, dest)
+            if self.compiler.compiler_type != "unix":
+                if not self.compiler.initialized:
+                    self.compiler.initialize()
+                self.compiler.spawn(['dumpbin', '/dependents', dll_name, f'/out:{output_file}'])
+                deps = parse_dumpbin_deps(file=output_file)
+                deps = remove_system_dlls(deps)
+                dest = os.path.dirname(dll_name)
+                for dep in deps:
+                    dll = self.find_deps(dep)
+                    shutil.copy(dll, dest)
 
     def find_deps(self, lib):
 
