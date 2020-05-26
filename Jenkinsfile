@@ -121,7 +121,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp36*.whl",
-                        sdist: "uiucprescon.orc-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ],
                 linux: [
@@ -143,7 +143,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp36*.whl",
-                        sdist: "uiucprescon.orc-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ]
             ],
@@ -169,7 +169,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp37*.whl",
-                        sdist: "uiucprescon.orc-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ],
                 linux: [
@@ -191,7 +191,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp37*.whl",
-                        sdist: "uiucprescon.orc-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ]
 
@@ -219,7 +219,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp38*.whl",
-                        source:"*.zip"
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ],
                 linux: [
@@ -241,7 +241,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         wheel: "*cp38*.whl",
-                        source:"*.zip"
+                        sdist: "uiucprescon.ocr-*.zip"
                     ]
                 ]
             ]
@@ -709,7 +709,7 @@ pipeline {
                                         else{
                                             unstash "sdist"
                                         }
-                                        findFiles( glob: "**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}").each{
+                                        findFiles( glob: "dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}").each{
                                             if(isUnix()){
                                                 sh(
                                                     label: "Testing ${it}",
