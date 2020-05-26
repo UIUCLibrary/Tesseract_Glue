@@ -119,7 +119,10 @@ def CONFIGURATIONS = [
                             ]
                         ]
                     ],
-                    pkgRegex: "*cp36*.whl"
+                    pkgRegex: [
+                        wheel: "*cp36*.whl",
+                        sdist:"*.zip"
+                    ]
                 ],
                 linux: [
                     agents: [
@@ -137,6 +140,10 @@ def CONFIGURATIONS = [
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6'
                             ]
                         ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp36*.whl",
+                        sdist: "*.zip"
                     ]
                 ]
             ],
@@ -160,7 +167,10 @@ def CONFIGURATIONS = [
                             ]
                         ]
                     ],
-                    pkgRegex: "*cp37*.whl"
+                    pkgRegex: [
+                        wheel: "*cp37*.whl",
+                        sdist: "*.zip"
+                    ]
                 ],
                 linux: [
                     agents: [
@@ -178,6 +188,10 @@ def CONFIGURATIONS = [
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.7'
                             ]
                         ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp37*.whl",
+                        sdist: "*.zip"
                     ]
                 ]
 
@@ -203,7 +217,10 @@ def CONFIGURATIONS = [
                         ]
 
                     ],
-                    pkgRegex: "*cp38*.whl"
+                    pkgRegex: [
+                        wheel: "*cp38*.whl",
+                        source:"*.zip"
+                    ]
                 ],
                 linux: [
                     agents: [
@@ -221,6 +238,10 @@ def CONFIGURATIONS = [
                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.8'
                             ]
                         ]
+                    ],
+                    pkgRegex: [
+                        wheel: "*cp38*.whl",
+                        source:"*.zip"
                     ]
                 ]
             ]
@@ -532,7 +553,7 @@ pipeline {
             }
 
         }
-        stage("Python sdist"){
+        stage("Python packaging"){
             stages{
                 stage("Build sdist"){
                     agent {
@@ -572,7 +593,7 @@ pipeline {
                             axis {
                                 name 'FORMAT'
                                 values(
-                                    "source",
+                                    "sdist",
                                     "wheel"
                                 )
                             }
@@ -619,7 +640,7 @@ pipeline {
                                 }
                                 post {
                                     success{
-                                        stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex}", name: "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                        stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}", name: "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
                                         script{
                                             if(!isUnix()){
                                                 findFiles(excludes: '', glob: '**/*.pyd').each{
@@ -651,14 +672,67 @@ pipeline {
                                 }
                                 steps{
                                     script{
+                                        if (PLATFORM == "windows"){
+                                            bat(
+                                                label: "Installing Python virtual environment",
+                                                script:"python -m venv venv"
+                                            )
+
+                                            bat(
+                                                label: "Upgrading pip to latest version",
+                                                script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
+                                            )
+
+                                            bat(
+                                                label: "Installing tox to Python virtual environment",
+                                                script: "venv\\Scripts\\pip.exe install tox --upgrade"
+                                            )
+                                        } else {
+                                            sh(
+                                                label: "Installing Python virtual environment",
+                                                script:"python -m venv venv"
+                                            )
+
+                                            sh(
+                                                label: "Upgrading pip to latest version",
+                                                script: "venv/bin/python -m pip install pip --upgrade"
+                                            )
+
+                                            sh(
+                                                label: "Installing tox to Python virtual environment",
+                                                script: "venv/bin/pip install tox --upgrade"
+                                            )
+                                        }
                                         if (FORMAT == "wheel"){
-                                            unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                            unstash "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
                                         }
                                         else{
                                             unstash "sdist"
                                         }
+                                        findFiles( glob: "**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}").each{
+                                            if(isUnix()){
+                                                sh(
+                                                    label: "Testing ${it}",
+                                                    script: "venv/bin/tox --installpkg=${it.path} -e py"
+                                                    )
+                                            } else {
+                                                bat(
+                                                    label: "Testing ${it}",
+                                                    script: "venv\\Scripts\\tox.exe --installpkg=${it.path} -e py"
+                                                )
+                                            }
+                                        }
                                     }
-
+                                }
+                                post{
+                                    success{
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}"
+                                    }
+                                    cleanup{
+                                        cleanWs(
+                                            notFailBuild: true
+                                        )
+                                    }
                                 }
                             }
                         }
