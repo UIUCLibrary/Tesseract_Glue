@@ -641,13 +641,26 @@ pipeline {
                                     }
                                 }
                             }
-//                             stage("Testing package"){
-//                                 agent any
-//                                 steps{
-//                                     unstash "sdist"
-//
-//                                 }
-//                             }
+                            stage("Testing package"){
+                                agent {
+                                    dockerfile {
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test.dockerfile.filename}"
+                                        label "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test.dockerfile.label}"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test.dockerfile.additionalBuildArgs}"
+                                     }
+                                }
+                                steps{
+                                    script{
+                                        if (FORMAT == "wheel"){
+                                            unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                        }
+                                        else{
+                                            unstash "sdist"
+                                        }
+                                    }
+
+                                }
+                            }
                         }
                     }
                 }
