@@ -500,7 +500,7 @@ pipeline {
                 }
                 stage("Testing sdist"){
                     matrix{
-                        agent any
+
                         axes {
                             axis {
                                 name 'PYTHON_VERSION'
@@ -538,7 +538,9 @@ pipeline {
                             }
                         }
                         stages {
+
                             stage("Testing"){
+                                agent any
                                 steps{
                                     unstash "sdist"
 
