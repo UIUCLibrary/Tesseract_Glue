@@ -605,7 +605,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Testing sdist"){
+                stage("Testing Packages"){
                     matrix{
                         axes {
                             axis {
@@ -644,7 +644,6 @@ pipeline {
                             }
                         }
                         stages {
-
                             stage("Building Wheel"){
                                 agent {
                                     dockerfile {
