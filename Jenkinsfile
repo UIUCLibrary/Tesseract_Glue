@@ -603,9 +603,19 @@ pipeline {
                                     expression {FORMAT == 'wheel'}
                                 }
                                 steps{
-                                    echo "Building first"
-//                                     unstash "sdist"
-
+                                    script{
+                                        if(isUnix()){
+                                            sh(
+                                                label: "Building Wheel for Python ${PYTHON_VERSION}",
+                                                script: "python setup.py build -b build build_ext --inplace bdist_wheel -d ${WORKSPACE}/dist"
+                                            )
+                                        } else {
+                                            bat(
+                                                label: "Building Wheel for Python ${PYTHON_VERSION}",
+                                                script: "python setup.py build -b build build_ext --inplace bdist_wheel -d ${WORKSPACE}\\dist"
+                                            )
+                                        }
+                                    }
                                 }
                             }
                             stage("Testing package"){
