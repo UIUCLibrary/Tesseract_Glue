@@ -101,64 +101,77 @@ def get_package_name(stashName, metadataFile){
 
 def CONFIGURATIONS = [
         "3.6" : [
-            agents: [
-                build: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
-                        label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+            os: [
+                windows:[
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                label: 'Windows&&Docker',
+                                additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
 
-                    ]
-                ],
-                test:[
-                    dockerfile: [
-                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
-                        label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore --build-arg CHOCOLATEY_SOURCE'
-                    ]
+                            ]
+                        ],
+                        test:[
+                            dockerfile: [
+                                filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                                label: 'Windows&&Docker',
+                                additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore --build-arg CHOCOLATEY_SOURCE'
+                            ]
+                        ]
+                    ],
+                    pkgRegex: "*cp36*.whl"
                 ]
             ],
-            pkgRegex: "*cp36*.whl"
         ],
         "3.7" : [
-            agents: [
-                build: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
-                        label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe --build-arg CHOCOLATEY_SOURCE'
-                    ]
-                ],
-                test: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
-                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7',
-                        label: 'windows && docker',
-                    ]
+            os: [
+                windows: [
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                label: 'Windows&&Docker',
+                                additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                            ]
+                        ],
+                        test: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                                additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.7',
+                                label: 'windows && docker',
+                            ]
+                        ]
+                    ],
+                    pkgRegex: "*cp37*.whl"
                 ]
 
             ],
-            pkgRegex: "*cp37*.whl"
         ],
         "3.8" : [
-            agents: [
-                build: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
-                        label: 'Windows&&Docker',
-                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.8.3/python-3.8.3-amd64.exe --build-arg CHOCOLATEY_SOURCE'
-                    ]
-                ],
-                test: [
-                    dockerfile: [
-                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
-                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8',
-                        label: 'windows && docker',
-                    ]
-                ]
+            os: [
+                windows: [
+                    agents: [
+                        build: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                label: 'Windows&&Docker',
+                                additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.8.3/python-3.8.3-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                            ]
+                        ],
+                        test: [
+                            dockerfile: [
+                                filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                                additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.8',
+                                label: 'windows && docker',
+                            ]
+                        ]
 
-            ],
-            pkgRegex: "*cp38*.whl"
+                    ],
+                    pkgRegex: "*cp38*.whl"
+                ]
+            ]
+
         ],
     ]
 
@@ -519,7 +532,6 @@ pipeline {
         }
         stage("Packaging Binary Wheels") {
             matrix{
-//                 agent any
                 axes {
                     axis {
                         name 'PYTHON_VERSION'
@@ -534,9 +546,9 @@ pipeline {
                     stage("Building whl Package"){
                         agent {
                             dockerfile {
-                                filename "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.filename}"
-                                label "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.label}"
-                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].agents.build.dockerfile.additionalBuildArgs}"
+                                filename "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.filename}"
+                                label "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.label}"
+                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.build.dockerfile.additionalBuildArgs}"
                              }
                         }
                         steps{
@@ -546,7 +558,7 @@ pipeline {
                         }
                         post {
                             success{
-                                stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}", name: "whl ${PYTHON_VERSION}"
+                                stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}", name: "whl ${PYTHON_VERSION}"
                                 script{
 
                                     def dlls = findFiles excludes: '', glob: '**/*.pyd'
@@ -571,9 +583,9 @@ pipeline {
                     stage("Testing wheel on a Different computer"){
                         agent{
                             dockerfile {
-                                filename "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.filename}"
-                                label "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.label}"
-                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].agents.test.dockerfile.additionalBuildArgs}"
+                                filename "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.filename}"
+                                label "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.label}"
+                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os.windows.agents.test.dockerfile.additionalBuildArgs}"
                             }
                         }
                         steps{
@@ -595,7 +607,7 @@ pipeline {
                             )
 
                             script{
-                                def python_wheel = findFiles glob: "**/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}"
+                                def python_wheel = findFiles glob: "**/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}"
 
                                 python_wheel.each{
                                     try{
@@ -613,7 +625,7 @@ pipeline {
                         }
                         post{
                             success{
-                                archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].pkgRegex}"
+                                archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os.windows.pkgRegex}"
                             }
                             cleanup{
                                 cleanWs(
