@@ -826,22 +826,7 @@ pipeline {
                                 }
                                 steps{
                                     script{
-                                        if (PLATFORM == "windows"){
-//                                             bat(
-//                                                 label: "Installing Python virtual environment",
-//                                                 script:"python -m venv venv"
-//                                             )
-//
-//                                             bat(
-//                                                 label: "Upgrading pip to latest version",
-//                                                 script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
-//                                             )
-//
-//                                             bat(
-//                                                 label: "Installing tox to Python virtual environment",
-//                                                 script: "venv\\Scripts\\pip.exe install tox --upgrade"
-//                                             )
-                                        } else {
+                                        if (PLATFORM != "windows"){
                                             sh(
                                                 label: "Installing Python virtual environment",
                                                 script:"python -m venv venv"
@@ -1073,8 +1058,6 @@ pipeline {
                                 timeout(30) {
                                     input "Release ${env.PKG_NAME} ${env.PKG_VERSION} (https://devpi.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}_staging/${env.PKG_NAME}/${env.PKG_VERSION}) to DevPi Production? "
                                 }
-
-//                                    bat "venv\\36\\Scripts\\devpi.exe login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} && venv\\36\\Scripts\\devpi.exe use /DS_Jenkins/${env.BRANCH_NAME}_staging && venv\\36\\Scripts\\devpi.exe push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} production/release"
                                 sh "devpi use https://devpi.library.illinois.edu && devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ${WORKSPACE}/devpi && devpi use /DS_Jenkins/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi && devpi push --index ${env.DEVPI_USR}/${env.BRANCH_NAME}_staging ${env.PKG_NAME}==${env.PKG_VERSION} production/release --clientdir ${WORKSPACE}/devpi"
                             } catch(err){
                                 echo "User response timed out. Packages not deployed to DevPi Production."
