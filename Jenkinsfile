@@ -491,7 +491,6 @@ pipeline {
                 }
                 stage("Building Documentation"){
                     environment {
-//                        PATH = "${tool 'CPython-3.6'};${tool 'CPython-3.7'};$PATH"
                         PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                     }
@@ -811,7 +810,8 @@ pipeline {
                                         cleanWs(
                                                 deleteDirs: true,
                                                 patterns: [
-                                                    [pattern: 'dist', type: 'INCLUDE']
+                                                    [pattern: 'dist', type: 'INCLUDE'],
+                                                    [pattern: 'build', type: 'INCLUDE']
                                                 ]
                                             )
                                     }
@@ -885,7 +885,13 @@ pipeline {
                                     }
                                     cleanup{
                                         cleanWs(
-                                            notFailBuild: true
+                                            notFailBuild: true,
+                                            deleteDirs: true,
+                                            patterns: [
+                                                    [pattern: 'dist', type: 'INCLUDE'],
+                                                    [pattern: 'build', type: 'INCLUDE'],
+                                                    [pattern: '.tox', type: 'INCLUDE'],
+                                                ]
                                         )
                                     }
                                 }
@@ -1028,6 +1034,19 @@ pipeline {
                                                 script: "devpi test --index ${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v"
                                             )
                                         }
+                                    }
+                                }
+                                post {
+                                    cleanup{
+                                        cleanWs(
+                                            deleteDirs: true,
+                                            disableDeferredWipeout: true,
+                                            patterns: [
+                                                [pattern: '*tmp', type: 'INCLUDE'],
+                                                [pattern: 'certs', type: 'INCLUDE'],
+                                                [pattern: 'uiucprescon.ocr.dist-info', type: 'INCLUDE'],
+                                            ]
+                                        )
                                     }
                                 }
                             }
