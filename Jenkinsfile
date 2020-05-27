@@ -132,6 +132,7 @@ def CONFIGURATIONS = [
                                 dockerfile: [
                                     filename: 'ci/docker/deploy/devpi/test/windows/whl/Dockerfile',
                                     label: 'Windows&&Docker',
+                                    label: 'Windows&&Docker',
                                     additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                                 ]
                             ],
@@ -191,6 +192,10 @@ def CONFIGURATIONS = [
                 ]
             ],
             tox_env: "py36",
+            devpiSelector: [
+                sdist: "zip",
+                wheel: "36.*whl",
+            ],
             pkgRegex: [
                 wheel: "*cp36*.whl",
                 sdist: "*.zip"
@@ -287,6 +292,10 @@ def CONFIGURATIONS = [
                 ]
             ],
             tox_env: "py37",
+            devpiSelector: [
+                sdist: "zip",
+                wheel: "37.*whl",
+            ],
             pkgRegex: [
                 wheel: "*cp37*.whl",
                 sdist: "*.zip"
@@ -384,9 +393,13 @@ def CONFIGURATIONS = [
                 ]
             ],
             tox_env: "py38",
+            devpiSelector: [
+                sdist: "zip",
+                wheel: "38.*whl",
+            ],
             pkgRegex: [
                 wheel: "*cp38*.whl",
-                sdist: "uiucprescon.ocr-*.zip"
+                sdist: "*.zip"
             ]
         ],
     ]
@@ -999,7 +1012,7 @@ pipeline {
                                             )
                                             sh(
                                                 label: "Running tests on Devpi",
-                                                script: "devpi test --index ${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].pkgRegex[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v"
+                                                script: "devpi test --index ${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].devpiSelector[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v"
                                             )
                                         } else {
                                             bat(
@@ -1012,7 +1025,7 @@ pipeline {
                                             )
                                             bat(
                                                 label: "Running tests on Devpi",
-                                                script: "devpi test --index ${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].pkgRegex[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v"
+                                                script: "devpi test --index ${env.BRANCH_NAME}_staging ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v"
                                             )
                                         }
                                     }
