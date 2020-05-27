@@ -816,7 +816,7 @@ pipeline {
                                     }
                                 }
                             }
-                            stage("Testing package"){
+                            stage("Testing Package"){
                                 agent {
                                     dockerfile {
                                         filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test[FORMAT].dockerfile.filename}"
@@ -827,20 +827,20 @@ pipeline {
                                 steps{
                                     script{
                                         if (PLATFORM == "windows"){
-                                            bat(
-                                                label: "Installing Python virtual environment",
-                                                script:"python -m venv venv"
-                                            )
-
-                                            bat(
-                                                label: "Upgrading pip to latest version",
-                                                script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
-                                            )
-
-                                            bat(
-                                                label: "Installing tox to Python virtual environment",
-                                                script: "venv\\Scripts\\pip.exe install tox --upgrade"
-                                            )
+//                                             bat(
+//                                                 label: "Installing Python virtual environment",
+//                                                 script:"python -m venv venv"
+//                                             )
+//
+//                                             bat(
+//                                                 label: "Upgrading pip to latest version",
+//                                                 script: "venv\\Scripts\\python.exe -m pip install pip --upgrade"
+//                                             )
+//
+//                                             bat(
+//                                                 label: "Installing tox to Python virtual environment",
+//                                                 script: "venv\\Scripts\\pip.exe install tox --upgrade"
+//                                             )
                                         } else {
                                             sh(
                                                 label: "Installing Python virtual environment",
@@ -872,7 +872,7 @@ pipeline {
                                             } else {
                                                 bat(
                                                     label: "Testing ${it}",
-                                                    script: "venv\\Scripts\\tox.exe --installpkg=${it.path} -e py"
+                                                    script: "tox --installpkg=${it.path} -e py"
                                                 )
                                             }
                                         }
