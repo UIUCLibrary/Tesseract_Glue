@@ -654,6 +654,7 @@ pipeline {
                                 }
                                 when {
                                     equals expected: 'wheel', actual: FORMAT
+                                    beforeAgent true
                                 }
                                 steps{
                                     script{
