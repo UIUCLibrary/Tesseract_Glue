@@ -128,10 +128,9 @@ def CONFIGURATIONS = [
                             ]
                         ],
                         devpi: [
-                            whl: [
+                            wheel: [
                                 dockerfile: [
                                     filename: 'ci/docker/deploy/devpi/test/windows/whl/Dockerfile',
-                                    label: 'Windows&&Docker',
                                     label: 'Windows&&Docker',
                                     additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
                                 ]
