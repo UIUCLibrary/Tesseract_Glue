@@ -794,7 +794,7 @@ pipeline {
                 stage("Upload to DevPi Staging"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/deploy/devpi/Dockerfile'
+                            filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
                             label 'linux&&docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                           }
@@ -824,6 +824,7 @@ pipeline {
                     }
                 }
                 stage("Test DevPi packages") {
+//                 TODO: Make into a dockerfile stage
                     options{
                         timestamps()
                     }
