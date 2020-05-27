@@ -13,7 +13,7 @@ def remove_files(artifacts){
 
 def remove_from_devpi(pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
         script {
-            docker.build("devpi", "-f ci/docker/deploy/devpi/Dockerfile .").inside{
+            docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .").inside{
                 try {
                     sh "devpi login ${devpiUsername} --password ${devpiPassword} --clientdir ${WORKSPACE}/devpi"
                     sh "devpi use ${devpiIndex} --clientdir ${WORKSPACE}/devpi"
@@ -1013,7 +1013,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'ci/docker/deploy/devpi/Dockerfile'
+                            filename 'ci/docker/deploy/devpi/deploy/Dockerfile'
                             label 'linux&&docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                           }
@@ -1036,7 +1036,7 @@ pipeline {
             post {
                 success {
                     script {
-                        def devpi_docker = docker.build("devpi", "-f ci/docker/deploy/devpi/Dockerfile .")
+                        def devpi_docker = docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .")
                         devpi_docker.inside{
                             sh(
                                 script: "devpi use https://devpi.library.illinois.edu --clientdir ${WORKSPACE}/devpi  && devpi login ${env.DEVPI_USR} --password ${env.DEVPI_PSW} --clientdir ${WORKSPACE}/devpi && devpi use /${env.DEVPI_USR}/${env.BRANCH_NAME}_staging --clientdir ${WORKSPACE}/devpi",
