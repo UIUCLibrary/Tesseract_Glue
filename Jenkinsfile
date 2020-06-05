@@ -511,7 +511,8 @@ pipeline {
                         timeout(3)
                     }
                     steps{
-                        sh "if not exist logs mkdir logs && python -m sphinx docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        sh """mkdir -p logs
+                              python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log"""
                     }
                     post{
                         always {
