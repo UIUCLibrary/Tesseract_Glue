@@ -425,11 +425,11 @@ pipeline {
     stages {
         stage("Configure") {
             agent {
-            dockerfile {
-                filename 'ci/docker/linux/build/Dockerfile'
-                label 'linux && docker'
-                additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
-            }
+                dockerfile {
+                    filename 'ci/docker/linux/build/Dockerfile'
+                    label 'linux && docker'
+                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                }
 //                 dockerfile {
 //                     filename 'ci/docker/windows/build/msvc/Dockerfile'
 //                     label 'Windows&&Docker'
@@ -438,11 +438,10 @@ pipeline {
             }
             stages{
                 stage("Getting Distribution Info"){
-                    options{
-                        timeout(2)
-                    }
                     steps{
-                        sh "python setup.py dist_info"
+                        timeout(2){
+                            sh "python setup.py dist_info"
+                        }
                     }
                     post{
                         success{
@@ -506,12 +505,11 @@ pipeline {
                         PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                     }
-                    options{
-                        timeout(3)
-                    }
                     steps{
-                        sh """mkdir -p logs
-                              python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log"""
+                        timeout(3){
+                                sh """mkdir -p logs
+                                      python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log"""
+                        }
                     }
                     post{
                         always {
@@ -620,16 +618,15 @@ pipeline {
                             environment{
                                 junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
-                            options{
-                                timeout(10)
-                            }
                             steps{
-                                sh(
-                                    label: "Running pytest",
-                                    script: """mkdir -p reports/pytestcoverage
-                                               python -m pytest --junitxml=reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/pytestcoverage/  --cov-report xml:reports/coverage.xml --cov=uiucprescon --integration --cov-config=setup.cfg
-                                               """
-                               )
+                                timeout(10){
+                                    sh(
+                                        label: "Running pytest",
+                                        script: """mkdir -p reports/pytestcoverage
+                                                   python -m pytest --junitxml=reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/pytestcoverage/  --cov-report xml:reports/coverage.xml --cov=uiucprescon --integration --cov-config=setup.cfg
+                                                   """
+                                    )
+                                }
                             }
                             post {
                                 always {
@@ -689,18 +686,15 @@ pipeline {
                                     environment{
                                         MYPYPATH = "${WORKSPACE}/mypy_stubs"
                                     }
-                                    options{
-                                        timeout(3)
-                                    }
                                     steps{
-                                        sh(
-                                            label: "Running MyPy",
-                                            script: """mkdir -p reports/mypy/html
-                                                       mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                            """
-                                        )
-//                                         bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
-//                                         bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
+                                        timeout(3){
+                                            sh(
+                                                label: "Running MyPy",
+                                                script: """mkdir -p reports/mypy/html
+                                                           mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                """
+                                            )
+                                        }
                                     }
                                 }
                             }
