@@ -409,8 +409,7 @@ pipeline {
        parameterizedCron '@weekly % DEPLOY_DEVPI=true; TEST_RUN_TOX=true'
     }
     options {
-        disableConcurrentBuilds()  //each branch has 1 job running at a time
-//        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
+        timeout(time: 1, unit: 'DAYS')
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
