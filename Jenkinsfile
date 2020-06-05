@@ -463,21 +463,30 @@ pipeline {
         stage("Building") {
             agent {
                 dockerfile {
-                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                    label 'Windows&&Docker'
-                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                  }
+                    filename 'ci/docker/linux/build/Dockerfile'
+                    label 'linux && docker'
+                    additionalBuildArgs "--build-arg PYTHON_VERSION=3.8"
+                }
             }
+//                 dockerfile {
+//                     filename 'ci/docker/windows/build/msvc/Dockerfile'
+//                     label 'Windows&&Docker'
+//                     additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+//                   }
+//             }
             stages{
                 stage("Building Python Package"){
                     steps {
                         timeout(20){
-                            bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
+                            sh 'python setup.py build -b build --build-lib build/lib/ --build-temp build/temp build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
+//                             bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
                         }
                     }
                     post{
                         success{
-                            stash includes: 'build/37/lib/**,uiucprescon/**/*.dll,uiucprescon/**/*.pyd', name: 'BUILD_FILES'
+                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
+//                             stash includes: 'build/37/lib/**,uiucprescon/**/*.dll,uiucprescon/**/*.pyd', name: 'BUILD_FILES'
+
                         }
                         cleanup{
                             cleanWs(
@@ -502,7 +511,7 @@ pipeline {
                         timeout(3)
                     }
                     steps{
-                        bat "if not exist logs mkdir logs && python -m sphinx docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        sh "if not exist logs mkdir logs && python -m sphinx docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
                     }
                     post{
                         always {
@@ -550,7 +559,7 @@ pipeline {
                         timeout(3)
                     }
                     steps{
-                        unstash "BUILD_FILES"
+                        unstash "COMPILED_BINARIES"
                         unstash "DOCS_ARCHIVE"
 
                         bat "if not exist logs mkdir logs"
