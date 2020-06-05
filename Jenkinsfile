@@ -426,11 +426,16 @@ pipeline {
     stages {
         stage("Configure") {
             agent {
-                dockerfile {
-                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                    label 'Windows&&Docker'
-                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                  }
+            dockerfile {
+                filename 'ci/docker/linux/build/Dockerfile'
+                label 'linux && docker'
+                additionalBuildArgs "--build-arg PYTHON_VERSION=3.8"
+            }
+//                 dockerfile {
+//                     filename 'ci/docker/windows/build/msvc/Dockerfile'
+//                     label 'Windows&&Docker'
+//                     additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+//                   }
             }
             stages{
                 stage("Getting Distribution Info"){
@@ -438,7 +443,7 @@ pipeline {
                         timeout(2)
                     }
                     steps{
-                        bat "python setup.py dist_info"
+                        sh "python setup.py dist_info"
                     }
                     post{
                         success{
