@@ -409,8 +409,7 @@ pipeline {
        parameterizedCron '@weekly % DEPLOY_DEVPI=true; TEST_RUN_TOX=true'
     }
     options {
-        disableConcurrentBuilds()  //each branch has 1 job running at a time
-//        timeout(90)  // Timeout after 90 minutes. This shouldn't take this long but it hangs for some reason
+        timeout(time: 1, unit: 'DAYS')
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     environment {
@@ -427,18 +426,22 @@ pipeline {
         stage("Configure") {
             agent {
                 dockerfile {
-                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                    label 'Windows&&Docker'
-                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                  }
+                    filename 'ci/docker/linux/build/Dockerfile'
+                    label 'linux && docker'
+                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                }
+//                 dockerfile {
+//                     filename 'ci/docker/windows/build/msvc/Dockerfile'
+//                     label 'Windows&&Docker'
+//                     additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+//                   }
             }
             stages{
                 stage("Getting Distribution Info"){
-                    options{
-                        timeout(2)
-                    }
                     steps{
-                        bat "python setup.py dist_info"
+                        timeout(2){
+                            sh "python setup.py dist_info"
+                        }
                     }
                     post{
                         success{
@@ -458,21 +461,30 @@ pipeline {
         stage("Building") {
             agent {
                 dockerfile {
-                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                    label 'Windows&&Docker'
-                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                  }
+                    filename 'ci/docker/linux/build/Dockerfile'
+                    label 'linux && docker'
+                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                }
             }
+//                 dockerfile {
+//                     filename 'ci/docker/windows/build/msvc/Dockerfile'
+//                     label 'Windows&&Docker'
+//                     additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+//                   }
+//             }
             stages{
                 stage("Building Python Package"){
                     steps {
                         timeout(20){
-                            bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
+                            sh 'python setup.py build -b build --build-lib build/lib/ --build-temp build/temp build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
+//                             bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
                         }
                     }
                     post{
                         success{
-                            stash includes: 'build/37/lib/**,uiucprescon/**/*.dll,uiucprescon/**/*.pyd', name: 'BUILD_FILES'
+                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
+//                             stash includes: 'build/37/lib/**,uiucprescon/**/*.dll,uiucprescon/**/*.pyd', name: 'BUILD_FILES'
+
                         }
                         cleanup{
                             cleanWs(
@@ -493,11 +505,11 @@ pipeline {
                         PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                         PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
                     }
-                    options{
-                        timeout(3)
-                    }
                     steps{
-                        bat "if not exist logs mkdir logs && python -m sphinx docs/source ${WORKSPACE}\\build\\docs\\html -d ${WORKSPACE}\\build\\docs\\.doctrees -w ${WORKSPACE}\\logs\\build_sphinx.log"
+                        timeout(3){
+                                sh """mkdir -p logs
+                                      python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log"""
+                        }
                     }
                     post{
                         always {
@@ -533,23 +545,29 @@ pipeline {
         stage("Testing") {
             agent {
                 dockerfile {
-                    filename 'ci/docker/windows/build/msvc/Dockerfile'
-                    label 'Windows&&Docker'
-                    additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                  }
+                    filename 'ci/docker/linux/build/Dockerfile'
+                    label 'linux && docker'
+                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                }
             }
+//             agent {
+//                 dockerfile {
+//                     filename 'ci/docker/windows/build/msvc/Dockerfile'
+//                     label 'Windows&&Docker'
+//                     additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+//                   }
+//             }
             failFast true
             stages{
                 stage("Setting up Tests"){
-                    options{
-                        timeout(3)
-                    }
                     steps{
-                        unstash "BUILD_FILES"
-                        unstash "DOCS_ARCHIVE"
-
-                        bat "if not exist logs mkdir logs"
-                        bat "if not exist reports mkdir reports"
+                        timeout(3){
+                            unstash "COMPILED_BINARIES"
+                            unstash "DOCS_ARCHIVE"
+                            sh """mkdir -p logs
+                                mkdir -p reports
+                                """
+                        }
                     }
                 }
                 stage("Running Tests"){
@@ -560,24 +578,13 @@ pipeline {
                             }
                             stages{
                                 stage("Run Tox"){
-                                    options{
-                                        timeout(60)
-                                    }
 
                                     steps {
-                                        script{
-                                            try{
-                                                bat  (
-                                                    label: "Run Tox",
-                                                    script: "tox -e py -vv "
-                                                )
-
-                                            } catch (exc) {
-                                                bat (
-                                                    label: "Run Tox with new environments",
-                                                    script: "tox -e py --recreate -vv "
-                                                )
-                                            }
+                                        timeout(60){
+                                            sh  (
+                                                label: "Run Tox",
+                                                script: "tox -e py -vv "
+                                            )
                                         }
                                     }
                                     post{
@@ -611,12 +618,15 @@ pipeline {
                             environment{
                                 junit_filename = "junit-${env.NODE_NAME}-${env.GIT_COMMIT.substring(0,7)}-pytest.xml"
                             }
-                            options{
-                                timeout(10)
-                            }
                             steps{
-                                bat "mkdir if not exist reports\\pytestcoverage"
-                                bat "python.exe -m pytest --junitxml=${WORKSPACE}/reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:${WORKSPACE}/reports/pytestcoverage/  --cov-report xml:${WORKSPACE}/reports/coverage.xml --cov=uiucprescon --integration --cov-config=${WORKSPACE}/setup.cfg"
+                                timeout(10){
+                                    sh(
+                                        label: "Running pytest",
+                                        script: """mkdir -p reports/pytestcoverage
+                                                   python -m pytest --junitxml=reports/pytest/${env.junit_filename} --junit-prefix=${env.NODE_NAME}-pytest --cov-report html:reports/pytestcoverage/  --cov-report xml:reports/coverage.xml --cov=uiucprescon --integration --cov-config=setup.cfg
+                                                   """
+                                    )
+                                }
                             }
                             post {
                                 always {
@@ -633,25 +643,28 @@ pipeline {
                             }
                         }
                         stage("Run Doctest Tests"){
-                            options{
-                                timeout(3)
-                            }
                             steps {
-                                bat "python -m sphinx -b doctest docs\\source ${WORKSPACE}\\build\\docs -d ${WORKSPACE}\\build\\docs\\doctrees -w ${WORKSPACE}/logs/doctest_warnings.log"
+                                timeout(3){
+                                    sh "python -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log"
+                                }
                             }
                             post{
                                 always {
-
                                     recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
                                 }
                             }
                         }
                         stage("Run Flake8 Static Analysis") {
-                            options{
-                                timeout(2)
-                            }
                             steps{
-                                bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
+                                timeout(2){
+                                    catchError(buildResult: "SUCCESS", message: 'Flake8 found issues', stageResult: "UNSTABLE") {
+                                        sh(
+                                            label: "Running Flake8",
+                                            script: "flake8 uiucprescon --tee --output-file logs/flake8.log"
+                                        )
+                                    }
+//                                     bat returnStatus: true, script: "flake8 uiucprescon --tee --output-file ${WORKSPACE}\\logs\\flake8.log"
+                                }
                             }
                             post {
                                 always {
@@ -662,24 +675,26 @@ pipeline {
                         stage("Run MyPy Static Analysis") {
                             stages{
                                 stage("Generate Stubs") {
-                                    options{
-                                        timeout(2)
-                                    }
                                     steps{
-                                        bat "stubgen uiucprescon -o mypy_stubs"
+                                        timeout(2){
+                                            sh "stubgen uiucprescon -o mypy_stubs"
+                                        }
                                     }
 
                                 }
                                 stage("Running MyPy"){
                                     environment{
-                                        MYPYPATH = "${WORKSPACE}\\mypy_stubs"
-                                    }
-                                    options{
-                                        timeout(3)
+                                        MYPYPATH = "${WORKSPACE}/mypy_stubs"
                                     }
                                     steps{
-                                        bat "if not exist reports\\mypy\\html mkdir reports\\mypy\\html"
-                                        bat returnStatus: true, script: "mypy -p uiucprescon --cache-dir=nul --html-report ${WORKSPACE}\\reports\\mypy\\html > ${WORKSPACE}\\logs\\mypy.log"
+                                        timeout(3){
+                                            sh(
+                                                label: "Running MyPy",
+                                                script: """mkdir -p reports/mypy/html
+                                                           mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                """
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -711,13 +726,18 @@ pipeline {
                 stage("Build sdist"){
                     agent {
                         dockerfile {
-                            filename 'ci/docker/windows/build/msvc/Dockerfile'
-                            label 'Windows&&Docker'
-                            additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-                          }
+                            filename 'ci/docker/linux/build/Dockerfile'
+                            label 'linux && docker'
+                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                        }
+//                         dockerfile {
+//                             filename 'ci/docker/windows/build/msvc/Dockerfile'
+//                             label 'Windows&&Docker'
+//                             additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
+//                           }
                     }
                     steps {
-                        bat "python setup.py sdist -d ${WORKSPACE}\\dist --format zip"
+                        sh "python setup.py sdist -d dist --format zip"
                     }
                     post{
                         success{
