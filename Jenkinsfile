@@ -100,106 +100,106 @@ def get_package_name(stashName, metadataFile){
 }
 
 def CONFIGURATIONS = [
-        "3.6" : [
-            os: [
-                windows:[
-                    agents: [
-                        build: [
-                            dockerfile: [
-                                filename: 'ci/docker/windows/build/msvc/Dockerfile',
-                                label: 'Windows&&Docker',
-                                additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
-                            ]
-                        ],
-                        test:[
-                            wheel: [
-                                dockerfile: [
-                                    filename: 'ci/docker/windows/test/msvc/Dockerfile',
-                                    label: 'Windows&&Docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore --build-arg CHOCOLATEY_SOURCE'
-                                ]
-                            ],
-                            sdist: [
-                                dockerfile: [
-                                    filename: 'ci/docker/windows/build/msvc/Dockerfile',
-                                    label: 'Windows&&Docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
-                                ]
-                            ]
-                        ],
-                        devpi: [
-                            wheel: [
-                                dockerfile: [
-                                    filename: 'ci/docker/deploy/devpi/test/windows/whl/Dockerfile',
-                                    label: 'Windows&&Docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
-                                ]
-                            ],
-                            sdist: [
-                                dockerfile: [
-                                    filename: 'ci/docker/deploy/devpi/test/windows/source/Dockerfile',
-                                    label: 'Windows&&Docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
-                                ]
-                            ]
-                        ]
-                    ],
-                    pkgRegex: [
-                        wheel: "*cp36*.whl",
-                        sdist: "uiucprescon.ocr-*.zip"
-                    ]
-                ],
-                linux: [
-                    agents: [
-                        build: [
-                            dockerfile: [
-                                filename: 'ci/docker/linux/build/Dockerfile',
-                                label: 'linux&&docker',
-                                additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                            ]
-                        ],
-                        test: [
-                            sdist: [
-                                dockerfile: [
-                                    filename: 'ci/docker/linux/build/Dockerfile',
-                                    label: 'linux&&docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                                ]
-                            ]
-                        ],
-                        devpi: [
-                            whl: [
-                                dockerfile: [
-                                    filename: 'ci/docker/deploy/devpi/test/linux/Dockerfile',
-                                    label: 'linux&&docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                                ]
-                            ],
-                            sdist: [
-                                dockerfile: [
-                                    filename: 'ci/docker/deploy/devpi/test/linux/Dockerfile',
-                                    label: 'linux&&docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                                ]
-                            ]
-                        ]
-                    ],
-                    pkgRegex: [
-                        wheel: "*cp36*.whl",
-                        sdist: "uiucprescon.ocr-*.zip"
-                    ]
-                ]
-            ],
-            tox_env: "py36",
-            devpiSelector: [
-                sdist: "zip",
-                wheel: "36.*whl",
-            ],
-            pkgRegex: [
-                wheel: "*cp36*.whl",
-                sdist: "*.zip"
-            ]
-        ],
+//         "3.6" : [
+//             os: [
+//                 windows:[
+//                     agents: [
+//                         build: [
+//                             dockerfile: [
+//                                 filename: 'ci/docker/windows/build/msvc/Dockerfile',
+//                                 label: 'Windows&&Docker',
+//                                 additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+//                             ]
+//                         ],
+//                         test:[
+//                             wheel: [
+//                                 dockerfile: [
+//                                     filename: 'ci/docker/windows/test/msvc/Dockerfile',
+//                                     label: 'Windows&&Docker',
+//                                     additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore --build-arg CHOCOLATEY_SOURCE'
+//                                 ]
+//                             ],
+//                             sdist: [
+//                                 dockerfile: [
+//                                     filename: 'ci/docker/windows/build/msvc/Dockerfile',
+//                                     label: 'Windows&&Docker',
+//                                     additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+//                                 ]
+//                             ]
+//                         ],
+//                         devpi: [
+//                             wheel: [
+//                                 dockerfile: [
+//                                     filename: 'ci/docker/deploy/devpi/test/windows/whl/Dockerfile',
+//                                     label: 'Windows&&Docker',
+//                                     additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.6-windowsservercore'
+//                                 ]
+//                             ],
+//                             sdist: [
+//                                 dockerfile: [
+//                                     filename: 'ci/docker/deploy/devpi/test/windows/source/Dockerfile',
+//                                     label: 'Windows&&Docker',
+//                                     additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.6.8/python-3.6.8-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+//                                 ]
+//                             ]
+//                         ]
+//                     ],
+//                     pkgRegex: [
+//                         wheel: "*cp36*.whl",
+//                         sdist: "uiucprescon.ocr-*.zip"
+//                     ]
+//                 ],
+//                 linux: [
+//                     agents: [
+//                         build: [
+//                             dockerfile: [
+//                                 filename: 'ci/docker/linux/build/Dockerfile',
+//                                 label: 'linux&&docker',
+//                                 additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                             ]
+//                         ],
+//                         test: [
+//                             sdist: [
+//                                 dockerfile: [
+//                                     filename: 'ci/docker/linux/build/Dockerfile',
+//                                     label: 'linux&&docker',
+//                                     additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                                 ]
+//                             ]
+//                         ],
+//                         devpi: [
+//                             whl: [
+//                                 dockerfile: [
+//                                     filename: 'ci/docker/deploy/devpi/test/linux/Dockerfile',
+//                                     label: 'linux&&docker',
+//                                     additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                                 ]
+//                             ],
+//                             sdist: [
+//                                 dockerfile: [
+//                                     filename: 'ci/docker/deploy/devpi/test/linux/Dockerfile',
+//                                     label: 'linux&&docker',
+//                                     additionalBuildArgs: '--build-arg PYTHON_VERSION=3.6 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                                 ]
+//                             ]
+//                         ]
+//                     ],
+//                     pkgRegex: [
+//                         wheel: "*cp36*.whl",
+//                         sdist: "uiucprescon.ocr-*.zip"
+//                     ]
+//                 ]
+//             ],
+//             tox_env: "py36",
+//             devpiSelector: [
+//                 sdist: "zip",
+//                 wheel: "36.*whl",
+//             ],
+//             pkgRegex: [
+//                 wheel: "*cp36*.whl",
+//                 sdist: "*.zip"
+//             ]
+//         ],
         "3.7" : [
             os: [
                 windows: [
@@ -758,7 +758,6 @@ pipeline {
                             axis {
                                 name 'PYTHON_VERSION'
                                 values(
-                                    '3.6',
                                     '3.7',
                                     '3.8'
                                 )
@@ -940,7 +939,6 @@ pipeline {
                           }
                     }
                     steps {
-                            unstash "wheel 3.6-windows"
                             unstash "wheel 3.7-windows"
                             unstash "wheel 3.8-windows"
                             unstash "sdist"
@@ -972,7 +970,6 @@ pipeline {
                             axis {
                                 name 'PYTHON_VERSION'
                                 values(
-                                    '3.6',
                                     '3.7',
                                     '3.8'
                                 )
