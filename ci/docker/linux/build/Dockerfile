@@ -13,7 +13,8 @@ RUN apt update && apt install -y ninja-build
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
     pip install wheel && \
-    pip install conan
+    pip install conan sphinx tox mypy pytest flake8 pytest-cov pytest-bdd lxml
+
 USER user
 WORKDIR /home/user
 ADD conanfile.py /tmp/conanfile.py
