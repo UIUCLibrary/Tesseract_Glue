@@ -511,7 +511,7 @@ pipeline {
                                 def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
                                 zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                             }
-                            stash includes: 'build/docs/html/**', name: 'DOCS_ARCHIVE'
+                            stash includes: 'build/docs/html/**,dist/${DOC_ZIP_FILENAME}', name: 'DOCS_ARCHIVE'
                         }
                     }
                 }
