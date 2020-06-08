@@ -909,6 +909,9 @@ pipeline {
             agent{
                 label "linux && docker"
             }
+            options{
+                lock("uiucprescon.ocr-devpi")
+            }
             when {
                 allOf{
                     equals expected: true, actual: params.DEPLOY_DEVPI
