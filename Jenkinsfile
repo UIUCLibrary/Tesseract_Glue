@@ -476,16 +476,22 @@ pipeline {
                 stage("Building Python Package"){
                     steps {
                         timeout(20){
-                            sh 'python setup.py build -b build --build-lib build/lib/ --build-temp build/temp build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
-//                             bat "python setup.py build -b ${WORKSPACE}\\build\\37 -j${env.NUMBER_OF_PROCESSORS} --build-lib .\\build\\37\\lib build_ext --inplace"
+                            sh(
+                                label: "Build python package",
+                                script: '''mkdir -p logs
+                                        python setup.py build -b build --build-lib build/lib/ --build-temp build/temp build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace  2>&1 | tee logs/python_build.log
+                                        '''
+                            )
                         }
                     }
                     post{
                         success{
                             stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
-//                             stash includes: 'build/37/lib/**,uiucprescon/**/*.dll,uiucprescon/**/*.pyd', name: 'BUILD_FILES'
 
                         }
+                        always{
+                            recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
+                       }
                         cleanup{
                             cleanWs(
                                 patterns: [
