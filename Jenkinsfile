@@ -476,7 +476,12 @@ pipeline {
                 stage("Building Python Package"){
                     steps {
                         timeout(20){
-                            sh 'python setup.py build -b build --build-lib build/lib/ --build-temp build/temp build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace  2>&1 | tee logs/python_build.log'
+                            sh(
+                                label: "Build python package",
+                                script: '''mkdir -p logs
+                                        python setup.py build -b build --build-lib build/lib/ --build-temp build/temp build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace  2>&1 | tee logs/python_build.log
+                                        '''
+                            )
                         }
                     }
                     post{
