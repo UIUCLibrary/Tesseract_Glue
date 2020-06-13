@@ -853,22 +853,22 @@ pipeline {
                                 }
                                 steps{
                                     script{
-                                        if (PLATFORM != "windows"){
-                                            sh(
-                                                label: "Installing Python virtual environment",
-                                                script:"python -m venv venv"
-                                            )
-
-                                            sh(
-                                                label: "Upgrading pip to latest version",
-                                                script: "venv/bin/python -m pip install pip --upgrade"
-                                            )
-
-                                            sh(
-                                                label: "Installing tox to Python virtual environment",
-                                                script: "venv/bin/pip install tox --upgrade"
-                                            )
-                                        }
+//                                         if (PLATFORM != "windows"){
+//                                             sh(
+//                                                 label: "Installing Python virtual environment",
+//                                                 script:"python -m venv venv"
+//                                             )
+//
+//                                             sh(
+//                                                 label: "Upgrading pip to latest version",
+//                                                 script: "venv/bin/python -m pip install pip --upgrade"
+//                                             )
+//
+//                                             sh(
+//                                                 label: "Installing tox to Python virtual environment",
+//                                                 script: "venv/bin/pip install tox --upgrade"
+//                                             )
+//                                         }
                                         if (FORMAT == "wheel"){
                                             unstash "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
                                         }
@@ -879,7 +879,7 @@ pipeline {
                                             if(isUnix()){
                                                 sh(
                                                     label: "Testing ${it}",
-                                                    script: "venv/bin/tox --installpkg=${it.path} -e py"
+                                                    script: "tox --installpkg=${it.path} -e py"
                                                     )
                                             } else {
                                                 bat(
