@@ -13,7 +13,7 @@ RUN python -m pip install --upgrade pip ; `
 RUN python -m pip wheel --wheel-dir=c:\wheels `
         pytest `
         pytest-cov `
-        pytest-bdd `
+        pytest-bdd
 
 ENV PIP_FIND_LINKS=c:\wheels\
 ENV TMP=c:\temp `
