@@ -4,8 +4,18 @@ FROM ${PYTHON_DOCKER_IMAGE_BASE}
 RUN certutil -generateSSTFromWU roots.sst ; `
     certutil -addstore -f root roots.sst ; `
     del roots.sst
-RUN python -m pip install --upgrade pip ; pip install wheel; pip install devpi-client "tox<3.7"
 
+RUN python -m pip install --upgrade pip ; `
+    pip install wheel; `
+    pip install setuptools --upgrade; `
+    pip install devpi-client "tox<3.7"
+
+RUN python -m pip wheel --wheel-dir=c:\wheels `
+        pytest `
+        pytest-cov `
+        pytest-bdd `
+
+ENV PIP_FIND_LINKS=c:\wheels\
 ENV TMP=c:\temp `
     TMPDIR=c:\temp `
     TEMP=c:\temp

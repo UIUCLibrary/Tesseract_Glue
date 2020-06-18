@@ -43,4 +43,14 @@ RUN Invoke-WebRequest $Env:PYTHON_INSTALLER_URL -OutFile c:\python-installer.exe
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
     pip install wheel ; `
-    pip install sphinx tox devpi-client
+    python -m pip wheel --wheel-dir=c:\wheels `
+        sphinx `
+        tox `
+        devpi-client `
+        pytest `
+        pytest-cov `
+        pytest-bdd `
+        conan
+
+ENV PIP_FIND_LINKS=c:\wheels\
+RUN pip install --no-index --find-links c:\wheels\ sphinx tox devpi-client
