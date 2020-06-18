@@ -747,7 +747,7 @@ pipeline {
                         sh "python setup.py sdist -d dist --format zip"
                     }
                     post{
-                        success{
+                        always{
                             stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
                         }
                     }
