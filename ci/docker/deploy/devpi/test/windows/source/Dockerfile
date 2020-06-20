@@ -28,6 +28,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     cmake --version ; `
     git --version ; `
+    & 'C:\BuildTools\Common7\Tools\VsDevCmd.bat' ;`
     Write-Host "Finished install packages with Chocolatey"
 
 ADD ci/docker/shared/startup.bat c:\temp\startup.bat
