@@ -29,7 +29,10 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     cmake --version ; `
     git --version ; `
-    & 'C:\BuildTools\Common7\Tools\VsDevCmd.bat' ;`
+    if ( -not (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
+    { `
+        Write-Error "VsDevCmd.bat not found" ; `
+    }; `
     Write-Host "Finished install packages with Chocolatey"
 
 ADD ci/docker/shared/startup.bat c:\temp\startup.bat
