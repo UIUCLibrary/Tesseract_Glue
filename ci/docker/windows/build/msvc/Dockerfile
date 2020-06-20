@@ -25,10 +25,11 @@ ADD ci/docker/shared/chocolatey/packages.config choco/packages.config
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress choco/packages.config ;`
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
-    cmake --version ; `
     git --version ; `
     & 'C:\BuildTools\Common7\Tools\VsDevCmd.bat' ;`
     Write-Host "Finished install packages with Chocolatey"
+
+RUN get-command cmake
 
 ADD ci/docker/windows/build/msvc/startup.bat c:\temp\startup.bat
 RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
