@@ -30,8 +30,10 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     { `
         Write-Error 'VsDevCmd.bat not found' ; `
     }; `
-    refreshenv ; `
-    get-command cmake ; `
+    if ( -not (Test-Path 'C:\Program Files\CMake\cmake.exe')) `
+    { `
+        Write-Error "cmake.exe not found" ; `
+    }; `
     get-command git ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
     Write-Host "Finished install packages with Chocolatey"
