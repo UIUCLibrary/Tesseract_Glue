@@ -27,14 +27,8 @@ ADD ci/docker/shared/chocolatey/packages.config choco/packages.config
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress choco/packages.config ;`
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
-    if ( -not (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
-    { `
-        Write-Error "VsDevCmd.bat not found" ; `
-    }; `
-    if ( -not (Test-Path 'C:\Program Files\CMake\cmake.exe')) `
-    { `
-        Write-Error "cmake.exe not found" ; `
-    }; `
+    Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat' ; `
+    Test-Path 'C:\Program Files\CMake\cmake.exe' ; `
     get-command git ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
     Write-Host "Finished install packages with Chocolatey"
