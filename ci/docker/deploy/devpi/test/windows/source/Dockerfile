@@ -31,6 +31,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     { `
         Write-Error "VsDevCmd.bat not found" ; `
     }; `
+    refreshenv ; `
     get-command cmake ; `
     get-command git ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
