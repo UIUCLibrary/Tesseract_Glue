@@ -31,8 +31,8 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     { `
         Write-Error "VsDevCmd.bat not found" ; `
     }; `
-    cmake --version ; `
-    git --version ; `
+    find-command cmake ; `
+    find-command git ; `
     Write-Host "Finished install packages with Chocolatey"
 
 ADD ci/docker/shared/startup.bat c:\temp\startup.bat
