@@ -29,9 +29,11 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat' ; `
     Test-Path 'C:\Program Files\CMake\cmake.exe' ; `
-    get-command git ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
     Write-Host "Finished install packages with Chocolatey"
+
+RUN get-command git
+RUN get-command cmake
 
 ADD ci/docker/shared/startup.bat c:\temp\startup.bat
 RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
