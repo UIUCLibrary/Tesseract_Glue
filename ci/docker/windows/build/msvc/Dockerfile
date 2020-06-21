@@ -28,7 +28,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     if ( -not (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
     { `
-        Write-Error "VsDevCmd.bat not found" ; `
+        Write-Error 'VsDevCmd.bat not found' ; `
     }; `
     get-command cmake ; `
     get-command git ; `
