@@ -33,6 +33,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     }; `
     get-command cmake ; `
     get-command git ; `
+    Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
     Write-Host "Finished install packages with Chocolatey"
 
 ADD ci/docker/shared/startup.bat c:\temp\startup.bat
