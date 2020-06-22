@@ -68,7 +68,7 @@ RUN pip install --no-index --find-links=c:/wheels/ `
 
 RUN pip install six==1.14 ; `
 
-COPY conanfile.py C:/TEMP/
+ADD conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`
     conan remove * -b --src -f
 
