@@ -66,7 +66,7 @@ RUN pip wheel -r c:/requirements/requirements-ci.txt --wheel-dir c:/wheels/
 RUN pip install --no-index --find-links=c:/wheels/ `
          -r c:/requirements/requirements-ci.txt
 
-RUN pip install six==1.14 ; `
+RUN pip install six==1.14
 
 ADD conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`
