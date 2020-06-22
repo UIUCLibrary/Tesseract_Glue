@@ -7,7 +7,14 @@ ARG GROUP_ID=1000
 RUN groupadd -g $GROUP_ID user && \
     useradd -u $USER_ID -s /bin/sh -m -d /home/user -g user user
 
-RUN pip install conan wheel devpi-client tox
+ADD ci/docker/shared/python/requirements-ci.txt /requirements/
+
+RUN pip wheel -r /requirements/requirements-ci.txt --wheel-dir /wheels/
+
+RUN pip install --no-index --find-links=/wheels/ \
+         -r /requirements/requirements-ci.txt
+
+ENV PIP_FIND_LINKS=/wheels
 USER user
 WORKDIR /home/user
 ADD conanfile.py /tmp/conanfile.py

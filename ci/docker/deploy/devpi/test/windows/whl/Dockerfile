@@ -7,15 +7,14 @@ RUN certutil -generateSSTFromWU roots.sst ; `
 
 RUN python -m pip install --upgrade pip ; `
     pip install wheel; `
-    pip install setuptools --upgrade; `
-    pip install devpi-client "tox<3.7"
+    pip install setuptools --upgrade
+
+ADD ci/docker/shared/python/requirements-ci.txt c:/requirements/
 
 RUN python -m pip wheel --wheel-dir=c:\wheels `
-        pytest `
-        pytest-cov `
-        pytest-bdd
+    -r c:/requirements/requirements-ci.txt
+
+RUN pip install --no-index --find-links c:\wheels\ `
+    -r c:/requirements/requirements-ci.txt
 
 ENV PIP_FIND_LINKS=c:\wheels\
-ENV TMP=c:\temp `
-    TMPDIR=c:\temp `
-    TEMP=c:\temp
