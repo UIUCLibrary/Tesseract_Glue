@@ -63,7 +63,7 @@ RUN python -m pip install --upgrade pip ; `
 ADD ci/docker/shared/python/requirements-ci.txt c:/requirements/
 
 RUN pip wheel -r c:/requirements/requirements-ci.txt --wheel-dir c:/wheels/
-RUN pip install --no-index --find-links=c:/wheels/ \
+RUN pip install --no-index --find-links=c:/wheels/ `
          -r c:/requirements/requirements-ci.txt
 
 RUN pip install six==1.14 ; `
