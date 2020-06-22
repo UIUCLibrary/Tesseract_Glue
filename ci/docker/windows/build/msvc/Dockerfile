@@ -55,22 +55,18 @@ RUN Invoke-WebRequest $Env:PYTHON_INSTALLER_URL -OutFile c:\python-installer.exe
     Start-Process python-installer.exe -ArgumentList '/quiet InstallAllUsers=1 PrependPath=1' -Wait ; `
     Remove-Item c:\python-installer.exe -Force
 
-ENV PIPENV_CACHE_DIR=c:\pipenv_cache `
-    WORKON_HOME=c:\venvs `
-    PIPENV_NOSPIN=True `
-    PIP_DOWNLOAD_CACHE=c:\pip_cache
-
-#ADD ci/docker/windows/build/msvc/Profile.ps1 C:\Windows\System32\WindowsPowerShell\v1.0\Profile.ps1
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
-    pip install wheel ; `
-    pip install sphinx tox mypy pytest flake8 pytest-cov pytest-bdd
+    pip install wheel
 
-RUN pip install lxml; `
-    pip install six==1.14 ; `
-    pip install conan
-#
+ADD ci/docker/shared/python/requirements-ci.txt c:/requirements/
+
+RUN pip wheel -r c:/requirements/requirements-ci.txt --wheel-dir c:/wheels/
+RUN pip install --no-index --find-links=c:/wheels/ \
+         -r c:/requirements/requirements-ci.txt
+
+RUN pip install six==1.14 ; `
 
 COPY conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`

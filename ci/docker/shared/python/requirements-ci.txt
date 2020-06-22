@@ -1,0 +1,10 @@
+conan
+devpi-client
+flake8
+lxml
+mypy
+pytest
+pytest-cov
+pytest-bdd
+sphinx
+tox

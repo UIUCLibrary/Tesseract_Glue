@@ -12,9 +12,14 @@ RUN chmod +x /tmp/install_cmake.sh  && /tmp/install_cmake.sh  --skip-license
 RUN apt update && apt install -y ninja-build
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
-    pip install wheel && \
-    pip install conan sphinx tox mypy pytest flake8 pytest-cov pytest-bdd lxml
+    pip install wheel
 
+ADD ci/docker/shared/python/requirements-ci.txt /requirements/
+RUN pip wheel -r /requirements/requirements-ci.txt --wheel-dir /wheels/
+RUN pip install --no-index --find-links=/wheels/ \
+         -r /requirements/requirements-ci.txt
+
+ENV PIP_FIND_LINKS=/wheels
 USER user
 WORKDIR /home/user
 ADD conanfile.py /tmp/conanfile.py

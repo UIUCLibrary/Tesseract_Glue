@@ -60,15 +60,13 @@ RUN Invoke-WebRequest $Env:PYTHON_INSTALLER_URL -OutFile c:\python-installer.exe
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
-    pip install wheel ; `
-    python -m pip wheel --wheel-dir=c:\wheels `
-        sphinx `
-        tox `
-        devpi-client `
-        pytest `
-        pytest-cov `
-        pytest-bdd `
-        conan
+    pip install wheel
+
+ADD ci/docker/shared/python/requirements-ci.txt c:/requirements/
+
+RUN python -m pip wheel --wheel-dir=c:\wheels `
+    -r c:/requirements/requirements-ci.txt
 
 ENV PIP_FIND_LINKS=c:\wheels\
-RUN pip install --no-index --find-links c:\wheels\ sphinx tox devpi-client
+RUN pip install --no-index --find-links c:\wheels\ `
+    -r c:/requirements/requirements-ci.txt
