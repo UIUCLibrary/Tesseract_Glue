@@ -112,7 +112,7 @@ class BuildTesseractExt(build_ext):
     def find_missing_libraries(self, ext):
         missing_libs = []
         for lib in ext.libraries:
-            if self.compiler.find_library_file(self.library_dirs, lib) is None:
+            if self.compiler.find_library_file(self.library_dirs + ext.library_dirs, lib) is None:
                 missing_libs.append(lib)
         return missing_libs
 
