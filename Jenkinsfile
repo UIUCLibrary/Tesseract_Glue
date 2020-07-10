@@ -528,9 +528,6 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
-    environment {
-        build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
-    }
     parameters {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
