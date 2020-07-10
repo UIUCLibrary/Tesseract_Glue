@@ -755,6 +755,7 @@ pipeline {
                             }
                             post {
                                 always {
+                                    stash includes: "logs/flake8.log", name: 'FLAKE8_REPORT'
                                     recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                 }
                             }
@@ -815,7 +816,7 @@ pipeline {
                 unstash "PYTEST_REPORT"
 // //                 unstash "BANDIT_REPORT"
 //                 unstash "PYLINT_REPORT"
-//                 unstash "FLAKE8_REPORT"
+                unstash "FLAKE8_REPORT"
 //                 script{
 //                     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-py3exiv2bind') {
 //                         unstash "DIST-INFO"
