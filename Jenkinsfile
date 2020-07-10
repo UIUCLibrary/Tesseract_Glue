@@ -818,10 +818,10 @@ pipeline {
 // //                 unstash "BANDIT_REPORT"
 //                 unstash "PYLINT_REPORT"
                 unstash "FLAKE8_REPORT"
-                script{
-                    withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-uiucprescon.ocr') {
-                        unstash "DIST-INFO"
-                        def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
+                unstash "DIST-INFO"
+//                 script{
+//                     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-uiucprescon.ocr') {
+//                         def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
 //                         if (env.CHANGE_ID){
 //                             sh(
 //                                 label: "Running Sonar Scanner",
@@ -833,7 +833,7 @@ pipeline {
 //                                 script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME}"
 //                                 )
 //                         }
-                    }
+//                     }
 //                     timeout(time: 1, unit: 'HOURS') {
 //                         def sonarqube_result = waitForQualityGate(abortPipeline: false)
 //                         if (sonarqube_result.status != 'OK') {
@@ -842,7 +842,7 @@ pipeline {
 //                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
 //                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
 //                     }
-                }
+//                 }
             }
             post {
                 always{
