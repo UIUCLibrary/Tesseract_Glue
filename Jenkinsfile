@@ -9,7 +9,18 @@ def remove_files(artifacts){
         }
     }
 }
-
+def create_git_tag(metadataFile, gitCreds){
+    def props = readProperties interpolate: true, file: metadataFile
+    def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
+    withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
+        sh(label: "Tagging ${commitTag}",
+           script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
+                      git tag -a ${commitTag} -m 'Tagged by Jenkins'
+                      git push origin --tags
+           """
+        )
+    }
+}
 def build_wheel(){
     if(isUnix()){
         sh(
@@ -1272,18 +1283,19 @@ pipeline {
                     }
                     steps{
                         unstash "DIST-INFO"
-                        script{
-                            def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                            def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
-                            withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
-                                sh(label: "Tagging ${commitTag}",
-                                   script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
-                                              git tag -a ${commitTag} -m 'Tagged by Jenkins'
-                                              git push origin --tags
-                                   """
-                                )
-                            }
-                        }
+                        create_git_tag("uiucprescon.ocr.dist-info/METADATA", gitCreds)
+//                         script{
+//                             def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
+//                             def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
+//                             withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
+//                                 sh(label: "Tagging ${commitTag}",
+//                                    script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
+//                                               git tag -a ${commitTag} -m 'Tagged by Jenkins'
+//                                               git push origin --tags
+//                                    """
+//                                 )
+//                             }
+//                         }
                     }
                     post{
                         cleanup{
