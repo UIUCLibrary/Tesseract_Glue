@@ -713,7 +713,7 @@ pipeline {
                                     sh(
                                         label: "Running pytest",
                                         script: '''mkdir -p reports/pytestcoverage
-                                                   python -m pytest --junitxml=reports/pytest.xml --cov-report html:reports/pytestcoverage/  --cov-report xml:reports/coverage.xml --cov=uiucprescon --integration --cov-config=setup.cfg
+                                                   python -m pytest --junitxml=reports/pytest/junit-pytest.xml --cov-report html:reports/pytestcoverage/  --cov-report xml:reports/coverage.xml --cov=uiucprescon --integration --cov-config=setup.cfg
                                                    '''
                                     )
                                 }
@@ -721,7 +721,8 @@ pipeline {
                             post {
                                 always {
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage.py', reportTitles: ''])
-                                    junit "reports/pytest.xml"
+                                    junit "reports/pytest/junit-pytest.xml"
+                                    stash includes: "reports/pytest/junit-pytest.xml", name: 'PYTEST_REPORT'
                                     publishCoverage(
                                         adapters: [
                                             coberturaAdapter('reports/coverage.xml')
@@ -814,7 +815,7 @@ pipeline {
                 checkout scm
                 sh "git fetch --all"
 //                 unstash "COVERAGE_REPORT"
-//                 unstash "PYTEST_REPORT"
+                unstash "PYTEST_REPORT"
 // //                 unstash "BANDIT_REPORT"
 //                 unstash "PYLINT_REPORT"
 //                 unstash "FLAKE8_REPORT"
