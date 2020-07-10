@@ -18,33 +18,33 @@ def getDevPiStagingIndex(){
         return "${env.BRANCH_NAME}_staging"
     }
 }
-
-def remove_from_devpi(pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
-        script {
-            docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .").inside{
-                try {
-                    sh "devpi login ${devpiUsername} --password ${devpiPassword} --clientdir ${WORKSPACE}/devpi"
-                    sh "devpi use ${devpiIndex} --clientdir ${WORKSPACE}/devpi"
-                    sh "devpi remove -y ${pkgName}==${pkgVersion} --clientdir ${WORKSPACE}/devpi"
-                } catch (Exception ex) {
-                    echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
-                }
-
-            }
-        }
-
-    }
-def create_venv(python_exe, venv_path){
-    script {
-        bat "${python_exe} -m venv ${venv_path}"
-        try {
-            bat "${venv_path}\\Scripts\\python.exe -m pip install -U pip"
-        }
-        catch (exc) {
-            bat "${python_exe} -m venv ${venv_path} && call ${venv_path}\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-        }
-    }
-}
+//
+// def remove_from_devpi(pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
+//         script {
+//             docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .").inside{
+//                 try {
+//                     sh "devpi login ${devpiUsername} --password ${devpiPassword} --clientdir ${WORKSPACE}/devpi"
+//                     sh "devpi use ${devpiIndex} --clientdir ${WORKSPACE}/devpi"
+//                     sh "devpi remove -y ${pkgName}==${pkgVersion} --clientdir ${WORKSPACE}/devpi"
+//                 } catch (Exception ex) {
+//                     echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
+//                 }
+//
+//             }
+//         }
+//
+//     }
+// def create_venv(python_exe, venv_path){
+//     script {
+//         bat "${python_exe} -m venv ${venv_path}"
+//         try {
+//             bat "${venv_path}\\Scripts\\python.exe -m pip install -U pip"
+//         }
+//         catch (exc) {
+//             bat "${python_exe} -m venv ${venv_path} && call ${venv_path}\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+//         }
+//     }
+// }
 
 
 
@@ -85,16 +85,16 @@ def deploy_docs(pkgName, prefix){
 
 
 
-def get_package_version(stashName, metadataFile){
-    ws {
-        unstash "${stashName}"
-        script{
-            def props = readProperties interpolate: true, file: "${metadataFile}"
-            deleteDir()
-            return props.Version
-        }
-    }
-}
+// def get_package_version(stashName, metadataFile){
+//     ws {
+//         unstash "${stashName}"
+//         script{
+//             def props = readProperties interpolate: true, file: "${metadataFile}"
+//             deleteDir()
+//             return props.Version
+//         }
+//     }
+// }
 
 def get_package_name(stashName, metadataFile){
     ws {
@@ -1301,12 +1301,9 @@ pipeline {
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                         }
                     }
-                    environment{
-                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
-                    }
                     steps{
                         unstash "DOCS_ARCHIVE"
-                        deploy_docs(env.PKG_NAME, "build/docs/html")
+                        deploy_docs(get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA"), "build/docs/html")
                     }
                 }
             }
