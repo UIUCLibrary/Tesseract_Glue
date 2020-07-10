@@ -819,9 +819,9 @@ pipeline {
 //                 unstash "PYLINT_REPORT"
                 unstash "FLAKE8_REPORT"
                 unstash "DIST-INFO"
-//                 script{
+                script{
+                    def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
 //                     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-uiucprescon.ocr') {
-//                         def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
 //                         if (env.CHANGE_ID){
 //                             sh(
 //                                 label: "Running Sonar Scanner",
@@ -842,7 +842,7 @@ pipeline {
 //                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
 //                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
 //                     }
-//                 }
+                }
             }
             post {
                 always{
