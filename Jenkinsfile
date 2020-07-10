@@ -605,10 +605,6 @@ pipeline {
                     }
                 }
                 stage("Building Documentation"){
-                    environment {
-                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
-                    }
                     steps{
                         timeout(3){
                             sh '''mkdir -p logs
@@ -619,16 +615,17 @@ pipeline {
                     post{
                         always {
                             recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log', id: 'sphinx_build')])
-                            archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
 
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             script{
-                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                                unstash "DIST-INFO"
+                                def props = readProperties(interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA")
+                                def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
+                                zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                                stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
                             }
-                            stash includes: 'build/docs/html/**,dist/${DOC_ZIP_FILENAME}', name: 'DOCS_ARCHIVE'
                         }
                     }
                 }
