@@ -9,6 +9,31 @@ def remove_files(artifacts){
         }
     }
 }
+def create_git_tag(metadataFile, gitCreds){
+    def props = readProperties interpolate: true, file: metadataFile
+    def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
+    withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
+        sh(label: "Tagging ${commitTag}",
+           script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
+                      git tag -a ${commitTag} -m 'Tagged by Jenkins'
+                      git push origin --tags
+           """
+        )
+    }
+}
+def build_wheel(){
+    if(isUnix()){
+        sh(
+            label: 'Building Python Wheel',
+            script: "python setup.py build -b build build_ext bdist_wheel -d ./dist"
+        )
+    } else {
+        bat(
+            label: 'Building Python Wheel',
+            script: "python setup.py build -b build build_ext bdist_wheel -d .\\dist"
+        )
+    }
+}
 
 def getDevPiStagingIndex(){
 
@@ -18,33 +43,33 @@ def getDevPiStagingIndex(){
         return "${env.BRANCH_NAME}_staging"
     }
 }
-
-def remove_from_devpi(pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
-        script {
-            docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .").inside{
-                try {
-                    sh "devpi login ${devpiUsername} --password ${devpiPassword} --clientdir ${WORKSPACE}/devpi"
-                    sh "devpi use ${devpiIndex} --clientdir ${WORKSPACE}/devpi"
-                    sh "devpi remove -y ${pkgName}==${pkgVersion} --clientdir ${WORKSPACE}/devpi"
-                } catch (Exception ex) {
-                    echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
-                }
-
-            }
-        }
-
-    }
-def create_venv(python_exe, venv_path){
-    script {
-        bat "${python_exe} -m venv ${venv_path}"
-        try {
-            bat "${venv_path}\\Scripts\\python.exe -m pip install -U pip"
-        }
-        catch (exc) {
-            bat "${python_exe} -m venv ${venv_path} && call ${venv_path}\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-        }
-    }
-}
+//
+// def remove_from_devpi(pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
+//         script {
+//             docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .").inside{
+//                 try {
+//                     sh "devpi login ${devpiUsername} --password ${devpiPassword} --clientdir ${WORKSPACE}/devpi"
+//                     sh "devpi use ${devpiIndex} --clientdir ${WORKSPACE}/devpi"
+//                     sh "devpi remove -y ${pkgName}==${pkgVersion} --clientdir ${WORKSPACE}/devpi"
+//                 } catch (Exception ex) {
+//                     echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
+//                 }
+//
+//             }
+//         }
+//
+//     }
+// def create_venv(python_exe, venv_path){
+//     script {
+//         bat "${python_exe} -m venv ${venv_path}"
+//         try {
+//             bat "${venv_path}\\Scripts\\python.exe -m pip install -U pip"
+//         }
+//         catch (exc) {
+//             bat "${python_exe} -m venv ${venv_path} && call ${venv_path}\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
+//         }
+//     }
+// }
 
 
 
@@ -85,16 +110,16 @@ def deploy_docs(pkgName, prefix){
 
 
 
-def get_package_version(stashName, metadataFile){
-    ws {
-        unstash "${stashName}"
-        script{
-            def props = readProperties interpolate: true, file: "${metadataFile}"
-            deleteDir()
-            return props.Version
-        }
-    }
-}
+// def get_package_version(stashName, metadataFile){
+//     ws {
+//         unstash "${stashName}"
+//         script{
+//             def props = readProperties interpolate: true, file: "${metadataFile}"
+//             deleteDir()
+//             return props.Version
+//         }
+//     }
+// }
 
 def get_package_name(stashName, metadataFile){
     ws {
@@ -528,15 +553,12 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
-    environment {
-        build_number = VersionNumber(projectStartDate: '2018-7-30', versionNumberString: '${BUILD_DATE_FORMATTED, "yy"}${BUILD_MONTH, XX}${BUILDS_THIS_MONTH, XX}', versionPrefix: '', worstResultForIncrement: 'SUCCESS')
-    }
     parameters {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
+        booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_ADD_TAG", defaultValue: false, description: "Tag commit to current version")
-        string(name: 'DEPLOY_DOCS_URL_SUBFOLDER', defaultValue: "ocr", description: 'The directory that the docs should be saved under')
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
     }
     stages {
@@ -607,10 +629,6 @@ pipeline {
                     }
                 }
                 stage("Building Documentation"){
-                    environment {
-                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
-                        PKG_VERSION = get_package_version("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
-                    }
                     steps{
                         timeout(3){
                             sh '''mkdir -p logs
@@ -621,16 +639,17 @@ pipeline {
                     post{
                         always {
                             recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log', id: 'sphinx_build')])
-                            archiveArtifacts artifacts: 'logs/build_sphinx.log', allowEmptyArchive: true
 
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             script{
-                                def DOC_ZIP_FILENAME = "${env.PKG_NAME}-${env.PKG_VERSION}.doc.zip"
-                                zip archive: true, dir: "${WORKSPACE}/build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                                unstash "DIST-INFO"
+                                def props = readProperties(interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA")
+                                def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
+                                zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
+                                stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
                             }
-                            stash includes: 'build/docs/html/**,dist/${DOC_ZIP_FILENAME}', name: 'DOCS_ARCHIVE'
                         }
                     }
                 }
@@ -676,7 +695,6 @@ pipeline {
                             }
                             stages{
                                 stage("Run Tox"){
-
                                     steps {
                                         timeout(60){
                                             sh  (
@@ -699,9 +717,6 @@ pipeline {
 
                             }
                             post{
-                                always{
-                                    archiveArtifacts allowEmptyArchive: true, artifacts: '.tox/py*/log/*.log,.tox/log/*.log,logs/tox_report.json'
-                                }
                                 cleanup{
                                     cleanWs deleteDirs: true, patterns: [
                                         [pattern: '.tox/py*/log/*.log', type: 'INCLUDE'],
@@ -718,15 +733,18 @@ pipeline {
                                     sh(
                                         label: "Running pytest",
                                         script: '''mkdir -p reports/pytestcoverage
-                                                   python -m pytest --junitxml=reports/pytest.xml --cov-report html:reports/pytestcoverage/  --cov-report xml:reports/coverage.xml --cov=uiucprescon --integration --cov-config=setup.cfg
+                                                   coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml
+                                                   coverage combine
+                                                   coverage xml -o ./reports/coverage.xml
                                                    '''
                                     )
                                 }
                             }
                             post {
                                 always {
-                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage.py', reportTitles: ''])
-                                    junit "reports/pytest.xml"
+                                    junit "reports/pytest/junit-pytest.xml"
+                                    stash includes: "reports/pytest/junit-pytest.xml", name: 'PYTEST_REPORT'
+                                    stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
                                     publishCoverage(
                                         adapters: [
                                             coberturaAdapter('reports/coverage.xml')
@@ -762,6 +780,7 @@ pipeline {
                             }
                             post {
                                 always {
+                                    stash includes: "logs/flake8.log", name: 'FLAKE8_REPORT'
                                     recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                 }
                             }
@@ -795,6 +814,65 @@ pipeline {
                                     )
                                 }
                             }
+                        }
+                    }
+                }
+            }
+        }
+        stage("Sonarcloud Analysis"){
+            agent {
+              dockerfile {
+                filename 'ci/docker/sonarcloud/Dockerfile'
+                label 'linux && docker'
+              }
+            }
+            options{
+                lock("uiucprescon.ocr-sonarcloud")
+            }
+            when{
+                equals expected: true, actual: params.USE_SONARQUBE
+                beforeAgent true
+                beforeOptions true
+            }
+            steps{
+                checkout scm
+                sh "git fetch --all"
+                unstash "COVERAGE_REPORT"
+                unstash "PYTEST_REPORT"
+// //                 unstash "BANDIT_REPORT"
+//                 unstash "PYLINT_REPORT"
+                unstash "FLAKE8_REPORT"
+                unstash "DIST-INFO"
+                script{
+                    def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
+                    withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-uiucprescon.ocr') {
+                        if (env.CHANGE_ID){
+                            sh(
+                                label: "Running Sonar Scanner",
+                                script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET}"
+                                )
+                        } else {
+                            sh(
+                                label: "Running Sonar Scanner",
+                                script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME}"
+                                )
+                        }
+                    }
+//                     timeout(time: 1, unit: 'HOURS') {
+//                         def sonarqube_result = waitForQualityGate(abortPipeline: false)
+//                         if (sonarqube_result.status != 'OK') {
+//                             unstable "SonarQube quality gate: ${sonarqube_result.status}"
+//                         }
+//                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
+//                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
+//                     }
+                }
+            }
+            post {
+                always{
+                    script{
+                        if(fileExists('reports/sonar-report.json')){
+                            recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                         }
                     }
                 }
@@ -863,19 +941,7 @@ pipeline {
                                      }
                                 }
                                 steps{
-                                    script{
-                                        if(isUnix()){
-                                            sh(
-                                                label: 'Building Python Wheel',
-                                                script: "python setup.py build -b build build_ext bdist_wheel -d ./dist"
-                                            )
-                                        } else {
-                                            bat(
-                                                label: 'Building Python Wheel',
-                                                script: "python setup.py build -b build build_ext bdist_wheel -d .\\dist"
-                                            )
-                                        }
-                                    }
+                                    build_wheel()
                                 }
                                 post {
                                     always{
@@ -1217,18 +1283,19 @@ pipeline {
                     }
                     steps{
                         unstash "DIST-INFO"
-                        script{
-                            def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                            def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
-                            withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
-                                sh(label: "Tagging ${commitTag}",
-                                   script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
-                                              git tag -a ${commitTag} -m 'Tagged by Jenkins'
-                                              git push origin --tags
-                                   """
-                                )
-                            }
-                        }
+                        create_git_tag("uiucprescon.ocr.dist-info/METADATA", gitCreds)
+//                         script{
+//                             def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
+//                             def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
+//                             withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
+//                                 sh(label: "Tagging ${commitTag}",
+//                                    script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
+//                                               git tag -a ${commitTag} -m 'Tagged by Jenkins'
+//                                               git push origin --tags
+//                                    """
+//                                 )
+//                             }
+//                         }
                     }
                     post{
                         cleanup{
@@ -1248,12 +1315,9 @@ pipeline {
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                         }
                     }
-                    environment{
-                        PKG_NAME = get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA")
-                    }
                     steps{
                         unstash "DOCS_ARCHIVE"
-                        deploy_docs(env.PKG_NAME, "build/docs/html")
+                        deploy_docs(get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA"), "build/docs/html")
                     }
                 }
             }
