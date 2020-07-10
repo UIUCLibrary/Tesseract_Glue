@@ -10,6 +10,20 @@ def remove_files(artifacts){
     }
 }
 
+def build_wheel(){
+    if(isUnix()){
+        sh(
+            label: 'Building Python Wheel',
+            script: "python setup.py build -b build build_ext bdist_wheel -d ./dist"
+        )
+    } else {
+        bat(
+            label: 'Building Python Wheel',
+            script: "python setup.py build -b build build_ext bdist_wheel -d .\\dist"
+        )
+    }
+}
+
 def getDevPiStagingIndex(){
 
     if (env.TAG_NAME?.trim()){
@@ -916,19 +930,7 @@ pipeline {
                                      }
                                 }
                                 steps{
-                                    script{
-                                        if(isUnix()){
-                                            sh(
-                                                label: 'Building Python Wheel',
-                                                script: "python setup.py build -b build build_ext bdist_wheel -d ./dist"
-                                            )
-                                        } else {
-                                            bat(
-                                                label: 'Building Python Wheel',
-                                                script: "python setup.py build -b build build_ext bdist_wheel -d .\\dist"
-                                            )
-                                        }
-                                    }
+                                    build_wheel()
                                 }
                                 post {
                                     always{
