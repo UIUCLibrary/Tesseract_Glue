@@ -710,16 +710,20 @@ pipeline {
                                     sh(
                                         label: "Running pytest",
                                         script: '''mkdir -p reports/pytestcoverage
-                                                   python -m pytest --junitxml=reports/pytest/junit-pytest.xml --cov-report html:reports/pytestcoverage/  --cov-report xml:reports/coverage.xml --cov=uiucprescon --integration --cov-config=setup.cfg
+                                                   coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml
                                                    '''
                                     )
                                 }
                             }
                             post {
                                 always {
-                                    publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/pytestcoverage", reportFiles: 'index.html', reportName: 'Coverage.py', reportTitles: ''])
+                                    sh '''coverage combine
+                                          coverage xml -o ./reports/coverage.xml
+                                          '''
+
                                     junit "reports/pytest/junit-pytest.xml"
                                     stash includes: "reports/pytest/junit-pytest.xml", name: 'PYTEST_REPORT'
+                                    stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
                                     publishCoverage(
                                         adapters: [
                                             coberturaAdapter('reports/coverage.xml')
