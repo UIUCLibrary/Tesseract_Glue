@@ -726,7 +726,6 @@ pipeline {
                     }
                 }
             }
-
         }
         stage("Python packaging"){
             stages{
@@ -737,11 +736,6 @@ pipeline {
                             label 'linux && docker'
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
                         }
-//                         dockerfile {
-//                             filename 'ci/docker/windows/build/msvc/Dockerfile'
-//                             label 'Windows&&Docker'
-//                             additionalBuildArgs "--build-arg CHOCOLATEY_SOURCE"
-//                           }
                     }
                     steps {
                         sh "python setup.py sdist -d dist --format zip"
@@ -770,13 +764,13 @@ pipeline {
                                     "linux"
                                 )
                             }
-                            axis {
-                                name 'FORMAT'
-                                values(
-                                    "sdist",
-                                    "wheel"
-                                )
-                            }
+//                             axis {
+//                                 name 'FORMAT'
+//                                 values(
+//                                     "sdist",
+//                                     "wheel"
+//                                 )
+//                             }
                         }
                         excludes{
                             exclude {
@@ -799,10 +793,6 @@ pipeline {
                                         additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.build.dockerfile.additionalBuildArgs}"
                                      }
                                 }
-                                when {
-                                    equals expected: 'wheel', actual: FORMAT
-                                    beforeAgent true
-                                }
                                 steps{
                                     script{
                                         if(isUnix()){
@@ -820,7 +810,7 @@ pipeline {
                                 }
                                 post {
                                     success{
-                                        stash includes: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}", name: "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
+                                        stash includes: "dist/*.whl", name: "wheel ${PYTHON_VERSION}-${PLATFORM}"
                                         script{
                                             if(!isUnix()){
                                                 findFiles(excludes: '', glob: '**/*.pyd').each{
@@ -846,20 +836,15 @@ pipeline {
                             stage("Testing Package"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test[FORMAT].dockerfile.filename}"
-                                        label "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test[FORMAT].dockerfile.label}"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test[FORMAT].dockerfile.additionalBuildArgs}"
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['wheel'].dockerfile.filename}"
+                                        label "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['wheel'].dockerfile.label}"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['wheel'].dockerfile.additionalBuildArgs}"
                                      }
                                 }
                                 steps{
+                                    unstash "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
                                     script{
-                                        if (FORMAT == "wheel"){
-                                            unstash "${FORMAT} ${PYTHON_VERSION}-${PLATFORM}"
-                                        }
-                                        else{
-                                            unstash "sdist"
-                                        }
-                                        findFiles( glob: "dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}").each{
+                                        findFiles( glob: "dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['wheel']}").each{
                                             if(isUnix()){
                                                 sh(
                                                     label: "Testing ${it}",
@@ -876,7 +861,7 @@ pipeline {
                                 }
                                 post{
                                     success{
-                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex[FORMAT]}"
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['wheel']}"
                                     }
                                     cleanup{
                                         cleanWs(
