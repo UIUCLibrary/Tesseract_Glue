@@ -671,7 +671,6 @@ pipeline {
                             }
                             stages{
                                 stage("Run Tox"){
-
                                     steps {
                                         timeout(60){
                                             sh  (
@@ -711,16 +710,14 @@ pipeline {
                                         label: "Running pytest",
                                         script: '''mkdir -p reports/pytestcoverage
                                                    coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml
+                                                   coverage combine
+                                                   coverage xml -o ./reports/coverage.xml
                                                    '''
                                     )
                                 }
                             }
                             post {
                                 always {
-                                    sh '''coverage combine
-                                          coverage xml -o ./reports/coverage.xml
-                                          '''
-
                                     junit "reports/pytest/junit-pytest.xml"
                                     stash includes: "reports/pytest/junit-pytest.xml", name: 'PYTEST_REPORT'
                                     stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
