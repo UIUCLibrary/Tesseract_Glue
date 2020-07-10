@@ -694,9 +694,6 @@ pipeline {
 
                             }
                             post{
-                                always{
-                                    archiveArtifacts allowEmptyArchive: true, artifacts: '.tox/py*/log/*.log,.tox/log/*.log,logs/tox_report.json'
-                                }
                                 cleanup{
                                     cleanWs deleteDirs: true, patterns: [
                                         [pattern: '.tox/py*/log/*.log', type: 'INCLUDE'],
