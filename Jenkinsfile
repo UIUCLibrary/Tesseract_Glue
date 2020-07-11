@@ -54,35 +54,6 @@ def getDevPiStagingIndex(){
         return "${env.BRANCH_NAME}_staging"
     }
 }
-//
-// def remove_from_devpi(pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
-//         script {
-//             docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .").inside{
-//                 try {
-//                     sh "devpi login ${devpiUsername} --password ${devpiPassword} --clientdir ${WORKSPACE}/devpi"
-//                     sh "devpi use ${devpiIndex} --clientdir ${WORKSPACE}/devpi"
-//                     sh "devpi remove -y ${pkgName}==${pkgVersion} --clientdir ${WORKSPACE}/devpi"
-//                 } catch (Exception ex) {
-//                     echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
-//                 }
-//
-//             }
-//         }
-//
-//     }
-// def create_venv(python_exe, venv_path){
-//     script {
-//         bat "${python_exe} -m venv ${venv_path}"
-//         try {
-//             bat "${venv_path}\\Scripts\\python.exe -m pip install -U pip"
-//         }
-//         catch (exc) {
-//             bat "${python_exe} -m venv ${venv_path} && call ${venv_path}\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-//         }
-//     }
-// }
-
-
 
               
 def deploy_docs(pkgName, prefix){
@@ -826,6 +797,33 @@ pipeline {
                                 }
                             }
                         }
+                        stage("Run Pylint Static Analysis") {
+                            steps{
+                                withEnv(['PYLINTHOME=.']) {
+                                    catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
+                                        sh(
+                                            script: '''mkdir -p logs
+                                                       mkdir -p reports
+                                                       pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
+                                                       ''',
+                                            label: "Running pylint"
+                                        )
+                                    }
+                                    sh(
+                                        script: 'pylint uiucprescon  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
+                                        label: "Running pylint for sonarqube",
+                                        returnStatus: true
+                                    )
+                                }
+                            }
+                            post{
+                                always{
+                                    stash includes: "reports/pylint_issues.txt,reports/pylint.txt", name: 'PYLINT_REPORT'
+                                    recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
+                                }
+                            }
+                        }
+
                     }
                 }
             }
@@ -988,33 +986,6 @@ pipeline {
                                     }
                                 }
                             }
-//                             stage("Create manylinux wheel"){
-//                                 agent {
-//                                   docker {
-//                                     image 'quay.io/pypa/manylinux2014_x86_64'
-//                                     label 'linux && docker'
-//                                   }
-//                                 }
-//                                 when{
-//                                     equals expected: "linux", actual: PLATFORM
-//                                     beforeAgent true
-//                                 }
-//                                 steps{
-//                                     unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
-//                                     sh "auditwheel repair ./dist/*.whl -w ./dist"
-//                                 }
-//                                 post{
-//                                     always{
-//                                         stash includes: 'dist/*manylinux*.whl', name: "whl ${PYTHON_VERSION}-manylinux"
-//                                     }
-//                                     success{
-//                                         archiveArtifacts(
-//                                             artifacts: "dist/*manylinux*.whl",
-//                                             fingerprint: true
-//                                         )
-//                                     }
-//                                 }
-//                             }
                             stage("Testing Package"){
                                 agent {
                                     dockerfile {
