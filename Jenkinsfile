@@ -828,6 +828,7 @@ pipeline {
                                     sh(label: "Running pylint",
                                        script: '''mkdir -p reports
                                                   pylint --version
+                                                  pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}"
                                                   pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
                                                   '''
                                     )
