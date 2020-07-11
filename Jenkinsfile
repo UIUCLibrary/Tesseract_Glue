@@ -869,12 +869,8 @@ pipeline {
                 }
             }
             post {
-                always{
-                    script{
-                        if(fileExists('reports/sonar-report.json')){
-                            recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
-                        }
-                    }
+              always{
+                   recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                 }
             }
         }
