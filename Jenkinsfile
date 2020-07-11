@@ -863,8 +863,8 @@ pipeline {
                          if (sonarqube_result.status != 'OK') {
                              unstable "SonarQube quality gate: ${sonarqube_result.status}"
                          }
-//                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
-//                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
+                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
+                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
                      }
                 }
             }
