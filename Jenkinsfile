@@ -9,6 +9,17 @@ def remove_files(artifacts){
         }
     }
 }
+
+def get_sonarqube_unresolved_issues(report_task_file){
+    script{
+
+        def props = readProperties  file: '.scannerwork/report-task.txt'
+        def response = httpRequest url : props['serverUrl'] + "/api/issues/search?componentKeys=" + props['projectKey'] + "&resolved=no"
+        def outstandingIssues = readJSON text: response.content
+        return outstandingIssues
+    }
+}
+
 def create_git_tag(metadataFile, gitCreds){
     def props = readProperties interpolate: true, file: metadataFile
     def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
@@ -858,23 +869,19 @@ pipeline {
                                 )
                         }
                     }
-//                     timeout(time: 1, unit: 'HOURS') {
-//                         def sonarqube_result = waitForQualityGate(abortPipeline: false)
-//                         if (sonarqube_result.status != 'OK') {
-//                             unstable "SonarQube quality gate: ${sonarqube_result.status}"
-//                         }
-//                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
-//                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
-//                     }
+                     timeout(time: 1, unit: 'HOURS') {
+                         def sonarqube_result = waitForQualityGate(abortPipeline: false)
+                         if (sonarqube_result.status != 'OK') {
+                             unstable "SonarQube quality gate: ${sonarqube_result.status}"
+                         }
+                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
+                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
+                     }
                 }
             }
             post {
-                always{
-                    script{
-                        if(fileExists('reports/sonar-report.json')){
-                            recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
-                        }
-                    }
+              always{
+                   recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                 }
             }
         }
