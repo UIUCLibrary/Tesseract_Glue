@@ -874,7 +874,7 @@ pipeline {
                 unstash "COVERAGE_REPORT"
                 unstash "PYTEST_REPORT"
 // //                 unstash "BANDIT_REPORT"
-//                 unstash "PYLINT_REPORT"
+                unstash "PYLINT_REPORT"
                 unstash "FLAKE8_REPORT"
                 unstash "DIST-INFO"
                 sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
