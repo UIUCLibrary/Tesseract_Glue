@@ -827,6 +827,7 @@ pipeline {
                                 catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
                                     sh(label: "Running pylint",
                                        script: '''mkdir -p reports
+                                                  pylint --version
                                                   pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
                                                   '''
                                     )
