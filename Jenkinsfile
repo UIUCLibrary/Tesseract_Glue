@@ -826,18 +826,18 @@ pipeline {
                             steps{
                                 withEnv(['PYLINTHOME=.']) {
                                     catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
-                                        sh(
-                                            script: '''mkdir -p logs
-                                                       mkdir -p reports
-                                                       pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
-                                                       ''',
-                                            label: "Running pylint"
+                                        sh(label: "Running pylint",
+                                           script: '''mkdir -p logs
+                                                      mkdir -p reports
+                                                      pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
+                                                      '''
                                         )
                                     }
-                                    sh(
-                                        script: 'pylint uiucprescon  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
-                                        label: "Running pylint for sonarqube",
-                                        returnStatus: true
+                                    sh(label: "Running pylint for sonarqube",
+                                       script: '''mkdir -p reports
+                                                  pylint uiucprescon -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt
+                                                  ''',
+                                       returnStatus: true
                                     )
                                 }
                             }
