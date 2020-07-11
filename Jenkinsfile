@@ -949,10 +949,21 @@ pipeline {
                                 }
                                 steps{
                                     build_wheel()
+                                    script{
+                                        if( PLATFORM == 'linux'){
+                                            sh "auditwheel repair ./dist/*.whl -w ./dist"
+                                        }
+                                    }
                                 }
                                 post {
                                     always{
-                                        stash includes: "dist/*.whl", name: "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                        script{
+                                            if( PLATFORM == 'linux'){
+                                                stash includes: 'dist/*manylinux*.whl', name: "whl ${PYTHON_VERSION}-manylinux"
+                                            } else {
+                                                stash includes: "dist/*.whl", name: "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                            }
+                                        }
                                     }
                                     success{
                                         script{
@@ -977,33 +988,33 @@ pipeline {
                                     }
                                 }
                             }
-                            stage("Create manylinux wheel"){
-                                agent {
-                                  docker {
-                                    image 'quay.io/pypa/manylinux2014_x86_64'
-                                    label 'linux && docker'
-                                  }
-                                }
-                                when{
-                                    equals expected: "linux", actual: PLATFORM
-                                    beforeAgent true
-                                }
-                                steps{
-                                    unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
-                                    sh "auditwheel repair ./dist/*.whl -w ./dist"
-                                }
-                                post{
-                                    always{
-                                        stash includes: 'dist/*manylinux*.whl', name: "whl ${PYTHON_VERSION}-manylinux"
-                                    }
-                                    success{
-                                        archiveArtifacts(
-                                            artifacts: "dist/*manylinux*.whl",
-                                            fingerprint: true
-                                        )
-                                    }
-                                }
-                            }
+//                             stage("Create manylinux wheel"){
+//                                 agent {
+//                                   docker {
+//                                     image 'quay.io/pypa/manylinux2014_x86_64'
+//                                     label 'linux && docker'
+//                                   }
+//                                 }
+//                                 when{
+//                                     equals expected: "linux", actual: PLATFORM
+//                                     beforeAgent true
+//                                 }
+//                                 steps{
+//                                     unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+//                                     sh "auditwheel repair ./dist/*.whl -w ./dist"
+//                                 }
+//                                 post{
+//                                     always{
+//                                         stash includes: 'dist/*manylinux*.whl', name: "whl ${PYTHON_VERSION}-manylinux"
+//                                     }
+//                                     success{
+//                                         archiveArtifacts(
+//                                             artifacts: "dist/*manylinux*.whl",
+//                                             fingerprint: true
+//                                         )
+//                                     }
+//                                 }
+//                             }
                             stage("Testing Package"){
                                 agent {
                                     dockerfile {
