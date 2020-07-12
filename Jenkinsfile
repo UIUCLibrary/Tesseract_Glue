@@ -834,7 +834,6 @@ pipeline {
                                             label: "Running pylint"
                                         )
                                     }
-                                    sh "ls -laR"
                                     sh(
                                         script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
                                         label: "Running pylint for sonarqube",
@@ -851,6 +850,11 @@ pipeline {
                         }
 
                     }
+                }
+            }
+            post{
+                cleanup{
+                    deleteDir()
                 }
             }
         }
