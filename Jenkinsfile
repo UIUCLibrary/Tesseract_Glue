@@ -10,6 +10,7 @@ def remove_files(artifacts){
     }
 }
 
+
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
 
@@ -20,6 +21,30 @@ def get_sonarqube_unresolved_issues(report_task_file){
     }
 }
 
+def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
+    def props = readProperties interpolate: true, file: metadataFile
+    withSonarQubeEnv(installationName:"sonarcloud", credentialsId: sonarCredentials) {
+        if (env.CHANGE_ID){
+            sh(
+                label: "Running Sonar Scanner",
+                script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET}"
+                )
+        } else {
+            sh(
+                label: "Running Sonar Scanner",
+                script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME}"
+                )
+        }
+    }
+     timeout(time: 1, unit: 'HOURS') {
+         def sonarqube_result = waitForQualityGate(abortPipeline: false)
+         if (sonarqube_result.status != 'OK') {
+             unstable "SonarQube quality gate: ${sonarqube_result.status}"
+         }
+         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
+         writeJSON file: outputJson, json: outstandingIssues
+     }
+}
 def create_git_tag(metadataFile, gitCreds){
     def props = readProperties interpolate: true, file: metadataFile
     def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
@@ -54,35 +79,6 @@ def getDevPiStagingIndex(){
         return "${env.BRANCH_NAME}_staging"
     }
 }
-//
-// def remove_from_devpi(pkgName, pkgVersion, devpiIndex, devpiUsername, devpiPassword){
-//         script {
-//             docker.build("devpi", "-f ci/docker/deploy/devpi/deploy/Dockerfile .").inside{
-//                 try {
-//                     sh "devpi login ${devpiUsername} --password ${devpiPassword} --clientdir ${WORKSPACE}/devpi"
-//                     sh "devpi use ${devpiIndex} --clientdir ${WORKSPACE}/devpi"
-//                     sh "devpi remove -y ${pkgName}==${pkgVersion} --clientdir ${WORKSPACE}/devpi"
-//                 } catch (Exception ex) {
-//                     echo "Failed to remove ${pkgName}==${pkgVersion} from ${devpiIndex}"
-//                 }
-//
-//             }
-//         }
-//
-//     }
-// def create_venv(python_exe, venv_path){
-//     script {
-//         bat "${python_exe} -m venv ${venv_path}"
-//         try {
-//             bat "${venv_path}\\Scripts\\python.exe -m pip install -U pip"
-//         }
-//         catch (exc) {
-//             bat "${python_exe} -m venv ${venv_path} && call ${venv_path}\\Scripts\\python.exe -m pip install -U pip --no-cache-dir"
-//         }
-//     }
-// }
-
-
 
               
 def deploy_docs(pkgName, prefix){
@@ -745,8 +741,6 @@ pipeline {
                                         label: "Running pytest",
                                         script: '''mkdir -p reports/pytestcoverage
                                                    coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml
-                                                   coverage combine
-                                                   coverage xml -o ./reports/coverage.xml
                                                    '''
                                     )
                                 }
@@ -755,13 +749,6 @@ pipeline {
                                 always {
                                     junit "reports/pytest/junit-pytest.xml"
                                     stash includes: "reports/pytest/junit-pytest.xml", name: 'PYTEST_REPORT'
-                                    stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
-                                    publishCoverage(
-                                        adapters: [
-                                            coberturaAdapter('reports/coverage.xml')
-                                        ],
-                                        sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
-                                    )
 
                                 }
                             }
@@ -819,14 +806,55 @@ pipeline {
                                             [pattern: '.eggs', type: 'INCLUDE'],
                                             [pattern: '*egg-info', type: 'INCLUDE'],
                                             [pattern: 'mypy_stubs', type: 'INCLUDE'],
-                                            [pattern: 'reports', type: 'INCLUDE'],
-                                            [pattern: 'build', type: 'INCLUDE']
                                         ]
                                     )
                                 }
                             }
                         }
+                        stage("Run Pylint Static Analysis") {
+                            steps{
+                                catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
+                                    sh(label: "Running pylint",
+                                        script: '''mkdir -p logs
+                                                   mkdir -p reports
+                                                   pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
+                                                   '''
+
+                                    )
+                                }
+                                sh(
+                                    script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
+                                    label: "Running pylint for sonarqube",
+                                    returnStatus: true
+                                )
+                            }
+                            post{
+                                always{
+                                    recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
+                                    stash includes: "reports/pylint_issues.txt,reports/pylint.txt", name: 'PYLINT_REPORT'
+                                }
+                            }
+                        }
+
                     }
+                }
+            }
+            post{
+                always{
+                    sh(script:'''coverage combine
+                                coverage xml -o ./reports/coverage.xml
+                                '''
+                        )
+                    stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
+                    publishCoverage(
+                        adapters: [
+                            coberturaAdapter('reports/coverage.xml')
+                        ],
+                        sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
+                    )
+                }
+                cleanup{
+                    deleteDir()
                 }
             }
         }
@@ -851,33 +879,34 @@ pipeline {
                 unstash "COVERAGE_REPORT"
                 unstash "PYTEST_REPORT"
 // //                 unstash "BANDIT_REPORT"
-//                 unstash "PYLINT_REPORT"
+                unstash "PYLINT_REPORT"
                 unstash "FLAKE8_REPORT"
                 unstash "DIST-INFO"
-                script{
-                    def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                    withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-uiucprescon.ocr') {
-                        if (env.CHANGE_ID){
-                            sh(
-                                label: "Running Sonar Scanner",
-                                script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET}"
-                                )
-                        } else {
-                            sh(
-                                label: "Running Sonar Scanner",
-                                script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME}"
-                                )
-                        }
-                    }
-                     timeout(time: 1, unit: 'HOURS') {
-                         def sonarqube_result = waitForQualityGate(abortPipeline: false)
-                         if (sonarqube_result.status != 'OK') {
-                             unstable "SonarQube quality gate: ${sonarqube_result.status}"
-                         }
-                         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
-                         writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
-                     }
-                }
+                sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
+//                 script{
+//                     def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
+//                     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-uiucprescon.ocr') {
+//                         if (env.CHANGE_ID){
+//                             sh(
+//                                 label: "Running Sonar Scanner",
+//                                 script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET}"
+//                                 )
+//                         } else {
+//                             sh(
+//                                 label: "Running Sonar Scanner",
+//                                 script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME}"
+//                                 )
+//                         }
+//                     }
+//                      timeout(time: 1, unit: 'HOURS') {
+//                          def sonarqube_result = waitForQualityGate(abortPipeline: false)
+//                          if (sonarqube_result.status != 'OK') {
+//                              unstable "SonarQube quality gate: ${sonarqube_result.status}"
+//                          }
+//                          def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
+//                          writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
+//                      }
+//                 }
             }
             post {
               always{
@@ -988,33 +1017,6 @@ pipeline {
                                     }
                                 }
                             }
-//                             stage("Create manylinux wheel"){
-//                                 agent {
-//                                   docker {
-//                                     image 'quay.io/pypa/manylinux2014_x86_64'
-//                                     label 'linux && docker'
-//                                   }
-//                                 }
-//                                 when{
-//                                     equals expected: "linux", actual: PLATFORM
-//                                     beforeAgent true
-//                                 }
-//                                 steps{
-//                                     unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
-//                                     sh "auditwheel repair ./dist/*.whl -w ./dist"
-//                                 }
-//                                 post{
-//                                     always{
-//                                         stash includes: 'dist/*manylinux*.whl', name: "whl ${PYTHON_VERSION}-manylinux"
-//                                     }
-//                                     success{
-//                                         archiveArtifacts(
-//                                             artifacts: "dist/*manylinux*.whl",
-//                                             fingerprint: true
-//                                         )
-//                                     }
-//                                 }
-//                             }
                             stage("Testing Package"){
                                 agent {
                                     dockerfile {
