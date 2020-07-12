@@ -829,6 +829,7 @@ pipeline {
                                     sh(
                                         script: '''mkdir -p logs
                                                    mkdir -p reports
+                                                   ls -la
                                                    PYLINTHOME=$(pwd) pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
                                                    ''',
                                         label: "Running pylint"
