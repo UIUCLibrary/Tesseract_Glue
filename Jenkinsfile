@@ -806,8 +806,6 @@ pipeline {
                                             [pattern: '.eggs', type: 'INCLUDE'],
                                             [pattern: '*egg-info', type: 'INCLUDE'],
                                             [pattern: 'mypy_stubs', type: 'INCLUDE'],
-                                            [pattern: 'reports', type: 'INCLUDE'],
-                                            [pattern: 'build', type: 'INCLUDE']
                                         ]
                                     )
                                 }
@@ -817,16 +815,16 @@ pipeline {
                             steps{
                                 sh "ls -laR"
                                 catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
-                                    sh(
+                                    sh(label: "Running pylint",
                                         script: '''mkdir -p logs
                                                    mkdir -p reports
                                                    ls -la
-                                                   PYLINTHOME=$(pwd) pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
-                                                   ''',
-                                        label: "Running pylint"
+                                                   pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
+                                                   '''
+
                                     )
                                 }
-                                sh "ls -laR"
+                                sh "ls -la"
                                 sh(
                                     script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
                                     label: "Running pylint for sonarqube",
