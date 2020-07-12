@@ -741,8 +741,6 @@ pipeline {
                                         label: "Running pytest",
                                         script: '''mkdir -p reports/pytestcoverage
                                                    coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml
-                                                   coverage combine
-                                                   coverage xml -o ./reports/coverage.xml
                                                    '''
                                     )
                                 }
@@ -751,13 +749,6 @@ pipeline {
                                 always {
                                     junit "reports/pytest/junit-pytest.xml"
                                     stash includes: "reports/pytest/junit-pytest.xml", name: 'PYTEST_REPORT'
-                                    stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
-                                    publishCoverage(
-                                        adapters: [
-                                            coberturaAdapter('reports/coverage.xml')
-                                        ],
-                                        sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
-                                    )
 
                                 }
                             }
@@ -854,6 +845,19 @@ pipeline {
                 }
             }
             post{
+                always{
+                    sh(script:'''coverage combine
+                                coverage xml -o ./reports/coverage.xml
+                                '''
+                        )
+                    stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
+                    publishCoverage(
+                        adapters: [
+                            coberturaAdapter('reports/coverage.xml')
+                        ],
+                        sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
+                    )
+                }
                 cleanup{
                     deleteDir()
                 }
