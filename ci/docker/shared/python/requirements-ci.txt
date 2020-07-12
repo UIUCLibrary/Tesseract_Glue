@@ -9,4 +9,3 @@ pytest-cov
 pytest-bdd
 sphinx
 tox
-
