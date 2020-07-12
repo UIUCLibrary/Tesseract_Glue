@@ -825,23 +825,21 @@ pipeline {
                         stage("Run Pylint Static Analysis") {
                             steps{
                                 sh "ls -laR"
-                                withEnv(['PYLINTHOME=.']) {
-                                    catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
-                                        sh(
-                                            script: '''mkdir -p logs
-                                                       mkdir -p reports
-                                                       pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
-                                                       ''',
-                                            label: "Running pylint"
-                                        )
-                                    }
-                                    sh "ls -laR"
+                                catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
                                     sh(
-                                        script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
-                                        label: "Running pylint for sonarqube",
-                                        returnStatus: true
+                                        script: '''mkdir -p logs
+                                                   mkdir -p reports
+                                                   PYLINTHOME=$(pwd) pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
+                                                   ''',
+                                        label: "Running pylint"
                                     )
                                 }
+                                sh "ls -laR"
+                                sh(
+                                    script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
+                                    label: "Running pylint for sonarqube",
+                                    returnStatus: true
+                                )
                             }
                             post{
                                 always{
