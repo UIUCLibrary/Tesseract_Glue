@@ -563,6 +563,7 @@ pipeline {
     parameters {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
+        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_ADD_TAG", defaultValue: false, description: "Tag commit to current version")
@@ -835,7 +836,6 @@ pipeline {
                                 }
                             }
                         }
-
                     }
                 }
             }
@@ -883,30 +883,6 @@ pipeline {
                 unstash "FLAKE8_REPORT"
                 unstash "DIST-INFO"
                 sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
-//                 script{
-//                     def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-//                     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: 'sonarcloud-uiucprescon.ocr') {
-//                         if (env.CHANGE_ID){
-//                             sh(
-//                                 label: "Running Sonar Scanner",
-//                                 script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET}"
-//                                 )
-//                         } else {
-//                             sh(
-//                                 label: "Running Sonar Scanner",
-//                                 script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME}"
-//                                 )
-//                         }
-//                     }
-//                      timeout(time: 1, unit: 'HOURS') {
-//                          def sonarqube_result = waitForQualityGate(abortPipeline: false)
-//                          if (sonarqube_result.status != 'OK') {
-//                              unstable "SonarQube quality gate: ${sonarqube_result.status}"
-//                          }
-//                          def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
-//                          writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
-//                      }
-//                 }
             }
             post {
               always{
@@ -915,6 +891,14 @@ pipeline {
             }
         }
         stage("Python packaging"){
+            when{
+                anyOf{
+                    equals expected: true, actual: params.BUILD_PACKAGES
+                    equals expected: true, actual: params.DEPLOY_DEVPI
+                    equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
+                }
+                beforeAgent true
+            }
             stages{
                 stage("Build sdist"){
                     agent {
