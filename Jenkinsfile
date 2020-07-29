@@ -553,9 +553,6 @@ def test_pkg(glob, timeout_time){
 
 pipeline {
     agent none
-    triggers {
-       parameterizedCron '@weekly % DEPLOY_DEVPI=true; TEST_RUN_TOX=true'
-    }
     options {
         timeout(time: 1, unit: 'DAYS')
         buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
