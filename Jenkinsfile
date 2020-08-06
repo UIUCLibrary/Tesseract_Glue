@@ -719,17 +719,6 @@ pipeline {
                                         }
                                     }
                                 }
-
-                            }
-                            post{
-                                cleanup{
-                                    cleanWs deleteDirs: true, patterns: [
-                                        [pattern: '.tox/py*/log/*.log', type: 'INCLUDE'],
-                                        [pattern: '.tox/log/*.log', type: 'INCLUDE'],
-                                        [pattern: 'logs/rox_report.json', type: 'INCLUDE']
-                                    ]
-                                }
-
                             }
                         }
                         stage("Run Pytest Unit Tests"){
@@ -797,15 +786,6 @@ pipeline {
                                 always {
                                     recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
                                     publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
-                                }
-                                cleanup{
-                                    cleanWs(
-                                        deleteDirs: true, patterns: [
-                                            [pattern: '.eggs', type: 'INCLUDE'],
-                                            [pattern: '*egg-info', type: 'INCLUDE'],
-                                            [pattern: 'mypy_stubs', type: 'INCLUDE'],
-                                        ]
-                                    )
                                 }
                             }
                         }
@@ -1132,28 +1112,31 @@ pipeline {
                                     unstash "DIST-INFO"
                                     script{
                                         def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
+                                        timeout(60){
 
-                                        if(isUnix()){
-                                            sh(
-                                                label: "Running tests on Packages on DevPi",
-                                                script: """python --version
-                                                           devpi use https://devpi.library.illinois.edu --clientdir certs
-                                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir certs
-                                                           devpi use ${env.devpiStagingIndex} --clientdir certs
-                                                           devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-                                                           """
-                                            )
-                                        } else {
-                                            bat(
-                                                label: "Running tests on Packages on DevPi",
-                                                script: """python --version
-                                                           devpi use https://devpi.library.illinois.edu --clientdir certs\\
-                                                           devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\
-                                                           devpi use ${env.devpiStagingIndex} --clientdir certs\\
-                                                           devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-                                                           """
-                                            )
+                                            if(isUnix()){
+                                                sh(
+                                                    label: "Running tests on Packages on DevPi",
+                                                    script: """python --version
+                                                               devpi use https://devpi.library.illinois.edu --clientdir certs
+                                                               devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir certs
+                                                               devpi use ${env.devpiStagingIndex} --clientdir certs
+                                                               devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
+                                                               """
+                                                )
+                                            } else {
+                                                bat(
+                                                    label: "Running tests on Packages on DevPi",
+                                                    script: """python --version
+                                                               devpi use https://devpi.library.illinois.edu --clientdir certs\\
+                                                               devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\
+                                                               devpi use ${env.devpiStagingIndex} --clientdir certs\\
+                                                               devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
+                                                               """
+                                                )
+                                            }
                                         }
+
                                     }
                                 }
                                 post {
