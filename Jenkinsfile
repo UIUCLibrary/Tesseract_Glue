@@ -840,6 +840,7 @@ pipeline {
               dockerfile {
                 filename 'ci/docker/linux/build/Dockerfile'
                 label 'linux && docker'
+                additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
               }
             }
             options{
