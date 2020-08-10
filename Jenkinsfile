@@ -838,8 +838,10 @@ pipeline {
         stage("Sonarcloud Analysis"){
             agent {
               dockerfile {
-                filename 'ci/docker/sonarcloud/Dockerfile'
+                filename 'ci/docker/linux/build/Dockerfile'
                 label 'linux && docker'
+                additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                args '--mount source=sonar-cache-ocr,target=/home/user/.sonar/cache'
               }
             }
             options{
@@ -851,8 +853,6 @@ pipeline {
                 beforeOptions true
             }
             steps{
-                checkout scm
-                sh "git fetch --all"
                 unstash "COVERAGE_REPORT"
                 unstash "PYTEST_REPORT"
 // //                 unstash "BANDIT_REPORT"
