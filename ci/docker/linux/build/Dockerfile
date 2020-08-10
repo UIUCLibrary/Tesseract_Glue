@@ -39,6 +39,7 @@ ENV SONAR_SCANNER_VERSION=4.4.0.2170
 ENV SONAR_SCANNER_HOME=/home/user/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
 RUN curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip \
         https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip && \
-    unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/
+    unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/ && \
+    rm $HOME/.sonar/sonar-scanner.zip
 ENV PATH=$SONAR_SCANNER_HOME/bin:$PATH
 ENV SONAR_SCANNER_OPTS="-server"
