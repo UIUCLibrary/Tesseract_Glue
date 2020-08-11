@@ -61,12 +61,12 @@ def build_wheel(){
     if(isUnix()){
         sh(
             label: 'Building Python Wheel',
-            script: "python setup.py build -b build build_ext bdist_wheel -d ./dist"
+            script: "python -m pep517.build --binary --out-dir dist/ ."
         )
     } else {
         bat(
             label: 'Building Python Wheel',
-            script: "python setup.py build -b build build_ext bdist_wheel -d .\\dist"
+            script: "python -m pep517.build --binary --out-dir dist\\ ."
         )
     }
 }
@@ -677,7 +677,6 @@ pipeline {
                 equals expected: true, actual: params.RUN_CHECKS
             }
             stages{
-
                 stage("Testing") {
                     agent {
                         dockerfile {
