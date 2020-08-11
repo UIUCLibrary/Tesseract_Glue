@@ -60,13 +60,14 @@ RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
     pip install wheel
 
-ADD ci/docker/shared/python/requirements-ci.txt c:/requirements/
+ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 
-RUN pip wheel -r c:/requirements/requirements-ci.txt --wheel-dir c:/wheels/
+RUN pip wheel -r c:/requirements/requirements-ci.txt --no-cache --wheel-dir c:/wheels/
 RUN pip install --no-index --find-links=c:/wheels/ `
-         -r c:/requirements/requirements-ci.txt
+         -r c:/requirements/requirements-ci.txt ; `
+    pip install --no-index --find-links=c:/wheels/ `
+         -r c:/requirements/requirements-extras.txt
 
-RUN pip install six==1.14
 
 ADD conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`

@@ -2,5 +2,5 @@ coverage
 pytest
 pytest-bdd
 pytest-cov
-pytest-runner
 conan
+six==1.14
