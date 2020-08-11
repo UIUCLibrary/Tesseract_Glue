@@ -197,7 +197,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         whl: "*cp36*.whl",
-                        sdist: "uiucprescon.ocr-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip,uiucprescon.ocr-*.tar.gz,"
                     ]
                 ],
                 linux: [
@@ -255,7 +255,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         whl: "*cp36*.whl",
-                        sdist: "uiucprescon.ocr-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip,uiucprescon.ocr-*.tar.gz,"
                     ]
                 ]
             ],
@@ -384,7 +384,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         whl: "*cp37*.whl",
-                        sdist: "uiucprescon.ocr-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip,uiucprescon.ocr-*.tar.gz,"
                     ]
                 ],
             ],
@@ -456,7 +456,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         whl: "*cp38*.whl",
-                        sdist: "uiucprescon.ocr-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip,uiucprescon.ocr-*.tar.gz,"
                     ]
                 ],
                 linux: [
@@ -514,7 +514,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         whl: "*cp38*.whl",
-                        sdist: "uiucprescon.ocr-*.zip"
+                        sdist: "uiucprescon.ocr-*.zip,uiucprescon.ocr-*.tar.gz,"
                     ]
                 ]
             ],
