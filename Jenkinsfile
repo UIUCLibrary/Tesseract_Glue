@@ -886,7 +886,7 @@ pipeline {
                         }
                     }
                     steps {
-                        sh "python setup.py sdist -d dist --format zip"
+                        sh "python setup.py python -m pep517.build ."
                     }
                     post{
                         always{
