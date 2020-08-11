@@ -266,7 +266,7 @@ def CONFIGURATIONS = [
             ],
             pkgRegex: [
                 whl: "*cp36*.whl",
-                sdist: "*.zip"
+                sdist: "*.tar.gz"
             ]
         ],
         "3.7" : [
@@ -326,7 +326,7 @@ def CONFIGURATIONS = [
                     ],
                     pkgRegex: [
                         whl: "*cp37*.whl",
-                        sdist: "*.zip"
+                        sdist: "*.tar.gz"
                     ]
                 ],
                 linux: [
@@ -395,7 +395,7 @@ def CONFIGURATIONS = [
             ],
             pkgRegex: [
                 whl: "*cp37*.whl",
-                sdist: "*.zip"
+                sdist: "*.tar.gz"
             ]
         ],
         "3.8" : [
@@ -525,7 +525,7 @@ def CONFIGURATIONS = [
             ],
             pkgRegex: [
                 whl: "*cp38*.whl",
-                sdist: "*.zip"
+                sdist: "*.tar.gz"
             ]
         ],
     ]
