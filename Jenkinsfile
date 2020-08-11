@@ -886,7 +886,7 @@ pipeline {
                         }
                     }
                     steps {
-                        sh "python -m pep517.build ."
+                        sh "python -m pep517.build --source --out-dir dist/ ."
                     }
                     post{
                         always{
