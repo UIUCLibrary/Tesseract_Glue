@@ -27,7 +27,7 @@ RUN declare -A python_versions && \
             export PATH="${python_versions[$PYTHON_VERSION]}/bin:${PATH}" ; \
         else exit 1; \
     fi && \
-    python -m pip install conan --no-warn-script-location && \
+    python -m pip install conan pep517 --no-warn-script-location && \
     ln -sf ${python_versions[$PYTHON_VERSION]}/bin/conan /usr/bin/conan
 COPY conanfile.py /resources/
 ENV CONAN_USER_HOME=/home/user/

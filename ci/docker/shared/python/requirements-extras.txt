@@ -1,0 +1,6 @@
+coverage
+pytest
+pytest-bdd
+pytest-cov
+conan
+six==1.14

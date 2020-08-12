@@ -5,9 +5,25 @@ ARG PYTHON_DOCKER_IMAGE_BASE=python:3.7
 FROM ${CERTS_GENERATOR_IMAGE} as certsgen
 RUN certutil -generateSSTFromWU roots.sst
 
+FROM ${PYTHON_DOCKER_IMAGE_BASE} as wheel_builder
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+ENV PIP_NO_CACHE_DIR=1
+RUN python -m pip install --upgrade pip ; `
+    pip install wheel ; `
+    pip install --upgrade setuptools ; `
+    pip wheel --wheel-dir c:/wheels/ `
+        -r c:/requirements/requirements-ci.txt ; `
+    pip wheel --wheel-dir c:/wheels/ `
+         -r c:/requirements/requirements-extras.txt; `
+    Remove-Item -Force -Recurse C:\Users\ContainerAdministrator\AppData\Local\Temp
+
 FROM ${PYTHON_DOCKER_IMAGE_BASE}
 COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
-
-RUN python -m pip install tox
+COPY --from=wheel_builder c:/wheels/ c:/wheels/
+ENV PIP_NO_CACHE_DIR=1
+RUN python -m pip install --upgrade pip ; `
+    pip install wheel ; `
+    pip install --no-index --find-links=c:\wheels tox
+ENV PIP_FIND_LINKS=c:/wheels

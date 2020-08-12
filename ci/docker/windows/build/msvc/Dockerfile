@@ -56,22 +56,21 @@ RUN Invoke-WebRequest $Env:PYTHON_INSTALLER_URL -OutFile c:\python-installer.exe
     Remove-Item c:\python-installer.exe -Force
 
 
+ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
-    pip install wheel
+    pip install wheel ; `
+    pip install conan ; `
+    pip wheel --no-cache --wheel-dir c:/wheels/ `
+        -r c:/requirements/requirements-ci.txt ; `
+    pip install --no-index --find-links=c:/wheels/ `
+         -r c:/requirements/requirements-ci.txt ; `
+    pip wheel --no-cache --wheel-dir c:/wheels/ `
+         -r c:/requirements/requirements-extras.txt
 
-ADD ci/docker/shared/python/requirements-ci.txt c:/requirements/
-
-RUN pip wheel -r c:/requirements/requirements-ci.txt --wheel-dir c:/wheels/
-RUN pip install --no-index --find-links=c:/wheels/ `
-         -r c:/requirements/requirements-ci.txt
-
-RUN pip install six==1.14
 
 ADD conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`
     conan remove * -b --src -f
-
-ENV TEMP c:\temp
-ENV TMP c:\temp
-ENV TMPDIR c:\temp
+ENV PIP_FIND_LINKS=c:/wheels
