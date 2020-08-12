@@ -98,13 +98,17 @@ class BuildTesseractExt(build_ext):
                 deps = parse_dumpbin_deps(file=output_file)
                 deps = remove_system_dlls(deps)
                 dest = os.path.dirname(dll_name)
+
                 for dep in deps:
                     dll = self.find_deps(dep)
                     shutil.copy(dll, dest)
 
-    def find_deps(self, lib):
-
-        for path in os.environ['path'].split(";"):
+    def find_deps(self, lib, search_paths=None):
+        search_paths = search_paths or os.environ['path'].split(";")
+        for path in search_paths:
+            if not os.path.exists(path):
+                self.announce(f"Skipping invalid path: {path}", 5)
+                continue
             for f in os.scandir(path):
                 if f.name.lower() == lib.lower():
                     return f.path
