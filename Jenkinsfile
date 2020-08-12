@@ -537,6 +537,7 @@ def test_pkg(glob, timeout_time){
             deleteDirs: true,
             disableDeferredWipeout: true,
             patterns: [
+                [pattern: 'dist/', type: 'EXCLUDE'],
                 [pattern: 'tests/', type: 'EXCLUDE'],
                 [pattern: 'tox.ini', type: 'EXCLUDE'],
             ]
