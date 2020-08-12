@@ -73,7 +73,7 @@ RUN python -m pip install --upgrade pip ; `
 ADD conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`
     conan remove * -b --src -f
-
+ENV PIP_FIND_LINKS=c:/wheels
 ENV TEMP c:\temp
 ENV TMP c:\temp
 ENV TMPDIR c:\temp
