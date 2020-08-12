@@ -61,6 +61,7 @@ ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirem
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
     pip install wheel ; `
+    pip install conan ; `
     pip wheel --no-cache --wheel-dir c:/wheels/ `
         -r c:/requirements/requirements-ci.txt `
     pip install --no-index --find-links=c:/wheels/ `
