@@ -533,6 +533,14 @@ def CONFIGURATIONS = [
 def test_pkg(glob, timeout_time){
 
     findFiles( glob: glob).each{
+        cleanWs(
+            deleteDirs: true,
+            disableDeferredWipeout: true,
+            patterns: [
+                [pattern: 'tests/', type: 'EXCLUDE'],
+                [pattern: 'tox.ini', type: 'EXCLUDE'],
+            ]
+        )
         timeout(timeout_time){
             if(isUnix()){
                 sh(label: "Testing ${it}",
