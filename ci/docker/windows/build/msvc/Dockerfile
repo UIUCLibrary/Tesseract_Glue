@@ -56,13 +56,13 @@ RUN Invoke-WebRequest $Env:PYTHON_INSTALLER_URL -OutFile c:\python-installer.exe
     Remove-Item c:\python-installer.exe -Force
 
 
-RUN python -m pip install --upgrade pip ; `
-    pip install --upgrade setuptools ; `
-    pip install wheel
-
 ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 
-RUN pip wheel -r c:/requirements/requirements-ci.txt --no-cache --wheel-dir c:/wheels/
+RUN python -m pip install --upgrade pip ; `
+    pip install --upgrade setuptools ; `
+    pip install wheel ; `
+    pip wheel --no-cache --wheel-dir c:/wheels/ `
+        -r c:/requirements/requirements-ci.txt
 RUN pip install --no-index --find-links=c:/wheels/ `
          -r c:/requirements/requirements-ci.txt ; `
     pip install --no-index --find-links=c:/wheels/ `
