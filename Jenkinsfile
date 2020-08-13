@@ -932,9 +932,24 @@ pipeline {
                                                """
                                     )
                             }
+                            post{
+                                success{
+                                    stash includes: 'dist/*.whlz', name: "MacOS wheel"
+                                }
+                                cleanup{
+                                    cleanWs(
+                                        deleteDirs: true,
+                                        patterns: [
+                                            [pattern: 'build/', type: 'INCLUDE'],
+                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                        ]
+                                    )
+                                }
+                            }
                         }
-                        stage('Testing sdist Package on a Mac') {
+                        stage('Testing Packages on a Mac') {
                             steps{
+                                unstash "MacOS wheel"
                                 sh(
                                     label:"Installing tox",
                                     script: """python3 -m venv venv
@@ -959,6 +974,8 @@ pipeline {
                                     cleanWs(
                                         deleteDirs: true,
                                         patterns: [
+                                            [pattern: 'build/', type: 'INCLUDE'],
+                                            [pattern: 'dist/', type: 'INCLUDE'],
                                             [pattern: 'venv/', type: 'INCLUDE'],
                                         ]
                                     )
