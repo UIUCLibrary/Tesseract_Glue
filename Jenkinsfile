@@ -571,6 +571,8 @@ pipeline {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+//         todo turn TEST_PACKAGES_ON_MAC defaultValue false
+        booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: true, description: "Test Python packages on Mac")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_ADD_TAG", defaultValue: false, description: "Tag commit to current version")
@@ -908,6 +910,45 @@ pipeline {
                     post{
                         always{
                             stash includes: 'dist/*.zip,dist/*.tar.gz', name: "sdist"
+                        }
+                    }
+                }
+                stage('Testing sdist Package on a Mac') {
+                    agent {
+                        label 'mac'
+                    }
+                    when{
+                        equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
+                        beforeAgent true
+                    }
+                    steps{
+                        sh(
+                            label:"Installing tox",
+                            script: """python3 -m venv venv
+                                       venv/bin/python -m pip install pip --upgrade
+                                       venv/bin/python -m pip install wheel
+                                       venv/bin/python -m pip install --upgrade setuptools
+                                       venv/bin/python -m pip install tox
+                                       """
+                            )
+                        unstash "sdist"
+                        script{
+                            findFiles(glob: "dist/*.tar.gz,dist/*.zip,dist/*.whl").each{
+                                sh(
+                                    label: "Testing ${it}",
+                                    script: "venv/bin/tox --installpkg=${it.path} -e py -vv --recreate"
+                                )
+                            }
+                        }
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                patterns: [
+                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                ]
+                            )
                         }
                     }
                 }
