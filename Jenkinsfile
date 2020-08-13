@@ -564,7 +564,6 @@ pipeline {
     agent none
     options {
         timeout(time: 1, unit: 'DAYS')
-        buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     parameters {
         booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
