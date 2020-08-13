@@ -57,13 +57,13 @@ def create_git_tag(metadataFile, gitCreds){
         )
     }
 }
-def build_wheel(){
+def build_wheel(platform){
     if(isUnix()){
         sh(
             label: 'Building Python Wheel',
             script: "python -m pep517.build --binary --out-dir dist/ ."
         )
-        if( PLATFORM == 'linux'){
+        if( platform == 'linux'){
             sh "auditwheel repair ./dist/*.whl -w ./dist"
         }
     } else {
@@ -1026,7 +1026,7 @@ pipeline {
                                      }
                                 }
                                 steps{
-                                    build_wheel()
+                                    build_wheel(PLATFORM)
                                 }
                                 post {
                                     always{
