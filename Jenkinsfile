@@ -63,6 +63,9 @@ def build_wheel(){
             label: 'Building Python Wheel',
             script: "python -m pep517.build --binary --out-dir dist/ ."
         )
+        if( PLATFORM == 'linux'){
+            sh "auditwheel repair ./dist/*.whl -w ./dist"
+        }
     } else {
         bat(
             label: 'Building Python Wheel',
@@ -1024,11 +1027,6 @@ pipeline {
                                 }
                                 steps{
                                     build_wheel()
-                                    script{
-                                        if( PLATFORM == 'linux'){
-                                            sh "auditwheel repair ./dist/*.whl -w ./dist"
-                                        }
-                                    }
                                 }
                                 post {
                                     always{
