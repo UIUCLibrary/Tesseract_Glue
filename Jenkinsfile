@@ -921,7 +921,16 @@ pipeline {
                     stages{
                         stage('Build wheel for Mac') {
                             steps{
-                                echo "Building wheel"
+                                sh(
+                                    label:"Building wheel",
+                                    script: """python3 -m venv venv
+                                               venv/bin/python -m pip install pip --upgrade
+                                               venv/bin/python -m pip install wheel
+                                               venv/bin/python -m pip install --upgrade setuptools
+                                               venv/bin/python -m pip install pep517
+
+                                               """
+                                    )
                             }
                         }
                         stage('Testing sdist Package on a Mac') {
