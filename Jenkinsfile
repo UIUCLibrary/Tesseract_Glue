@@ -591,13 +591,18 @@ pipeline {
                 stage("Getting Distribution Info"){
                     steps{
                         timeout(2){
-                            sh "python setup.py dist_info && rm -r uiucprescon.ocr.dist-info"
+                            sh "python setup.py dist_info"
                         }
                     }
                     post{
                         success{
                             stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
                             archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+                        }
+                        cleanup{
+                             cleanWs(
+                                notFailBuild: true
+                                )
                         }
                     }
                 }
