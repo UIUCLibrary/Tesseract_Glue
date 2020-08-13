@@ -928,7 +928,7 @@ pipeline {
                                                venv/bin/python -m pip install wheel
                                                venv/bin/python -m pip install --upgrade setuptools
                                                venv/bin/python -m pip install pep517
-
+                                               venv/bin/python -m pep517.build --binary --out-dir dist/ .
                                                """
                                     )
                             }
