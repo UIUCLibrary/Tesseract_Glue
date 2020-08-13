@@ -914,12 +914,17 @@ pipeline {
                     agent {
                         label 'mac'
                     }
+                    when{
+                        equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
+                        beforeAgent true
+                    }
                     stages{
-                        stage('Testing sdist Package on a Mac') {
-                            when{
-                                equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
-                                beforeAgent true
+                        stage('Build wheel for Mac') {
+                            steps{
+                                echo "Building wheel"
                             }
+                        }
+                        stage('Testing sdist Package on a Mac') {
                             steps{
                                 sh(
                                     label:"Installing tox",
