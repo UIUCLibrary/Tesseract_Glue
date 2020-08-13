@@ -934,7 +934,7 @@ pipeline {
                             }
                             post{
                                 success{
-                                    stash includes: 'dist/*.whlz', name: "MacOS wheel"
+                                    stash includes: 'dist/*.whl', name: "MacOS wheel"
                                 }
                                 cleanup{
                                     cleanWs(
