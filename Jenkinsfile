@@ -1003,7 +1003,7 @@ pipeline {
                                     }
                                     post{
                                         cleanup{
-                                            deleteDirs()
+                                            deleteDir()
                                         }
                                     }
                                 }
@@ -1017,7 +1017,7 @@ pipeline {
                                     }
                                     post{
                                         cleanup{
-                                            deleteDirs()
+                                            deleteDir()
                                         }
                                     }
                                 }
