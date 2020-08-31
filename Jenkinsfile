@@ -1020,20 +1020,21 @@ pipeline {
                                     }
                                     steps{
                                         unstash "sdist"
-                                        script{
-                                            findFiles(glob: "dist/*.tar.gz,dist/*.zip").each{
-                                                sh(
-                                                    label: "Testing ${it}",
-                                                    script: """python3 -m venv venv
-                                                               venv/bin/python -m pip install pip --upgrade
-                                                               venv/bin/python -m pip install wheel
-                                                               venv/bin/python -m pip install --upgrade setuptools
-                                                               venv/bin/python -m pip install tox
-                                                               venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
-                                                               """
-                                                )
-                                            }
-                                        }
+                                        test_package_on_mac("dist/*.tar.gz,dist/*.zip")
+//                                         script{
+//                                             findFiles(glob: "dist/*.tar.gz,dist/*.zip").each{
+//                                                 sh(
+//                                                     label: "Testing ${it}",
+//                                                     script: """python3 -m venv venv
+//                                                                venv/bin/python -m pip install pip --upgrade
+//                                                                venv/bin/python -m pip install wheel
+//                                                                venv/bin/python -m pip install --upgrade setuptools
+//                                                                venv/bin/python -m pip install tox
+//                                                                venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
+//                                                                """
+//                                                 )
+//                                             }
+//                                         }
 //                                     }
 //                                     post{
 //                                         cleanup{
