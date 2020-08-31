@@ -1001,29 +1001,29 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage('Testing sdist Package on a Mac') {
-                                    steps{
-                                        unstash "sdist"
-                                        script{
-                                            findFiles(glob: "dist/*.tar.gz,dist/*.zip").each{
-                                                sh(
-                                                    label: "Testing ${it}",
-                                                    script: "venv/bin/tox --installpkg=${it.path} -e py -vv --recreate"
-                                                )
-                                            }
-                                        }
-                                    }
-                                    post{
-                                        cleanup{
-                                            cleanWs(
-                                                deleteDirs: true,
-                                                patterns: [
-                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                ]
-                                            )
-                                        }
-                                    }
-                                }
+//                                 stage('Testing sdist Package on a Mac') {
+//                                     steps{
+//                                         unstash "sdist"
+//                                         script{
+//                                             findFiles(glob: "dist/*.tar.gz,dist/*.zip").each{
+//                                                 sh(
+//                                                     label: "Testing ${it}",
+//                                                     script: "venv/bin/tox --installpkg=${it.path} -e py -vv --recreate"
+//                                                 )
+//                                             }
+//                                         }
+//                                     }
+//                                     post{
+//                                         cleanup{
+//                                             cleanWs(
+//                                                 deleteDirs: true,
+//                                                 patterns: [
+//                                                     [pattern: 'dist/', type: 'INCLUDE'],
+//                                                 ]
+//                                             )
+//                                         }
+//                                     }
+//                                 }
                             }
                         }
                     }
