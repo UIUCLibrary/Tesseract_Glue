@@ -942,7 +942,6 @@ pipeline {
                 stage("Mac Versions"){
                     when{
                         equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
-//                         beforeAgent true
                     }
                     stages{
                         stage('Build wheel for Mac') {
@@ -999,18 +998,18 @@ pipeline {
                                             }
                                         }
                                     }
-//                                     post{
-//                                         cleanup{
-//                                             cleanWs(
-//                                                 deleteDirs: true,
-//                                                 patterns: [
-//                                                     [pattern: 'dist/', type: 'INCLUDE'],
-//                                                     [pattern: '*.egg-info/', type: 'INCLUDE'],
-//                                                     [pattern: '**/__pycache__/', type: 'INCLUDE'],
-//                                                 ]
-//                                             )
-//                                         }
-//                                     }
+                                    post{
+                                        cleanup{
+                                            cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                    [pattern: '*.egg-info/', type: 'INCLUDE'],
+                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                ]
+                                            )
+                                        }
+                                    }
                                 }
                                 stage('Testing sdist Package on a Mac') {
                                     agent {
