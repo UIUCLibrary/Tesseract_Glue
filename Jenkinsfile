@@ -1009,6 +1009,8 @@ pipeline {
                                                     [pattern: 'dist/', type: 'INCLUDE'],
                                                     [pattern: '*.egg-info/', type: 'INCLUDE'],
                                                     [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                    [pattern: '.tox/', type: 'INCLUDE'],
+                                                    [pattern: 'venv/', type: 'INCLUDE'],
                                                 ]
                                             )
                                         }
@@ -1030,6 +1032,8 @@ pipeline {
                                                     [pattern: 'dist/', type: 'INCLUDE'],
                                                     [pattern: '*.egg-info/', type: 'INCLUDE'],
                                                     [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                    [pattern: '.tox/', type: 'INCLUDE'],
+                                                    [pattern: 'venv/', type: 'INCLUDE'],
                                                 ]
                                             )
                                         }
