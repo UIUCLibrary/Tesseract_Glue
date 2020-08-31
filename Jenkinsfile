@@ -606,48 +606,16 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-//         todo: turn this to default true
-        booleanParam(name: "RUN_CHECKS", defaultValue: false, description: "Run checks on code")
+        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
-//         todo: turn this to default false
-        booleanParam(name: "BUILD_PACKAGES", defaultValue: true, description: "Build Python packages")
-//         todo: turn this to default false
-        booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: true, description: "Test Python packages on Mac")
+        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+        booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
     }
     stages {
-//         stage("Configure") {
-//             agent {
-//                 dockerfile {
-//                     filename 'ci/docker/linux/build/Dockerfile'
-//                     label 'linux && docker'
-//                     additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
-//                 }
-//             }
-//             stages{
-//                 stage("Getting Distribution Info"){
-//                     steps{
-//                         timeout(2){
-//                             sh "python setup.py dist_info"
-//                         }
-//                     }
-//                     post{
-//                         success{
-//                             stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
-//                             archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
-//                         }
-//                         cleanup{
-//                              cleanWs(
-//                                 notFailBuild: true
-//                                 )
-//                         }
-//                     }
-//                 }
-//            }
-//         }
         stage("Building") {
             agent {
                 dockerfile {
@@ -673,16 +641,6 @@ pipeline {
                             stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
-//                         cleanup{
-//                             cleanWs(
-//                                 patterns: [
-//                                         [pattern: 'logs/build.log', type: 'INCLUDE'],
-//                                         [pattern: "logs/built_package.log", type: 'INCLUDE'],
-//                                         [pattern: "logs/env_vars.log", type: 'INCLUDE'],
-//                                     ],
-//                                 notFailBuild: true
-//                                 )
-//                         }
                     }
                 }
                 stage("Building Documentation"){
@@ -766,16 +724,6 @@ pipeline {
                                                     )
                                                 }
                                             }
-//                                             post{
-//                                                 cleanup{
-//                                                     cleanWs(
-//                                                         deleteDirs: true,
-//                                                         patterns: [
-//                                                             [pattern: '.tox', type: 'INCLUDE'],
-//                                                         ]
-//                                                     )
-//                                                 }
-//                                             }
                                         }
                                     }
                                 }
@@ -1027,18 +975,6 @@ pipeline {
                             }
                         }
                     }
-//                     post{
-//                         cleanup{
-//                             cleanWs(
-//                                 deleteDirs: true,
-//                                 patterns: [
-//                                     [pattern: 'build/', type: 'INCLUDE'],
-//                                     [pattern: 'dist/', type: 'INCLUDE'],
-//                                     [pattern: 'venv/', type: 'INCLUDE'],
-//                                 ]
-//                             )
-//                         }
-//                     }
                 }
                 stage("Testing Packages"){
                     matrix{
