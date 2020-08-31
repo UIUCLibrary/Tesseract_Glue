@@ -1021,30 +1021,18 @@ pipeline {
                                     steps{
                                         unstash "sdist"
                                         test_package_on_mac("dist/*.tar.gz,dist/*.zip")
-//                                         script{
-//                                             findFiles(glob: "dist/*.tar.gz,dist/*.zip").each{
-//                                                 sh(
-//                                                     label: "Testing ${it}",
-//                                                     script: """python3 -m venv venv
-//                                                                venv/bin/python -m pip install pip --upgrade
-//                                                                venv/bin/python -m pip install wheel
-//                                                                venv/bin/python -m pip install --upgrade setuptools
-//                                                                venv/bin/python -m pip install tox
-//                                                                venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
-//                                                                """
-//                                                 )
-//                                             }
-//                                         }
-//                                     }
-//                                     post{
-//                                         cleanup{
-//                                             cleanWs(
-//                                                 deleteDirs: true,
-//                                                 patterns: [
-//                                                     [pattern: 'dist/', type: 'INCLUDE'],
-//                                                 ]
-//                                             )
-//                                         }
+                                    }
+                                    post{
+                                        cleanup{
+                                            cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                    [pattern: '*.egg-info/', type: 'INCLUDE'],
+                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                ]
+                                            )
+                                        }
                                     }
                                 }
                             }
