@@ -562,7 +562,29 @@ def test_pkg(glob, timeout_time){
         }
     }
 }
-
+node('linux && docker') {
+    timeout(2){
+        ws{
+            checkout scm
+            try{
+                docker.image('python:3.8').inside {
+                    stage("Getting Distribution Info"){
+                        sh(
+                           label: "Running setup.py with dist_info",
+                           script: """python --version
+                                      python setup.py dist_info
+                                   """
+                        )
+                        stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
+                        archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+                    }
+                }
+            } finally{
+                deleteDir()
+            }
+        }
+    }
+}
 pipeline {
     agent none
     options {
@@ -582,35 +604,35 @@ pipeline {
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
     }
     stages {
-        stage("Configure") {
-            agent {
-                dockerfile {
-                    filename 'ci/docker/linux/build/Dockerfile'
-                    label 'linux && docker'
-                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
-                }
-            }
-            stages{
-                stage("Getting Distribution Info"){
-                    steps{
-                        timeout(2){
-                            sh "python setup.py dist_info"
-                        }
-                    }
-                    post{
-                        success{
-                            stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
-                            archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
-                        }
-                        cleanup{
-                             cleanWs(
-                                notFailBuild: true
-                                )
-                        }
-                    }
-                }
-           }
-        }
+//         stage("Configure") {
+//             agent {
+//                 dockerfile {
+//                     filename 'ci/docker/linux/build/Dockerfile'
+//                     label 'linux && docker'
+//                     additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+//                 }
+//             }
+//             stages{
+//                 stage("Getting Distribution Info"){
+//                     steps{
+//                         timeout(2){
+//                             sh "python setup.py dist_info"
+//                         }
+//                     }
+//                     post{
+//                         success{
+//                             stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
+//                             archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+//                         }
+//                         cleanup{
+//                              cleanWs(
+//                                 notFailBuild: true
+//                                 )
+//                         }
+//                     }
+//                 }
+//            }
+//         }
         stage("Building") {
             agent {
                 dockerfile {
