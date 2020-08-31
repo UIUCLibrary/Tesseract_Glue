@@ -999,18 +999,18 @@ pipeline {
                                             }
                                         }
                                     }
-                                    post{
-                                        cleanup{
-                                            cleanWs(
-                                                deleteDirs: true,
-                                                patterns: [
-                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                    [pattern: '*.egg-info/', type: 'INCLUDE'],
-                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                ]
-                                            )
-                                        }
-                                    }
+//                                     post{
+//                                         cleanup{
+//                                             cleanWs(
+//                                                 deleteDirs: true,
+//                                                 patterns: [
+//                                                     [pattern: 'dist/', type: 'INCLUDE'],
+//                                                     [pattern: '*.egg-info/', type: 'INCLUDE'],
+//                                                     [pattern: '**/__pycache__/', type: 'INCLUDE'],
+//                                                 ]
+//                                             )
+//                                         }
+//                                     }
                                 }
                                 stage('Testing sdist Package on a Mac') {
                                     agent {
