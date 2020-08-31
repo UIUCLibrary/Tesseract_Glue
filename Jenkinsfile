@@ -933,7 +933,7 @@ pipeline {
                                                venv/bin/python -m pip install pip --upgrade
                                                venv/bin/python -m pip install wheel
                                                venv/bin/python -m pip install --upgrade setuptools
-                                               venv/bin/python -m pip install pep517
+                                               venv/bin/python -m pip install pep517 tox
                                                venv/bin/python -m pep517.build --binary --out-dir dist/ .
                                                """
                                     )
@@ -953,40 +953,67 @@ pipeline {
                                 }
                             }
                         }
-                        stage('Testing Packages on a Mac') {
-                            steps{
-                                unstash "MacOS wheel"
-                                sh(
-                                    label:"Installing tox",
-                                    script: """python3 -m venv venv
-                                               venv/bin/python -m pip install pip --upgrade
-                                               venv/bin/python -m pip install wheel
-                                               venv/bin/python -m pip install --upgrade setuptools
-                                               venv/bin/python -m pip install tox
-                                               """
-                                    )
-                                unstash "sdist"
-                                script{
-                                    findFiles(glob: "dist/*.tar.gz,dist/*.zip,dist/*.whl").each{
-                                        sh(
-                                            label: "Testing ${it}",
-                                            script: "venv/bin/tox --installpkg=${it.path} -e py -vv --recreate"
-                                        )
+                        stage("Testing"){
+                            stages{
+                                stage('Testing Wheel Package on a Mac') {
+                                    steps{
+                                        unstash "MacOS wheel"
+                                        script{
+                                            findFiles(glob: "dist/*.whl").each{
+                                                sh(
+                                                    label: "Testing ${it}",
+                                                    script: "venv/bin/tox --installpkg=${it.path} -e py -vv --recreate"
+                                                )
+                                            }
+                                        }
+                                    }
+                                    post{
+                                        cleanup{
+                                            cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                ]
+                                            )
+                                        }
+                                    }
+                                }
+                                stage('Testing sdist Package on a Mac') {
+                                    steps{
+                                        unstash "sdist"
+                                        script{
+                                            findFiles(glob: "dist/*.tar.gz,dist/*.zip").each{
+                                                sh(
+                                                    label: "Testing ${it}",
+                                                    script: "venv/bin/tox --installpkg=${it.path} -e py -vv --recreate"
+                                                )
+                                            }
+                                        }
+                                    }
+                                    post{
+                                        cleanup{
+                                            cleanWs(
+                                                deleteDirs: true,
+                                                patterns: [
+                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                ]
+                                            )
+                                        }
                                     }
                                 }
                             }
-                            post{
-                                cleanup{
-                                    cleanWs(
-                                        deleteDirs: true,
-                                        patterns: [
-                                            [pattern: 'build/', type: 'INCLUDE'],
-                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                        ]
-                                    )
-                                }
-                            }
+                        }
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                patterns: [
+                                    [pattern: 'build/', type: 'INCLUDE'],
+                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                ]
+                            )
                         }
                     }
                 }
