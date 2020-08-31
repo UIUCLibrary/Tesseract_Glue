@@ -118,7 +118,22 @@ def deploy_docs(pkgName, prefix){
     }
 }
 
-
+def test_package_on_mac(glob){
+    script{
+        findFiles(glob: glob).each{
+            sh(
+                label: "Testing ${it}",
+                script: """python3 -m venv venv
+                           venv/bin/python -m pip install pip --upgrade
+                           venv/bin/python -m pip install wheel
+                           venv/bin/python -m pip install --upgrade setuptools
+                           venv/bin/python -m pip install tox
+                           venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
+                           """
+            )
+        }
+    }
+}
 
 // def get_package_version(stashName, metadataFile){
 //     ws {
@@ -983,33 +998,21 @@ pipeline {
                                     }
                                     steps{
                                         unstash "MacOS wheel"
-                                        script{
-                                            findFiles(glob: "dist/*.whl").each{
-                                                sh(
-                                                    label: "Testing ${it}",
-                                                    script: """python3 -m venv venv
-                                                               venv/bin/python -m pip install pip --upgrade
-                                                               venv/bin/python -m pip install wheel
-                                                               venv/bin/python -m pip install --upgrade setuptools
-                                                               venv/bin/python -m pip install tox
-                                                               venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
-                                                               """
-                                                )
-                                            }
-                                        }
+                                        test_package_on_mac("dist/*.whl")
+
                                     }
-                                    post{
-                                        cleanup{
-                                            cleanWs(
-                                                deleteDirs: true,
-                                                patterns: [
-                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                    [pattern: '*.egg-info/', type: 'INCLUDE'],
-                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                ]
-                                            )
-                                        }
-                                    }
+//                                     post{
+//                                         cleanup{
+//                                             cleanWs(
+//                                                 deleteDirs: true,
+//                                                 patterns: [
+//                                                     [pattern: 'dist/', type: 'INCLUDE'],
+//                                                     [pattern: '*.egg-info/', type: 'INCLUDE'],
+//                                                     [pattern: '**/__pycache__/', type: 'INCLUDE'],
+//                                                 ]
+//                                             )
+//                                         }
+//                                     }
                                 }
                                 stage('Testing sdist Package on a Mac') {
                                     agent {
