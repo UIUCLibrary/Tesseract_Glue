@@ -962,7 +962,7 @@ pipeline {
                                     )
                             }
                             post{
-                                success{
+                                always{
                                     stash includes: 'dist/*.whl', name: "MacOS wheel"
                                 }
                                 cleanup{
