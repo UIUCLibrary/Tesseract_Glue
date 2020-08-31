@@ -940,15 +940,15 @@ pipeline {
                     }
                 }
                 stage("Mac Versions"){
-                    agent {
-                        label 'mac'
-                    }
                     when{
                         equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
                         beforeAgent true
                     }
                     stages{
                         stage('Build wheel for Mac') {
+                            agent {
+                                label 'mac'
+                            }
                             steps{
                                 sh(
                                     label:"Building wheel",
@@ -979,13 +979,22 @@ pipeline {
                         stage("Testing"){
                             stages{
                                 stage('Testing Wheel Package on a Mac') {
+                                    agent {
+                                        label 'mac'
+                                    }
                                     steps{
                                         unstash "MacOS wheel"
                                         script{
                                             findFiles(glob: "dist/*.whl").each{
                                                 sh(
                                                     label: "Testing ${it}",
-                                                    script: "venv/bin/tox --installpkg=${it.path} -e py -vv --recreate"
+                                                    script: """python3 -m venv venv
+                                                               venv/bin/python -m pip install pip --upgrade
+                                                               venv/bin/python -m pip install wheel
+                                                               venv/bin/python -m pip install --upgrade setuptools
+                                                               venv/bin/python -m pip install tox
+                                                               venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
+                                                               """
                                                 )
                                             }
                                         }
