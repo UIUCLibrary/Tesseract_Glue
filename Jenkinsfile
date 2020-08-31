@@ -1002,6 +1002,9 @@ pipeline {
 
                                     }
                                     post{
+                                        success{
+                                            archiveArtifacts artifacts: "dist/*.whl"
+                                        }
                                         cleanup{
                                             deleteDir()
                                         }
