@@ -996,6 +996,8 @@ pipeline {
                                                 deleteDirs: true,
                                                 patterns: [
                                                     [pattern: 'dist/', type: 'INCLUDE'],
+                                                    [pattern: '*.egg-info/', type: 'INCLUDE'],
+                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
                                                 ]
                                             )
                                         }
