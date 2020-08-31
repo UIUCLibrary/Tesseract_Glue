@@ -1038,18 +1038,18 @@ pipeline {
                             }
                         }
                     }
-                    post{
-                        cleanup{
-                            cleanWs(
-                                deleteDirs: true,
-                                patterns: [
-                                    [pattern: 'build/', type: 'INCLUDE'],
-                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                    [pattern: 'venv/', type: 'INCLUDE'],
-                                ]
-                            )
-                        }
-                    }
+//                     post{
+//                         cleanup{
+//                             cleanWs(
+//                                 deleteDirs: true,
+//                                 patterns: [
+//                                     [pattern: 'build/', type: 'INCLUDE'],
+//                                     [pattern: 'dist/', type: 'INCLUDE'],
+//                                     [pattern: 'venv/', type: 'INCLUDE'],
+//                                 ]
+//                             )
+//                         }
+//                     }
                 }
                 stage("Testing Packages"){
                     matrix{
