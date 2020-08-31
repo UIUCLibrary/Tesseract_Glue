@@ -658,16 +658,16 @@ pipeline {
                             stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
-                        cleanup{
-                            cleanWs(
-                                patterns: [
-                                        [pattern: 'logs/build.log', type: 'INCLUDE'],
-                                        [pattern: "logs/built_package.log", type: 'INCLUDE'],
-                                        [pattern: "logs/env_vars.log", type: 'INCLUDE'],
-                                    ],
-                                notFailBuild: true
-                                )
-                        }
+//                         cleanup{
+//                             cleanWs(
+//                                 patterns: [
+//                                         [pattern: 'logs/build.log', type: 'INCLUDE'],
+//                                         [pattern: "logs/built_package.log", type: 'INCLUDE'],
+//                                         [pattern: "logs/env_vars.log", type: 'INCLUDE'],
+//                                     ],
+//                                 notFailBuild: true
+//                                 )
+//                         }
                     }
                 }
                 stage("Building Documentation"){
@@ -700,7 +700,8 @@ pipeline {
                 cleanup{
                     cleanWs(
                         patterns: [
-                                [pattern: 'build', type: 'INCLUDE'],
+                                [pattern: 'build/', type: 'INCLUDE'],
+                                [pattern: 'logs/', type: 'INCLUDE'],
                             ],
                         notFailBuild: true,
                         deleteDirs: true
