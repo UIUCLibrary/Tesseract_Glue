@@ -942,7 +942,7 @@ pipeline {
                 stage("Mac Versions"){
                     when{
                         equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
-                        beforeAgent true
+//                         beforeAgent true
                     }
                     stages{
                         stage('Build wheel for Mac') {
