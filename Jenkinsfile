@@ -977,7 +977,7 @@ pipeline {
                             }
                         }
                         stage("Testing"){
-                            stages{
+                            parallel{
                                 stage('Testing Wheel Package on a Mac') {
                                     agent {
                                         label 'mac'
