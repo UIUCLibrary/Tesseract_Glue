@@ -751,16 +751,16 @@ pipeline {
                                                     )
                                                 }
                                             }
-                                            post{
-                                                cleanup{
-                                                    cleanWs(
-                                                        deleteDirs: true,
-                                                        patterns: [
-                                                            [pattern: '.tox', type: 'INCLUDE'],
-                                                        ]
-                                                    )
-                                                }
-                                            }
+//                                             post{
+//                                                 cleanup{
+//                                                     cleanWs(
+//                                                         deleteDirs: true,
+//                                                         patterns: [
+//                                                             [pattern: '.tox', type: 'INCLUDE'],
+//                                                         ]
+//                                                     )
+//                                                 }
+//                                             }
                                         }
                                     }
                                 }
