@@ -1012,9 +1012,12 @@ pipeline {
                                         }
                                     }
                                 }
-//                                 stage('Testing sdist Package on a Mac') {
-//                                     steps{
-//                                         unstash "sdist"
+                                stage('Testing sdist Package on a Mac') {
+                                    agent {
+                                        label 'mac'
+                                    }
+                                    steps{
+                                        unstash "sdist"
 //                                         script{
 //                                             findFiles(glob: "dist/*.tar.gz,dist/*.zip").each{
 //                                                 sh(
@@ -1033,8 +1036,8 @@ pipeline {
 //                                                 ]
 //                                             )
 //                                         }
-//                                     }
-//                                 }
+                                    }
+                                }
                             }
                         }
                     }
