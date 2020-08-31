@@ -1003,16 +1003,7 @@ pipeline {
                                     }
                                     post{
                                         cleanup{
-                                            cleanWs(
-                                                deleteDirs: true,
-                                                patterns: [
-                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                    [pattern: '*.egg-info/', type: 'INCLUDE'],
-                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                    [pattern: '.tox/', type: 'INCLUDE'],
-                                                    [pattern: 'venv/', type: 'INCLUDE'],
-                                                ]
-                                            )
+                                            deleteDirs()
                                         }
                                     }
                                 }
@@ -1026,16 +1017,7 @@ pipeline {
                                     }
                                     post{
                                         cleanup{
-                                            cleanWs(
-                                                deleteDirs: true,
-                                                patterns: [
-                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                    [pattern: '*.egg-info/', type: 'INCLUDE'],
-                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                    [pattern: '.tox/', type: 'INCLUDE'],
-                                                    [pattern: 'venv/', type: 'INCLUDE'],
-                                                ]
-                                            )
+                                            deleteDirs()
                                         }
                                     }
                                 }
