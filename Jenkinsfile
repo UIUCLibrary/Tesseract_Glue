@@ -57,12 +57,15 @@ def create_git_tag(metadataFile, gitCreds){
         )
     }
 }
-def build_wheel(){
+def build_wheel(platform){
     if(isUnix()){
         sh(
             label: 'Building Python Wheel',
             script: "python -m pep517.build --binary --out-dir dist/ ."
         )
+        if( platform == 'linux'){
+            sh "auditwheel repair ./dist/*.whl -w ./dist"
+        }
     } else {
         bat(
             label: 'Building Python Wheel',
@@ -115,7 +118,22 @@ def deploy_docs(pkgName, prefix){
     }
 }
 
-
+def test_package_on_mac(glob){
+    script{
+        findFiles(glob: glob).each{
+            sh(
+                label: "Testing ${it}",
+                script: """python3 -m venv venv
+                           venv/bin/python -m pip install pip --upgrade
+                           venv/bin/python -m pip install wheel
+                           venv/bin/python -m pip install --upgrade setuptools
+                           venv/bin/python -m pip install tox
+                           venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
+                           """
+            )
+        }
+    }
+}
 
 // def get_package_version(stashName, metadataFile){
 //     ws {
@@ -586,48 +604,18 @@ pipeline {
     agent none
     options {
         timeout(time: 1, unit: 'DAYS')
-        buildDiscarder logRotator(artifactDaysToKeepStr: '30', artifactNumToKeepStr: '30', daysToKeepStr: '100', numToKeepStr: '100')
     }
     parameters {
         booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+        booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
-        booleanParam(name: "DEPLOY_ADD_TAG", defaultValue: false, description: "Tag commit to current version")
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
     }
     stages {
-//         stage("Configure") {
-//             agent {
-//                 dockerfile {
-//                     filename 'ci/docker/linux/build/Dockerfile'
-//                     label 'linux && docker'
-//                     additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
-//                 }
-//             }
-//             stages{
-//                 stage("Getting Distribution Info"){
-//                     steps{
-//                         timeout(2){
-//                             sh "python setup.py dist_info"
-//                         }
-//                     }
-//                     post{
-//                         success{
-//                             stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
-//                             archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
-//                         }
-//                         cleanup{
-//                              cleanWs(
-//                                 notFailBuild: true
-//                                 )
-//                         }
-//                     }
-//                 }
-//            }
-//         }
         stage("Building") {
             agent {
                 dockerfile {
@@ -652,16 +640,6 @@ pipeline {
                         always{
                             stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
-                        }
-                        cleanup{
-                            cleanWs(
-                                patterns: [
-                                        [pattern: 'logs/build.log', type: 'INCLUDE'],
-                                        [pattern: "logs/built_package.log", type: 'INCLUDE'],
-                                        [pattern: "logs/env_vars.log", type: 'INCLUDE'],
-                                    ],
-                                notFailBuild: true
-                                )
                         }
                     }
                 }
@@ -695,7 +673,8 @@ pipeline {
                 cleanup{
                     cleanWs(
                         patterns: [
-                                [pattern: 'build', type: 'INCLUDE'],
+                                [pattern: 'build/', type: 'INCLUDE'],
+                                [pattern: 'logs/', type: 'INCLUDE'],
                             ],
                         notFailBuild: true,
                         deleteDirs: true
@@ -742,16 +721,6 @@ pipeline {
                                                     sh  (
                                                         label: "Run Tox",
                                                         script: "tox -e py -vv "
-                                                    )
-                                                }
-                                            }
-                                            post{
-                                                cleanup{
-                                                    cleanWs(
-                                                        deleteDirs: true,
-                                                        patterns: [
-                                                            [pattern: '.tox', type: 'INCLUDE'],
-                                                        ]
                                                     )
                                                 }
                                             }
@@ -933,6 +902,80 @@ pipeline {
                         }
                     }
                 }
+                stage("Mac Versions"){
+                    when{
+                        equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
+                    }
+                    stages{
+                        stage('Build wheel for Mac') {
+                            agent {
+                                label 'mac'
+                            }
+                            steps{
+                                sh(
+                                    label:"Building wheel",
+                                    script: """python3 -m venv venv
+                                               venv/bin/python -m pip install pip --upgrade
+                                               venv/bin/python -m pip install wheel
+                                               venv/bin/python -m pip install --upgrade setuptools
+                                               venv/bin/python -m pip install pep517 tox
+                                               venv/bin/python -m pep517.build --binary --out-dir dist/ .
+                                               """
+                                    )
+                            }
+                            post{
+                                always{
+                                    stash includes: 'dist/*.whl', name: "MacOS wheel"
+                                }
+                                cleanup{
+                                    cleanWs(
+                                        deleteDirs: true,
+                                        patterns: [
+                                            [pattern: 'build/', type: 'INCLUDE'],
+                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                        ]
+                                    )
+                                }
+                            }
+                        }
+                        stage("Testing"){
+                            parallel{
+                                stage('Testing Wheel Package on a Mac') {
+                                    agent {
+                                        label 'mac'
+                                    }
+                                    steps{
+                                        unstash "MacOS wheel"
+                                        test_package_on_mac("dist/*.whl")
+
+                                    }
+                                    post{
+                                        success{
+                                            archiveArtifacts artifacts: "dist/*.whl"
+                                        }
+                                        cleanup{
+                                            deleteDir()
+                                        }
+                                    }
+                                }
+                                stage('Testing sdist Package on a Mac') {
+                                    agent {
+                                        label 'mac'
+                                    }
+                                    steps{
+                                        unstash "sdist"
+                                        test_package_on_mac("dist/*.tar.gz,dist/*.zip")
+                                    }
+                                    post{
+                                        cleanup{
+                                            deleteDir()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
                 stage("Testing Packages"){
                     matrix{
                         axes {
@@ -977,12 +1020,7 @@ pipeline {
                                      }
                                 }
                                 steps{
-                                    build_wheel()
-                                    script{
-                                        if( PLATFORM == 'linux'){
-                                            sh "auditwheel repair ./dist/*.whl -w ./dist"
-                                        }
-                                    }
+                                    build_wheel(PLATFORM)
                                 }
                                 post {
                                     always{
@@ -1279,53 +1317,6 @@ pipeline {
         }
         stage("Deploy"){
             parallel{
-                stage("Tagging git Commit"){
-                    agent {
-                        dockerfile {
-                            filename 'ci/docker/linux/build/Dockerfile'
-                            label 'linux && docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                        }
-                    }
-                    when{
-                        allOf{
-                            equals expected: true, actual: params.DEPLOY_ADD_TAG
-                        }
-                        beforeAgent true
-                        beforeInput true
-                    }
-                    options{
-                        timeout(time: 1, unit: 'DAYS')
-                        retry(3)
-                    }
-                    input {
-                          message 'Add a version tag to git commit?'
-                          parameters {
-                                credentials credentialType: 'com.cloudbees.plugins.credentials.impl.UsernamePasswordCredentialsImpl', defaultValue: 'github.com', description: '', name: 'gitCreds', required: true
-                          }
-                    }
-                    steps{
-                        unstash "DIST-INFO"
-                        create_git_tag("uiucprescon.ocr.dist-info/METADATA", gitCreds)
-//                         script{
-//                             def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-//                             def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
-//                             withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
-//                                 sh(label: "Tagging ${commitTag}",
-//                                    script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
-//                                               git tag -a ${commitTag} -m 'Tagged by Jenkins'
-//                                               git push origin --tags
-//                                    """
-//                                 )
-//                             }
-//                         }
-                    }
-                    post{
-                        cleanup{
-                            deleteDir()
-                        }
-                    }
-                }
                 stage("Deploy Online Documentation") {
                     when{
                         equals expected: true, actual: params.DEPLOY_DOCS
