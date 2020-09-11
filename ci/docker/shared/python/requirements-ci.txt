@@ -7,6 +7,6 @@ pep517
 pylint
 pytest
 pytest-cov
-pytest-bdd
+pytest-bdd<4.0
 sphinx
 tox
