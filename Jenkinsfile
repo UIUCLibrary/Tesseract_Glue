@@ -636,7 +636,7 @@ pipeline {
                     }
                     post{
                         always{
-                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so,build/*', name: "COMPILED_BINARIES"
+                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so,build/**', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
                     }
