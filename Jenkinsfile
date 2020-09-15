@@ -1224,13 +1224,6 @@ pipeline {
                                     "linux"
                                 )
                             }
-                            axis {
-                                name 'FORMAT'
-                                values(
-//                                     "sdist",
-                                    "wheel"
-                                )
-                            }
                         }
                         stages {
                             stage("Testing DevPi Wheel Package"){
@@ -1251,6 +1244,31 @@ pipeline {
                                             "uiucprescon.ocr.dist-info/METADATA",
                                             env.devpiStagingIndex,
                                             CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
+                                            DEVPI_USR,
+                                            DEVPI_PSW,
+                                            "py${PYTHON_VERSION.replace('.', '')}"
+                                            )
+                                    }
+                                }
+                            }
+                            stage("Testing DevPi sdist Package"){
+                                agent {
+                                    dockerfile {
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
+                                        label "${PLATFORM} && docker"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
+                                     }
+                                }
+                                options {
+                                    warnError('Package Testing Failed')
+                                }
+                                steps{
+                                    timeout(10){
+                                        unstash "DIST-INFO"
+                                        devpiRunTest("devpi",
+                                            "uiucprescon.ocr.dist-info/METADATA",
+                                            env.devpiStagingIndex,
+                                            CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["sdist"],
                                             DEVPI_USR,
                                             DEVPI_PSW,
                                             "py${PYTHON_VERSION.replace('.', '')}"
