@@ -908,7 +908,7 @@ pipeline {
                 }
             }
         }
-        stage("Python packaging"){
+        stage("Python Packaging"){
             when{
                 anyOf{
                     equals expected: true, actual: params.BUILD_PACKAGES
