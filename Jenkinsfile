@@ -157,6 +157,34 @@ def get_package_name(stashName, metadataFile){
     }
 }
 
+def devpiRunTest(devpiClient, pkgPropertiesFile, devpiIndex, devpiSelector, devpiUsername, devpiPassword, toxEnv){
+    script{
+        if(!fileExists(pkgPropertiesFile)){
+            error "${pkgPropertiesFile} does not exist"
+        }
+        def props = readProperties interpolate: false, file: pkgPropertiesFile
+        if (isUnix()){
+            sh(
+                label: "Running test",
+                script: """${devpiClient} use https://devpi.library.illinois.edu --clientdir certs/
+                           ${devpiClient} login ${devpiUsername} --password ${devpiPassword} --clientdir certs/
+                           ${devpiClient} use ${devpiIndex} --clientdir certs/
+                           ${devpiClient} test --index ${devpiIndex} ${props.Name}==${props.Version} -s ${devpiSelector} --clientdir certs/ -e ${toxEnv} --tox-args=\"-vv\"
+                """
+            )
+        } else {
+            bat(
+                label: "Running tests on Devpi",
+                script: """devpi use https://devpi.library.illinois.edu --clientdir certs\\
+                           devpi login ${devpiUsername} --password ${devpiPassword} --clientdir certs\\
+                           devpi use ${devpiIndex} --clientdir certs\\
+                           devpi test --index ${devpiIndex} ${props.Name}==${props.Version} -s ${devpiSelector} --clientdir certs\\ -e ${toxEnv} --tox-args=\"-vv\"
+                           """
+            )
+        }
+    }
+}
+
 def CONFIGURATIONS = [
         "3.6" : [
             os: [
@@ -577,29 +605,33 @@ def test_pkg(glob, timeout_time){
         }
     }
 }
-node('linux && docker') {
-    timeout(2){
-        ws{
-            checkout scm
-            try{
-                docker.image('python:3.8').inside {
-                    stage("Getting Distribution Info"){
-                        sh(
-                           label: "Running setup.py with dist_info",
-                           script: """python --version
-                                      python setup.py dist_info
-                                   """
-                        )
-                        stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
-                        archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+def startup(){
+    node('linux && docker') {
+        timeout(2){
+            ws{
+                checkout scm
+                try{
+                    docker.image('python:3.8').inside {
+                        stage("Getting Distribution Info"){
+                            sh(
+                               label: "Running setup.py with dist_info",
+                               script: """python --version
+                                          python setup.py dist_info
+                                       """
+                            )
+                            stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+                        }
                     }
+                } finally{
+                    deleteDir()
                 }
-            } finally{
-                deleteDir()
             }
         }
     }
 }
+startup()
+
 pipeline {
     agent none
     options {
@@ -610,7 +642,8 @@ pipeline {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
-        booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: false, description: "Test Python packages on Mac")
+        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
+        booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
@@ -875,7 +908,7 @@ pipeline {
                 }
             }
         }
-        stage("Python packaging"){
+        stage("Python Packaging"){
             when{
                 anyOf{
                     equals expected: true, actual: params.BUILD_PACKAGES
@@ -904,7 +937,7 @@ pipeline {
                 }
                 stage("Mac Versions"){
                     when{
-                        equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
+                        equals expected: true, actual: params.BUILD_MAC_PACKAGES
                     }
                     stages{
                         stage('Build wheel for Mac') {
@@ -927,6 +960,9 @@ pipeline {
                                 always{
                                     stash includes: 'dist/*.whl', name: "MacOS wheel"
                                 }
+                                success{
+                                    archiveArtifacts artifacts: "dist/*.whl"
+                                }
                                 cleanup{
                                     cleanWs(
                                         deleteDirs: true,
@@ -939,6 +975,9 @@ pipeline {
                             }
                         }
                         stage("Testing"){
+                            when{
+                                equals expected: true, actual: params.TEST_PACKAGES
+                            }
                             parallel{
                                 stage('Testing Wheel Package on a Mac') {
                                     agent {
@@ -950,15 +989,18 @@ pipeline {
 
                                     }
                                     post{
-                                        success{
-                                            archiveArtifacts artifacts: "dist/*.whl"
-                                        }
                                         cleanup{
                                             deleteDir()
                                         }
                                     }
                                 }
                                 stage('Testing sdist Package on a Mac') {
+                                    when{
+                                        anyOf{
+                                            equals expected: true, actual: params.TEST_PACKAGES
+                                        }
+                                        beforeAgent true
+                                    }
                                     agent {
                                         label 'mac'
                                     }
@@ -976,7 +1018,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Testing Packages"){
+                stage("Packages on Windows and Linux"){
                     matrix{
                         axes {
                             axis {
@@ -996,21 +1038,6 @@ pipeline {
                             }
                         }
                         stages {
-                            stage("Testing sdist package"){
-                                agent {
-                                    dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
-                                        label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
-                                     }
-                                }
-                                steps{
-                                    catchError(stageResult: 'FAILURE') {
-                                        unstash "sdist"
-                                        test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
-                                    }
-                                }
-                            }
                             stage("Building Wheel"){
                                 agent {
                                     dockerfile {
@@ -1033,6 +1060,7 @@ pipeline {
                                         }
                                     }
                                     success{
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
                                         script{
                                             if(!isUnix()){
                                                 findFiles(excludes: '', glob: '**/*.pyd').each{
@@ -1055,38 +1083,60 @@ pipeline {
                                     }
                                 }
                             }
-                            stage("Testing Package"){
-                                agent {
-                                    dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
-                                        label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
-                                     }
+                            stage("Testing Packages"){
+                                when{
+                                    anyOf{
+                                        equals expected: true, actual: params.TEST_PACKAGES
+                                    }
+                                    beforeAgent true
                                 }
-                                steps{
-                                    script{
-                                        if( PLATFORM == "linux"){
-                                            unstash "whl ${PYTHON_VERSION}-manylinux"
-                                        } else{
-                                            unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                stages{
+                                    stage("Testing Wheel Package"){
+                                        agent {
+                                            dockerfile {
+                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
+                                                label "${PLATFORM} && docker"
+                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
+                                             }
                                         }
-                                        test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
+                                        steps{
+                                            script{
+                                                if( PLATFORM == "linux"){
+                                                    unstash "whl ${PYTHON_VERSION}-manylinux"
+                                                } else{
+                                                    unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                                }
+                                                test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
+                                            }
+                                        }
+                                        post{
+                                            cleanup{
+                                                cleanWs(
+                                                    notFailBuild: true,
+                                                    deleteDirs: true,
+                                                    patterns: [
+                                                            [pattern: 'dist', type: 'INCLUDE'],
+                                                            [pattern: 'build', type: 'INCLUDE'],
+                                                            [pattern: '.tox', type: 'INCLUDE'],
+                                                        ]
+                                                )
+                                            }
+                                        }
                                     }
-                                }
-                                post{
-                                    success{
-                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
-                                    }
-                                    cleanup{
-                                        cleanWs(
-                                            notFailBuild: true,
-                                            deleteDirs: true,
-                                            patterns: [
-                                                    [pattern: 'dist', type: 'INCLUDE'],
-                                                    [pattern: 'build', type: 'INCLUDE'],
-                                                    [pattern: '.tox', type: 'INCLUDE'],
-                                                ]
-                                        )
+                                    stage("Testing sdist package"){
+                                        agent {
+                                            dockerfile {
+                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
+                                                label "${PLATFORM} && docker"
+                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
+                                             }
+                                        }
+                                        steps{
+                                            catchError(stageResult: 'FAILURE') {
+                                                unstash "sdist"
+                                                test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -1110,6 +1160,7 @@ pipeline {
                         equals expected: "dev", actual: env.BRANCH_NAME
                     }
                 }
+                beforeAgent true
             }
             environment{
                 DEVPI = credentials("DS_devpi")
@@ -1168,68 +1219,72 @@ pipeline {
                                     "linux"
                                 )
                             }
-                            axis {
-                                name 'FORMAT'
-                                values(
-                                    "sdist",
-                                    "wheel"
-                                )
-                            }
                         }
                         stages {
-                            stage("Testing Package on DevPi Server"){
+                            stage("Testing DevPi Wheel Package"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.filename}"
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
                                      }
                                 }
-                                steps{
-                                    unstash "DIST-INFO"
-                                    script{
-                                        def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                                        timeout(60){
-
-                                            if(isUnix()){
-                                                sh(
-                                                    label: "Running tests on Packages on DevPi",
-                                                    script: """python --version
-                                                               devpi use https://devpi.library.illinois.edu --clientdir certs
-                                                               devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir certs
-                                                               devpi use ${env.devpiStagingIndex} --clientdir certs
-                                                               devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-                                                               """
-                                                )
-                                            } else {
-                                                bat(
-                                                    label: "Running tests on Packages on DevPi",
-                                                    script: """python --version
-                                                               devpi use https://devpi.library.illinois.edu --clientdir certs\\
-                                                               devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\
-                                                               devpi use ${env.devpiStagingIndex} --clientdir certs\\
-                                                               devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-                                                               """
-                                                )
-                                            }
-                                        }
-
-                                    }
+                                options {
+                                    warnError('Package Testing Failed')
                                 }
-                                post {
-                                    cleanup{
-                                        cleanWs(
-                                            deleteDirs: true,
-                                            disableDeferredWipeout: true,
-                                            patterns: [
-                                                [pattern: '*tmp', type: 'INCLUDE'],
-                                                [pattern: 'certs', type: 'INCLUDE'],
-                                                [pattern: 'uiucprescon.ocr.dist-info', type: 'INCLUDE'],
-                                            ]
-                                        )
+                                steps{
+                                    timeout(10){
+                                        unstash "DIST-INFO"
+                                        devpiRunTest("devpi",
+                                            "uiucprescon.ocr.dist-info/METADATA",
+                                            env.devpiStagingIndex,
+                                            CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
+                                            DEVPI_USR,
+                                            DEVPI_PSW,
+                                            "py${PYTHON_VERSION.replace('.', '')}"
+                                            )
                                     }
                                 }
                             }
+                            stage("Testing DevPi sdist Package"){
+                                agent {
+                                    dockerfile {
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
+                                        label "${PLATFORM} && docker"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
+                                     }
+                                }
+                                options {
+                                    warnError('Package Testing Failed')
+                                }
+                                steps{
+                                    timeout(10){
+                                        unstash "DIST-INFO"
+                                        devpiRunTest("devpi",
+                                            "uiucprescon.ocr.dist-info/METADATA",
+                                            env.devpiStagingIndex,
+                                            "tar.gz",
+                                            DEVPI_USR,
+                                            DEVPI_PSW,
+                                            "py${PYTHON_VERSION.replace('.', '')}"
+                                            )
+                                    }
+                                }
+                            }
+//                                 post {
+//                                     cleanup{
+//                                         cleanWs(
+//                                             deleteDirs: true,
+//                                             disableDeferredWipeout: true,
+//                                             patterns: [
+//                                                 [pattern: '*tmp', type: 'INCLUDE'],
+//                                                 [pattern: 'certs', type: 'INCLUDE'],
+//                                                 [pattern: 'uiucprescon.ocr.dist-info', type: 'INCLUDE'],
+//                                             ]
+//                                         )
+//                                     }
+//                                 }
+//                             }
                         }
                     }
                 }
