@@ -636,7 +636,7 @@ pipeline {
                     }
                     post{
                         always{
-                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
+                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so,build/*', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
                     }
@@ -823,14 +823,14 @@ pipeline {
                     post{
                         always{
                             sh(script:'''coverage combine
-                                         coverage xml -o ./reports/coverage.xml
-                                         gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/cpp_coverage.xml
+                                         coverage xml -o ./reports/coverage-python.xml
+                                         gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage_cpp.xml
                                          '''
                                 )
-                            stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
+                            stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
                             publishCoverage(
                                 adapters: [
-                                    coberturaAdapter('reports/coverage.xml')
+                                    coberturaAdapter('reports/coverage*.xml')
                                 ],
                                 sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
                             )
