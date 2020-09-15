@@ -1,16 +1,3 @@
-// @Library(["devpi", "PythonHelpers"]) _
-
-
-def remove_files(artifacts){
-    script{
-        def files = findFiles glob: "${artifacts}"
-        files.each { file_name ->
-            bat "del ${file_name}"
-        }
-    }
-}
-
-
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
 
@@ -44,18 +31,6 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
          def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
          writeJSON file: outputJson, json: outstandingIssues
      }
-}
-def create_git_tag(metadataFile, gitCreds){
-    def props = readProperties interpolate: true, file: metadataFile
-    def commitTag = input message: 'git commit', parameters: [string(defaultValue: "v${props.Version}", description: 'Version to use a a git tag', name: 'Tag', trim: false)]
-    withCredentials([usernamePassword(credentialsId: gitCreds, passwordVariable: 'password', usernameVariable: 'username')]) {
-        sh(label: "Tagging ${commitTag}",
-           script: """git config --local credential.helper "!f() { echo username=\\$username; echo password=\\$password; }; f"
-                      git tag -a ${commitTag} -m 'Tagged by Jenkins'
-                      git push origin --tags
-           """
-        )
-    }
 }
 def build_wheel(platform){
     if(isUnix()){
@@ -135,16 +110,6 @@ def test_package_on_mac(glob){
     }
 }
 
-// def get_package_version(stashName, metadataFile){
-//     ws {
-//         unstash "${stashName}"
-//         script{
-//             def props = readProperties interpolate: true, file: "${metadataFile}"
-//             deleteDir()
-//             return props.Version
-//         }
-//     }
-// }
 
 def get_package_name(stashName, metadataFile){
     ws {
@@ -1141,9 +1106,6 @@ pipeline {
         }
         stage("Deploy to DevPi") {
             agent none
-//             agent{
-//                 label "linux && docker"
-//             }
             options{
                 lock("uiucprescon.ocr-devpi")
             }
@@ -1355,20 +1317,6 @@ pipeline {
                                     }
                                 }
                             }
-//                                 post {
-//                                     cleanup{
-//                                         cleanWs(
-//                                             deleteDirs: true,
-//                                             disableDeferredWipeout: true,
-//                                             patterns: [
-//                                                 [pattern: '*tmp', type: 'INCLUDE'],
-//                                                 [pattern: 'certs', type: 'INCLUDE'],
-//                                                 [pattern: 'uiucprescon.ocr.dist-info', type: 'INCLUDE'],
-//                                             ]
-//                                         )
-//                                     }
-//                                 }
-//                             }
                         }
                     }
                 }
