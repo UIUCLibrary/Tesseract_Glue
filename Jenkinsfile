@@ -1248,7 +1248,7 @@ pipeline {
                                     timeout(10){
                                         unstash "DIST-INFO"
                                         devpiRunTest("devpi",
-                                            "uiucprescon.ocr.dist-info",
+                                            "uiucprescon.ocr.dist-info/METADATA",
                                             env.devpiStagingIndex,
                                             CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
                                             DEVPI_USR,
