@@ -1268,7 +1268,7 @@ pipeline {
                                         devpiRunTest("devpi",
                                             "uiucprescon.ocr.dist-info/METADATA",
                                             env.devpiStagingIndex,
-                                            CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["sdist"],
+                                            "tar.gz",
                                             DEVPI_USR,
                                             DEVPI_PSW,
                                             "py${PYTHON_VERSION.replace('.', '')}"
