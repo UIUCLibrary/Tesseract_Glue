@@ -946,15 +946,24 @@ pipeline {
                             }
                             steps{
                                 sh(
-                                    label:"Building wheel",
-                                    script: """python3 -m venv venv
-                                               venv/bin/python -m pip install pip --upgrade
-                                               venv/bin/python -m pip install wheel
-                                               venv/bin/python -m pip install --upgrade setuptools
-                                               venv/bin/python -m pip install pep517 tox
-                                               venv/bin/python -m pep517.build --binary --out-dir dist/ .
-                                               """
-                                    )
+                                    label: "Building wheel",
+                                    script: 'python3 -m pip wheel . -w dist'
+//                                                script: """python3 -m venv venv
+//                                                venv/bin/python -m pip install pip --upgrade
+//                                                venv/bin/python -m pip install wheel
+//                                                venv/bin/pip wheel . -w dist
+//                                                """
+                                )
+//                                 sh(
+//                                     label:"Building wheel",
+//                                     script: """python3 -m venv venv
+//                                                venv/bin/python -m pip install pip --upgrade
+//                                                venv/bin/python -m pip install wheel
+//                                                venv/bin/python -m pip install --upgrade setuptools
+//                                                venv/bin/python -m pip install pep517 tox
+//                                                venv/bin/python -m pep517.build --binary --out-dir dist/ .
+//                                                """
+//                                     )
                             }
                             post{
                                 always{
