@@ -1135,6 +1135,7 @@ pipeline {
 //                         equals expected: "dev", actual: env.BRANCH_NAME
 //                     }
                 }
+                beforeAgent true
             }
             environment{
                 DEVPI = credentials("DS_devpi")
