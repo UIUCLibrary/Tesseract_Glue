@@ -638,16 +638,13 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-//     TODO: set to true
-        booleanParam(name: "RUN_CHECKS", defaultValue: false, description: "Run checks on code")
+        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
-//     TODO: set to true
-        booleanParam(name: "TEST_PACKAGES", defaultValue: false, description: "Test Python packages by installing them and running tests on the installed package")
+        booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
         booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: false, description: "Test Python packages on Mac")
-//     TODO: set to false
-        booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
     }
@@ -1157,19 +1154,16 @@ pipeline {
             when {
                 allOf{
                     equals expected: true, actual: params.DEPLOY_DEVPI
-//                     todo: but branch check bak in
-//                     anyOf {
-//                         equals expected: "master", actual: env.BRANCH_NAME
-//                         equals expected: "dev", actual: env.BRANCH_NAME
-//                     }
+                    anyOf {
+                        equals expected: "master", actual: env.BRANCH_NAME
+                        equals expected: "dev", actual: env.BRANCH_NAME
+                    }
                 }
                 beforeAgent true
             }
             environment{
                 DEVPI = credentials("DS_devpi")
-//                 TODO replace this back to getDevPiStagingIndex
-                devpiStagingIndex = "dev_staging"
-//                 devpiStagingIndex = getDevPiStagingIndex()
+                devpiStagingIndex = getDevPiStagingIndex()
             }
             stages{
                 stage("Upload to DevPi Staging"){
@@ -1276,45 +1270,6 @@ pipeline {
                                     }
                                 }
                             }
-//                             stage("Testing Package on DevPi Server"){
-//                                 agent {
-//                                     dockerfile {
-//                                         filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.filename}"
-//                                         label "${PLATFORM} && docker"
-//                                         additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.additionalBuildArgs}"
-//                                      }
-//                                 }
-//                                 steps{
-//                                     unstash "DIST-INFO"
-//                                     script{
-//                                         def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-//                                         timeout(60){
-//
-//                                             if(isUnix()){
-//                                                 sh(
-//                                                     label: "Running tests on Packages on DevPi",
-//                                                     script: """python --version
-//                                                                devpi use https://devpi.library.illinois.edu --clientdir certs
-//                                                                devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir certs
-//                                                                devpi use ${env.devpiStagingIndex} --clientdir certs
-//                                                                devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-//                                                                """
-//                                                 )
-//                                             } else {
-//                                                 bat(
-//                                                     label: "Running tests on Packages on DevPi",
-//                                                     script: """python --version
-//                                                                devpi use https://devpi.library.illinois.edu --clientdir certs\\
-//                                                                devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\
-//                                                                devpi use ${env.devpiStagingIndex} --clientdir certs\\
-//                                                                devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-//                                                                """
-//                                                 )
-//                                             }
-//                                         }
-//
-//                                     }
-//                                 }
 //                                 post {
 //                                     cleanup{
 //                                         cleanWs(
@@ -1381,15 +1336,14 @@ pipeline {
                                 if (!env.TAG_NAME?.trim()){
                                     unstash "DIST-INFO"
                                     def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-//                                     TODO: turn back on commented out code
-//                                     sh(
-//                                         label: "Connecting to DevPi Server",
-//                                         script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-//                                                    devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-//                                                    devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-//                                                    devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
-//                                                    """
-//                                     )
+                                    sh(
+                                        label: "Connecting to DevPi Server",
+                                        script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
+                                                   devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
+                                                   devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
+                                                   devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
+                                                   """
+                                    )
                                 }
                             }
                         }
