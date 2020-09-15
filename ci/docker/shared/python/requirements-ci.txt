@@ -1,6 +1,7 @@
 conan
 devpi-client
 flake8
+gcovr
 lxml
 mypy
 pep517
