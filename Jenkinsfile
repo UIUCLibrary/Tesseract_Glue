@@ -1140,9 +1140,10 @@ pipeline {
             }
         }
         stage("Deploy to DevPi") {
-            agent{
-                label "linux && docker"
-            }
+            agent none
+//             agent{
+//                 label "linux && docker"
+//             }
             options{
                 lock("uiucprescon.ocr-devpi")
             }
@@ -1197,6 +1198,90 @@ pipeline {
                             cleanWs(
                                 notFailBuild: true
                             )
+                        }
+                    }
+                }
+                stage("Test DevPi packages mac") {
+                    when{
+                        equals expected: true, actual: params.BUILD_MAC_PACKAGES
+                        beforeAgent true
+                    }
+                    parallel{
+                        stage("Wheel"){
+                            agent {
+                                label 'mac && 10.14 && python3.8'
+                            }
+                            steps{
+                                timeout(10){
+                                    sh(
+                                        label: "Installing devpi client",
+                                        script: '''python3 -m venv venv
+                                                   venv/bin/python -m pip install --upgrade pip
+                                                   venv/bin/pip install devpi-client
+                                                   venv/bin/devpi --version
+                                        '''
+                                    )
+                                    unstash "DIST-INFO"
+                                    devpiRunTest(
+                                        "venv/bin/devpi",
+                                        "uiucprescon.ocr.dist-info/METADATA",
+                                        env.devpiStagingIndex,
+                                        "38-macosx_10_14_x86_64*.*whl",
+                                        DEVPI_USR,
+                                        DEVPI_PSW,
+                                        "py38"
+                                    )
+                                }
+                            }
+                            post{
+                                cleanup{
+                                    cleanWs(
+                                        notFailBuild: true,
+                                        deleteDirs: true,
+                                        patterns: [
+                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                        ]
+                                    )
+                                }
+                            }
+                        }
+                        stage("sdist"){
+                            agent {
+                                label 'mac && 10.14 && python3.8'
+                            }
+                            steps{
+                                timeout(10){
+                                    sh(
+                                        label: "Installing devpi client",
+                                        script: '''python3 -m venv venv
+                                                   venv/bin/python -m pip install --upgrade pip
+                                                   venv/bin/pip install devpi-client
+                                                   venv/bin/devpi --version
+                                        '''
+                                    )
+                                    unstash "DIST-INFO"
+                                    devpiRunTest(
+                                        "venv/bin/devpi",
+                                        "uiucprescon.ocr.dist-info/METADATA",
+                                        env.devpiStagingIndex,
+                                        "tar.gz",
+                                        DEVPI_USR,
+                                        DEVPI_PSW,
+                                        "py38"
+                                    )
+                                }
+                            }
+                            post{
+                                cleanup{
+                                    cleanWs(
+                                        notFailBuild: true,
+                                        deleteDirs: true,
+                                        patterns: [
+                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                        ]
+                                    )
+                                }
+                            }
                         }
                     }
                 }
