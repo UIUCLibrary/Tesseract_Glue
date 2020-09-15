@@ -823,8 +823,9 @@ pipeline {
                     post{
                         always{
                             sh(script:'''coverage combine
-                                        coverage xml -o ./reports/coverage.xml
-                                        '''
+                                         coverage xml -o ./reports/coverage.xml
+                                         gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage/cpp_coverage.xml
+                                         '''
                                 )
                             stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
                             publishCoverage(
