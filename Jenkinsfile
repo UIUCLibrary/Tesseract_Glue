@@ -962,6 +962,12 @@ pipeline {
                                     }
                                 }
                                 stage('Testing sdist Package on a Mac') {
+                                    when{
+                                        anyOf{
+                                            equals expected: true, actual: params.TEST_PACKAGES
+                                        }
+                                        beforeAgent true
+                                    }
                                     agent {
                                         label 'mac'
                                     }
