@@ -958,7 +958,7 @@ pipeline {
                             }
                             post{
                                 always{
-                                    stash includes: 'dist/*.whl', name: "MacOS wheel"
+                                    stash includes: 'dist/*.whl', name: "MacOS 10.14 py38 wheel"
                                 }
                                 success{
                                     archiveArtifacts artifacts: "dist/*.whl"
@@ -984,7 +984,7 @@ pipeline {
                                         label 'mac'
                                     }
                                     steps{
-                                        unstash "MacOS wheel"
+                                        unstash "MacOS 10.14 py38 wheel"
                                         test_package_on_mac("dist/*.whl")
 
                                     }
@@ -1176,6 +1176,11 @@ pipeline {
                           }
                     }
                     steps {
+                        script{
+                            if(params.BUILD_MAC_PACKAGES){
+                                unstash "MacOS 10.14 py38 wheel"
+                            }
+                        }
                             unstash "whl 3.6-windows"
                             unstash "whl 3.6-manylinux"
                             unstash "whl 3.7-windows"
