@@ -626,17 +626,17 @@ pipeline {
                 stage("Building Python Package"){
                     steps {
                         timeout(20){
-                            sh(
-                                label: "Build python package",
-                                script: '''mkdir -p logs
-                                        python setup.py build -b build --build-lib build/lib/ --build-temp build/temp build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace  2>&1 | tee logs/python_build.log
-                                        '''
-                            )
+                            tee("logs/python_build.log"){
+                                sh(
+                                    label: "Build python package",
+                                    script: 'CFLAGS="--coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
+                                )
+                            }
                         }
                     }
                     post{
                         always{
-                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so', name: "COMPILED_BINARIES"
+                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so,build/**', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
                     }
@@ -823,13 +823,14 @@ pipeline {
                     post{
                         always{
                             sh(script:'''coverage combine
-                                        coverage xml -o ./reports/coverage.xml
-                                        '''
+                                         coverage xml -o ./reports/coverage-python.xml
+                                         gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage_cpp.xml
+                                         '''
                                 )
-                            stash includes: "reports/coverage.xml", name: 'COVERAGE_REPORT'
+                            stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
                             publishCoverage(
                                 adapters: [
-                                    coberturaAdapter('reports/coverage.xml')
+                                    coberturaAdapter(mergeToOneReport: true, path: 'reports/coverage*.xml')
                                 ],
                                 sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
                             )
