@@ -642,8 +642,8 @@ pipeline {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
-        booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
         booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
@@ -937,7 +937,7 @@ pipeline {
                 }
                 stage("Mac Versions"){
                     when{
-                        equals expected: true, actual: params.TEST_PACKAGES_ON_MAC
+                        equals expected: true, actual: params.BUILD_MAC_PACKAGES
                     }
                     stages{
                         stage('Build wheel for Mac') {
@@ -972,6 +972,9 @@ pipeline {
                             }
                         }
                         stage("Testing"){
+                            when{
+                                equals expected: true, actual: params.TEST_PACKAGES
+                            }
                             parallel{
                                 stage('Testing Wheel Package on a Mac') {
                                     agent {
