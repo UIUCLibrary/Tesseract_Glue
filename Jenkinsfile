@@ -960,6 +960,9 @@ pipeline {
                                 always{
                                     stash includes: 'dist/*.whl', name: "MacOS wheel"
                                 }
+                                success{
+                                    archiveArtifacts artifacts: "dist/*.whl"
+                                }
                                 cleanup{
                                     cleanWs(
                                         deleteDirs: true,
@@ -986,9 +989,6 @@ pipeline {
 
                                     }
                                     post{
-                                        success{
-                                            archiveArtifacts artifacts: "dist/*.whl"
-                                        }
                                         cleanup{
                                             deleteDir()
                                         }
@@ -1060,6 +1060,7 @@ pipeline {
                                         }
                                     }
                                     success{
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
                                         script{
                                             if(!isUnix()){
                                                 findFiles(excludes: '', glob: '**/*.pyd').each{
@@ -1109,9 +1110,6 @@ pipeline {
                                             }
                                         }
                                         post{
-                                            success{
-                                                archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
-                                            }
                                             cleanup{
                                                 cleanWs(
                                                     notFailBuild: true,
