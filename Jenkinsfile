@@ -577,29 +577,33 @@ def test_pkg(glob, timeout_time){
         }
     }
 }
-node('linux && docker') {
-    timeout(2){
-        ws{
-            checkout scm
-            try{
-                docker.image('python:3.8').inside {
-                    stage("Getting Distribution Info"){
-                        sh(
-                           label: "Running setup.py with dist_info",
-                           script: """python --version
-                                      python setup.py dist_info
-                                   """
-                        )
-                        stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
-                        archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+def startup(){
+    node('linux && docker') {
+        timeout(2){
+            ws{
+                checkout scm
+                try{
+                    docker.image('python:3.8').inside {
+                        stage("Getting Distribution Info"){
+                            sh(
+                               label: "Running setup.py with dist_info",
+                               script: """python --version
+                                          python setup.py dist_info
+                                       """
+                            )
+                            stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
+                            archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+                        }
                     }
+                } finally{
+                    deleteDir()
                 }
-            } finally{
-                deleteDir()
             }
         }
     }
 }
+startup()
+
 pipeline {
     agent none
     options {
