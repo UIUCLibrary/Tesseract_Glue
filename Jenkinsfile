@@ -1115,7 +1115,9 @@ pipeline {
             }
             environment{
                 DEVPI = credentials("DS_devpi")
-                devpiStagingIndex = getDevPiStagingIndex()
+//                 TODO replace this back to getDevPiStagingIndex
+                devpiStagingIndex = "dev_staging"
+//                 devpiStagingIndex = getDevPiStagingIndex()
             }
             stages{
                 stage("Upload to DevPi Staging"){
@@ -1284,14 +1286,15 @@ pipeline {
                                 if (!env.TAG_NAME?.trim()){
                                     unstash "DIST-INFO"
                                     def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                                    sh(
-                                        label: "Connecting to DevPi Server",
-                                        script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                                   devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                                   devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-                                                   devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
-                                                   """
-                                    )
+//                                     TODO: turn back on commented out code
+//                                     sh(
+//                                         label: "Connecting to DevPi Server",
+//                                         script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
+//                                                    devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
+//                                                    devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
+//                                                    devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
+//                                                    """
+//                                     )
                                 }
                             }
                         }
