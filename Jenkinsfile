@@ -157,6 +157,34 @@ def get_package_name(stashName, metadataFile){
     }
 }
 
+def devpiRunTest(devpiClient, pkgPropertiesFile, devpiIndex, devpiSelector, devpiUsername, devpiPassword, toxEnv){
+    script{
+        if(!fileExists(pkgPropertiesFile)){
+            error "${pkgPropertiesFile} does not exist"
+        }
+        def props = readProperties interpolate: false, file: pkgPropertiesFile
+        if (isUnix()){
+            sh(
+                label: "Running test",
+                script: """${devpiClient} use https://devpi.library.illinois.edu --clientdir certs/
+                           ${devpiClient} login ${devpiUsername} --password ${devpiPassword} --clientdir certs/
+                           ${devpiClient} use ${devpiIndex} --clientdir certs/
+                           ${devpiClient} test --index ${devpiIndex} ${props.Name}==${props.Version} -s ${devpiSelector} --clientdir certs/ -e ${toxEnv} --tox-args=\"-vv\"
+                """
+            )
+        } else {
+            bat(
+                label: "Running tests on Devpi",
+                script: """devpi use https://devpi.library.illinois.edu --clientdir certs\\
+                           devpi login ${devpiUsername} --password ${devpiPassword} --clientdir certs\\
+                           devpi use ${devpiIndex} --clientdir certs\\
+                           devpi test --index ${devpiIndex} ${props.Name}==${props.Version} -s ${devpiSelector} --clientdir certs\\ -e ${toxEnv} --tox-args=\"-vv\"
+                           """
+            )
+        }
+    }
+}
+
 def CONFIGURATIONS = [
         "3.6" : [
             os: [
@@ -1199,65 +1227,90 @@ pipeline {
                             axis {
                                 name 'FORMAT'
                                 values(
-                                    "sdist",
+//                                     "sdist",
                                     "wheel"
                                 )
                             }
                         }
                         stages {
-                            stage("Testing Package on DevPi Server"){
+                            stage("Testing DevPi Wheel Package"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.filename}"
+                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
                                      }
                                 }
-                                steps{
-                                    unstash "DIST-INFO"
-                                    script{
-                                        def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                                        timeout(60){
-
-                                            if(isUnix()){
-                                                sh(
-                                                    label: "Running tests on Packages on DevPi",
-                                                    script: """python --version
-                                                               devpi use https://devpi.library.illinois.edu --clientdir certs
-                                                               devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir certs
-                                                               devpi use ${env.devpiStagingIndex} --clientdir certs
-                                                               devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-                                                               """
-                                                )
-                                            } else {
-                                                bat(
-                                                    label: "Running tests on Packages on DevPi",
-                                                    script: """python --version
-                                                               devpi use https://devpi.library.illinois.edu --clientdir certs\\
-                                                               devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\
-                                                               devpi use ${env.devpiStagingIndex} --clientdir certs\\
-                                                               devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
-                                                               """
-                                                )
-                                            }
-                                        }
-
-                                    }
+                                options {
+                                    warnError('Package Testing Failed')
                                 }
-                                post {
-                                    cleanup{
-                                        cleanWs(
-                                            deleteDirs: true,
-                                            disableDeferredWipeout: true,
-                                            patterns: [
-                                                [pattern: '*tmp', type: 'INCLUDE'],
-                                                [pattern: 'certs', type: 'INCLUDE'],
-                                                [pattern: 'uiucprescon.ocr.dist-info', type: 'INCLUDE'],
-                                            ]
-                                        )
+                                steps{
+                                    timeout(10){
+                                        unstash "DIST-INFO"
+                                        devpiRunTest("devpi",
+                                            "uiucprescon.ocr.dist-info",
+                                            env.devpiStagingIndex,
+                                            CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
+                                            DEVPI_USR,
+                                            DEVPI_PSW,
+                                            "py${PYTHON_VERSION.replace('.', '')}"
+                                            )
                                     }
                                 }
                             }
+//                             stage("Testing Package on DevPi Server"){
+//                                 agent {
+//                                     dockerfile {
+//                                         filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.filename}"
+//                                         label "${PLATFORM} && docker"
+//                                         additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi[FORMAT].dockerfile.additionalBuildArgs}"
+//                                      }
+//                                 }
+//                                 steps{
+//                                     unstash "DIST-INFO"
+//                                     script{
+//                                         def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
+//                                         timeout(60){
+//
+//                                             if(isUnix()){
+//                                                 sh(
+//                                                     label: "Running tests on Packages on DevPi",
+//                                                     script: """python --version
+//                                                                devpi use https://devpi.library.illinois.edu --clientdir certs
+//                                                                devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir certs
+//                                                                devpi use ${env.devpiStagingIndex} --clientdir certs
+//                                                                devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
+//                                                                """
+//                                                 )
+//                                             } else {
+//                                                 bat(
+//                                                     label: "Running tests on Packages on DevPi",
+//                                                     script: """python --version
+//                                                                devpi use https://devpi.library.illinois.edu --clientdir certs\\
+//                                                                devpi login %DEVPI_USR% --password %DEVPI_PSW% --clientdir certs\\
+//                                                                devpi use ${env.devpiStagingIndex} --clientdir certs\\
+//                                                                devpi test --index ${env.devpiStagingIndex} ${props.Name}==${props.Version} -s ${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector[FORMAT]} --clientdir certs\\ -e ${CONFIGURATIONS[PYTHON_VERSION].tox_env} -v
+//                                                                """
+//                                                 )
+//                                             }
+//                                         }
+//
+//                                     }
+//                                 }
+//                                 post {
+//                                     cleanup{
+//                                         cleanWs(
+//                                             deleteDirs: true,
+//                                             disableDeferredWipeout: true,
+//                                             patterns: [
+//                                                 [pattern: '*tmp', type: 'INCLUDE'],
+//                                                 [pattern: 'certs', type: 'INCLUDE'],
+//                                                 [pattern: 'uiucprescon.ocr.dist-info', type: 'INCLUDE'],
+//                                             ]
+//                                         )
+//                                     }
+//                                 }
+//                             }
                         }
                     }
                 }
