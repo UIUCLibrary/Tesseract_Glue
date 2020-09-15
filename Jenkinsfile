@@ -551,6 +551,7 @@ def test_pkg(glob, timeout_time){
                 [pattern: 'dist/', type: 'EXCLUDE'],
                 [pattern: 'tests/', type: 'EXCLUDE'],
                 [pattern: 'tox.ini', type: 'EXCLUDE'],
+                [pattern: 'setup.cfg', type: 'EXCLUDE'],
             ]
         )
         timeout(timeout_time){
