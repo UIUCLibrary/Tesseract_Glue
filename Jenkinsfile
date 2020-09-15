@@ -1054,7 +1054,7 @@ pipeline {
                                     }
                                 }
                             }
-                            stage("Testing Windows and linux Package"){
+                            stage("Testing Packages"){
                                 when{
                                     anyOf{
                                         equals expected: true, actual: params.TEST_PACKAGES
