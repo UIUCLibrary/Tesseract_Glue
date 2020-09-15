@@ -611,6 +611,7 @@ pipeline {
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+        booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
         booleanParam(name: "TEST_PACKAGES_ON_MAC", defaultValue: false, description: "Test Python packages on Mac")
 //     TODO: set to false
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: true, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -978,7 +979,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Testing Packages"){
+                stage("Packages on Windows and Linux"){
                     matrix{
                         axes {
                             axis {
@@ -998,21 +999,6 @@ pipeline {
                             }
                         }
                         stages {
-                            stage("Testing sdist package"){
-                                agent {
-                                    dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
-                                        label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
-                                     }
-                                }
-                                steps{
-                                    catchError(stageResult: 'FAILURE') {
-                                        unstash "sdist"
-                                        test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
-                                    }
-                                }
-                            }
                             stage("Building Wheel"){
                                 agent {
                                     dockerfile {
@@ -1057,38 +1043,63 @@ pipeline {
                                     }
                                 }
                             }
-                            stage("Testing Package"){
-                                agent {
-                                    dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
-                                        label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
-                                     }
+                            stage("Testing Windows and linux Package"){
+                                when{
+                                    anyOf{
+                                        equals expected: true, actual: params.TEST_PACKAGES
+                                    }
+                                    beforeAgent true
                                 }
-                                steps{
-                                    script{
-                                        if( PLATFORM == "linux"){
-                                            unstash "whl ${PYTHON_VERSION}-manylinux"
-                                        } else{
-                                            unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                stages{
+                                    stage("Testing Wheel Package"){
+                                        agent {
+                                            dockerfile {
+                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
+                                                label "${PLATFORM} && docker"
+                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
+                                             }
                                         }
-                                        test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
+                                        steps{
+                                            script{
+                                                if( PLATFORM == "linux"){
+                                                    unstash "whl ${PYTHON_VERSION}-manylinux"
+                                                } else{
+                                                    unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                                }
+                                                test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
+                                            }
+                                        }
+                                        post{
+                                            success{
+                                                archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
+                                            }
+                                            cleanup{
+                                                cleanWs(
+                                                    notFailBuild: true,
+                                                    deleteDirs: true,
+                                                    patterns: [
+                                                            [pattern: 'dist', type: 'INCLUDE'],
+                                                            [pattern: 'build', type: 'INCLUDE'],
+                                                            [pattern: '.tox', type: 'INCLUDE'],
+                                                        ]
+                                                )
+                                            }
+                                        }
                                     }
-                                }
-                                post{
-                                    success{
-                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
-                                    }
-                                    cleanup{
-                                        cleanWs(
-                                            notFailBuild: true,
-                                            deleteDirs: true,
-                                            patterns: [
-                                                    [pattern: 'dist', type: 'INCLUDE'],
-                                                    [pattern: 'build', type: 'INCLUDE'],
-                                                    [pattern: '.tox', type: 'INCLUDE'],
-                                                ]
-                                        )
+                                    stage("Testing sdist package"){
+                                        agent {
+                                            dockerfile {
+                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
+                                                label "${PLATFORM} && docker"
+                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
+                                             }
+                                        }
+                                        steps{
+                                            catchError(stageResult: 'FAILURE') {
+                                                unstash "sdist"
+                                                test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
+                                            }
+                                        }
                                     }
                                 }
                             }
