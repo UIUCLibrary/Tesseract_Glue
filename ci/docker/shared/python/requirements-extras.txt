@@ -4,3 +4,6 @@ pytest-bdd
 pytest-cov
 conan
 six==1.14
+pip
+wheel
+setuptools
