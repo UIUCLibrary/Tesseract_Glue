@@ -64,10 +64,10 @@ RUN python -m pip install --upgrade pip ; `
     pip install conan ; `
     pip wheel --no-cache --wheel-dir c:/wheels/ `
         -r c:/requirements/requirements-ci.txt ; `
-    pip install --no-index --find-links=c:/wheels/ `
-         -r c:/requirements/requirements-ci.txt ; `
     pip wheel --no-cache --wheel-dir c:/wheels/ `
-         -r c:/requirements/requirements-extras.txt
+         -r c:/requirements/requirements-extras.txt ; `
+     pip install --no-index --find-links=c:/wheels/ `
+         -r c:/requirements/requirements-ci.txt
 
 
 ADD conanfile.py C:/TEMP/
