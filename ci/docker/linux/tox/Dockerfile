@@ -72,4 +72,19 @@ COPY --from=wheel_builder_py36 /wheels/* /wheels/
 COPY --from=wheel_builder_py37 /wheels/* /wheels/
 COPY --from=wheel_builder_py38 /wheels/* /wheels/
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox
+RUN pip3 install tox conan
+
+ARG USER_ID=1000
+ARG GROUP_ID=1000
+
+RUN groupadd -g $GROUP_ID user && \
+    useradd -u $USER_ID -s /bin/sh -m -d /home/user -g user user
+
+USER user
+WORKDIR /home/user
+ADD conanfile.py /tmp/conanfile.py
+ENV CONAN_USER_HOME=/home/user/
+RUN conan config home
+RUN conan install /tmp --build  missing --no-import
+WORKDIR /src
+CMD tox
