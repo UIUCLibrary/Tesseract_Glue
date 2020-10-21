@@ -455,7 +455,7 @@ def CONFIGURATIONS = [
                                 dockerfile: [
                                     filename: 'ci/docker/deploy/devpi/test/windows/source/Dockerfile',
                                     label: 'Windows&&Docker',
-                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.8.3/python-3.8.3-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.8.3/python-3.8.3-amd64.exe'
                                 ]
                             ]
                         ]
