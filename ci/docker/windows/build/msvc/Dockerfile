@@ -36,6 +36,9 @@ RUN $CocoPackageInstallConfig = \"choco\\visual_studio.config\" ; `
         throw 'VsDevCmd.bat not found' ; `
     }
 
+ADD ci/docker/windows/build/msvc/startup.bat c:\temp\startup.bat
+RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
+
 # Install the rest of the packages that can be installed by chocolatey
 ADD ci/docker/shared/chocolatey/packages.config choco/packages.config
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
@@ -51,9 +54,6 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
         throw 'git.exe not found' ; `
     }; `
     Write-Host "Finished install packages with Chocolatey"
-
-ADD ci/docker/windows/build/msvc/startup.bat c:\temp\startup.bat
-RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
 
 COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
