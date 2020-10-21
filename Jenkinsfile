@@ -688,7 +688,31 @@ pipeline {
                 equals expected: true, actual: params.RUN_CHECKS
             }
             stages{
-
+                stage("Run Tox test") {
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/linux/build/Dockerfile'
+                            label 'linux && docker'
+                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                        }
+                    }
+                    when {
+                       equals expected: true, actual: params.TEST_RUN_TOX
+                       beforeAgent true
+                    }
+                    stages{
+                        stage("Run Tox"){
+                            steps {
+                                timeout(60){
+                                    sh  (
+                                        label: "Run Tox",
+                                        script: "tox -e py -vv "
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
                 stage("Testing") {
                     agent {
                         dockerfile {
@@ -712,23 +736,6 @@ pipeline {
                         }
                         stage("Running Tests"){
                             parallel {
-                                stage("Run Tox test") {
-                                    when {
-                                       equals expected: true, actual: params.TEST_RUN_TOX
-                                    }
-                                    stages{
-                                        stage("Run Tox"){
-                                            steps {
-                                                timeout(60){
-                                                    sh  (
-                                                        label: "Run Tox",
-                                                        script: "tox -e py -vv "
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
                                 stage("Run Pytest Unit Tests"){
                                     steps{
                                         timeout(10){
