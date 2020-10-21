@@ -571,6 +571,31 @@ def test_pkg(glob, timeout_time){
         }
     }
 }
+
+def run_tox_envs(){
+    script {
+        def cmds
+        def envs
+        if(isUnix()){
+            envs = sh(returnStdout: true, script: "tox -l").trim().split('\n')
+            cmds = envs.collectEntries({ tox_env ->
+                [tox_env, {
+                    sh( label:"Running Tox", script: "tox  -vvve $tox_env")
+                }]
+            })
+        } else{
+            envs = bat(returnStdout: true, script: "@tox -l").trim().split('\n')
+            cmds = envs.collectEntries({ tox_env ->
+                [tox_env, {
+                    bat( label:"Running Tox", script: "tox  -vvve $tox_env")
+                }]
+            })
+        }
+        echo "Setting up tox tests for ${envs.join(', ')}"
+        parallel(cmds)
+    }
+}
+
 def startup(){
     node('linux && docker') {
         timeout(2){
@@ -702,12 +727,13 @@ pipeline {
                                 }
                             }
                             steps {
-                                timeout(60){
-                                    sh  (
-                                        label: "Run Tox",
-                                        script: "tox -e py -vv "
-                                    )
-                                }
+                                run_tox_envs()
+//                                 timeout(60){
+//                                     sh  (
+//                                         label: "Run Tox",
+//                                         script: "tox -e py -vv "
+//                                     )
+//                                 }
                             }
                         }
                     }
