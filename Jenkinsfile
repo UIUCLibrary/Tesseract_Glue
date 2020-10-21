@@ -689,19 +689,18 @@ pipeline {
             }
             stages{
                 stage("Run Tox test") {
-                    agent {
-                        dockerfile {
-                            filename 'ci/docker/linux/build/Dockerfile'
-                            label 'linux && docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
-                        }
-                    }
                     when {
                        equals expected: true, actual: params.TEST_RUN_TOX
-                       beforeAgent true
                     }
-                    stages{
+                    parallel{
                         stage("Run Tox"){
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/linux/build/Dockerfile'
+                                    label 'linux && docker'
+                                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                                }
+                            }
                             steps {
                                 timeout(60){
                                     sh  (
