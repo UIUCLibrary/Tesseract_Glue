@@ -13,6 +13,7 @@ ARG ChocolateyEnvironmentDebug=false
 ADD ci/docker/shared/chocolatey/install_choco.ps1 choco/install_choco.ps1
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     ./choco/install_choco.ps1 -packageRepo $env:CHOCOLATEY_SOURCE ; `
+    choco feature enable --name="useEnhancedExitCodes" ; `
     if( -not ([string]::IsNullOrEmpty($Env:CHOCOLATEY_SOURCE ))) `
     { `
         Write-Host "Adding $env:CHOCOLATEY_SOURCE to chocolatey sources" ; `
@@ -33,6 +34,9 @@ RUN $CocoPackageInstallConfig = \"choco\\visual_studio.config\" ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
     if (! (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
     { `
+        Write-Host "Missing expected file" ; `
+        ls c:\ ; `
+        ls \"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\" ; `
         throw 'VsDevCmd.bat not found' ; `
     }
 
