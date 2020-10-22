@@ -35,6 +35,9 @@ RUN $CocoPackageInstallConfig = \"choco\\visual_studio.config\" ; `
     if (! (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
     { `
         Write-Host "Missing expected file" ; `
+        Get-Content "C:\ProgramData\chocolatey\logs\chocolatey.log" ; `
+        Get-Content "C:\ProgramData\chocolatey\lib\visualstudio2019buildtools\tools\ChocolateyInstall.ps1" ; `
+
         ls c:\ ; `
         ls \"C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\" ; `
         throw 'VsDevCmd.bat not found' ; `
