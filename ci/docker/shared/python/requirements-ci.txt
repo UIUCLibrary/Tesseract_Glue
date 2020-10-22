@@ -1,9 +1,11 @@
 conan
+cmake
 devpi-client
 flake8
 gcovr
 lxml
 mypy
+ninja
 pep517
 pylint
 pytest
