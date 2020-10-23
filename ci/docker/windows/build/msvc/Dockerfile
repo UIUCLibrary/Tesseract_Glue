@@ -82,8 +82,9 @@ RUN python -m pip install --upgrade pip ; `
      pip install --no-index --find-links=c:/wheels/ `
          -r c:/requirements/requirements-ci.txt
 
-
+COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
 ADD conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`
-    conan remove * -b --src -f
+    conan remove * -b --src -f ; `
+    conan remove --locks
 ENV PIP_FIND_LINKS=c:/wheels
