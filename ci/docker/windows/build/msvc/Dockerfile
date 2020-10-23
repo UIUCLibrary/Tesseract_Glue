@@ -36,7 +36,7 @@ RUN Invoke-WebRequest https://aka.ms/vs/16/release/vs_buildtools.exe -OutFile C:
 #RUN Get-Content c:\\TEMP\\vs\\vs_installer.version.json
 WORKDIR c:/TEMP
 SHELL ["cmd", "/S", "/C" ]
-RUN vs_buildtools.exe --quiet  --installPath "C:\\BuildTools"  --wait --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CLI.Support --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64
+RUN vs_buildtools.exe --quiet  --installPath "C:\\BuildTools"  --wait --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools --add Microsoft.VisualStudio.Component.VC.CLI.Support --add Microsoft.VisualStudio.Component.VC.Tools.x86.x64 --add Microsoft.VisualStudio.Component.Windows10SDK.18362
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 #RUN ./vs_buildtools.exe --quiet  --installPath "C:\\BuildTools" --wait --norestart --nocache  -in .\\buildtools.json --add Microsoft.VisualStudio.Workload.VCTools
 #RUN Start-Process -FilePath 'C:\TEMP\vs_buildtools.exe' -Wait  -ArgumentList '-in', 'c:\TEMP\buildtools.json' ;`
