@@ -45,7 +45,7 @@ RUN if (! (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
         Expand-Archive -Path vslogs.zip -DestinationPath C:\\TEMP\\logs\\ ; `
         ls logs ; `
         ls c:\\ ; `
-        tree /F ; `
+        tree /F /A; `
         Get-Content -LiteralPath 'C:\\TEMP\\logs\\[Content_Types].xml' ; `
 #        Get-Content -Path 'C:\\TEMP\\logs\\LocalAppData\\Microsoft\\VisualStudio\\Packages\\_Channels\\A0FE1051\\catalog.json' ; `
         throw 'VsDevCmd.bat not found' ; `
