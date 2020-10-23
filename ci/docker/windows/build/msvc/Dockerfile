@@ -25,17 +25,19 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     Remove-Item -Force -Recurse ${Env:TEMP}\*
 # First install visual studio with chocolatey
 RUN New-Item -Path "c:\\" -Name "TEMP" -ItemType "directory"
-RUN Invoke-WebRequest https://aka.ms/vs/16/release/vs_buildtools.exe -OutFile C:\TEMP\vs_buildtools.exe
-RUN Invoke-WebRequest https://aka.ms/vs/16/release/channel -OutFile C:\TEMP\VisualStudio.chman
-RUN Invoke-WebRequest https://aka.ms/vscollect.exe  -OutFile C:\TEMP\collect.exe
+RUN Invoke-WebRequest https://aka.ms/vs/16/release/vs_buildtools.exe -OutFile C:\TEMP\vs_buildtools.exe ; `
+    Invoke-WebRequest https://aka.ms/vs/16/release/channel -OutFile C:\TEMP\VisualStudio.chman ; `
+    Invoke-WebRequest https://aka.ms/vscollect.exe  -OutFile C:\TEMP\collect.exe
 
 #RUN Start-Process -FilePath 'C:\TEMP\vs_buildtools.exe' -ArgumentList '--quiet --passive --installPath C:\\BuildTools --layout c:\\TEMP\\vs --add Microsoft.VisualStudio.Workload.VCTools' -Wait  ; ls c:\TEMP\vs
 #WORKDIR c:/TEMP
 #RUN tree /F
-COPY ci/docker/shared/msvc/buildtools.json C:/TEMP/buildtools.json
+#COPY ci/docker/shared/msvc/buildtools.json C:/TEMP/buildtools.json
 #RUN Get-Content c:\\TEMP\\vs\\vs_installer.version.json
 WORKDIR c:/TEMP
-RUN ./vs_buildtools.exe --quiet  --installPath "C:\\BuildTools"  --wait --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools
+SHELL ["cmd", "/S", "/C" ]
+RUN vs_buildtools.exe --quiet  --installPath "C:\\BuildTools"  --wait --norestart --nocache --add Microsoft.VisualStudio.Workload.VCTools
+SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 #RUN ./vs_buildtools.exe --quiet  --installPath "C:\\BuildTools" --wait --norestart --nocache  -in .\\buildtools.json --add Microsoft.VisualStudio.Workload.VCTools
 #RUN Start-Process -FilePath 'C:\TEMP\vs_buildtools.exe' -Wait  -ArgumentList '-in', 'c:\TEMP\buildtools.json' ;`
 RUN if (! (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
