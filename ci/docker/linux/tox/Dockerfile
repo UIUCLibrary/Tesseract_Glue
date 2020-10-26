@@ -71,8 +71,8 @@ WORKDIR /home/user
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/home/user/
-RUN conan install /tmp --build  missing --no-import -o && \
+RUN conan install /tmp --build  missing --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 WORKDIR /src
-CMD tox --workdir /tmp/tox/ -vv -p --recreate
+CMD tox --workdir /tmp/tox/ -vv --recreate
