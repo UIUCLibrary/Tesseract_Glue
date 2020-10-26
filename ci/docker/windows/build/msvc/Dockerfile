@@ -4,7 +4,7 @@ ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc
 FROM ${FROM_IMAGE} as certsgen
 RUN certutil -generateSSTFromWU roots.sst
 
-FROM ${FROM_IMAGE}
+FROM ${FROM_IMAGE} as VS_BASE
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
 # First install Vvisual Studio Build Tools
@@ -32,6 +32,8 @@ RUN Invoke-WebRequest https://aka.ms/vs/16/release/vs_buildtools.exe -OutFile ${
 ADD ci/docker/windows/build/msvc/startup.bat c:\temp\startup.bat
 RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
 
+# ==============================================================================
+FROM VS_BASE as CHOCOLATEY_BASE
 ARG CHOCOLATEY_SOURCE=https://chocolatey.org/api/v2
 
 ARG ChocolateyEnvironmentDebug=false
@@ -61,7 +63,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     }; `
     Write-Host "Finished install packages with Chocolatey"
 
-
+FROM CHOCOLATEY_BASE as PYTHON_BASE
 ARG PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.7.5/python-3.7.5-amd64.exe
 
 RUN Invoke-WebRequest $Env:PYTHON_INSTALLER_URL -OutFile c:\python-installer.exe ; `
@@ -82,6 +84,7 @@ RUN python -m pip install --upgrade pip ; `
      pip install --no-index --find-links=c:/wheels/ `
          -r c:/requirements/requirements-ci.txt
 
+FROM PYTHON_BASE
 COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
 ADD conanfile.py C:/TEMP/
 RUN conan install C:/TEMP/ --build  missing --no-import ;`
