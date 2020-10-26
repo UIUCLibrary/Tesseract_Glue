@@ -721,7 +721,7 @@ pipeline {
                         stage("Windows"){
                             agent {
                                 dockerfile {
-                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                                    filename 'ci/docker/windows/tox/Dockerfile'
                                     label 'windows && docker'
                                 }
                             }
