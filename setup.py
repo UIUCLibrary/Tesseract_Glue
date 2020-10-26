@@ -1,6 +1,8 @@
 import platform
 import subprocess
 import json
+from distutils import ccompiler
+
 import setuptools
 from setuptools.command.build_ext import build_ext
 import shutil
@@ -290,21 +292,36 @@ class BuildConan(setuptools.Command):
 
         ]
         # "build_type"
+        build = ['missing']
         if platform.system() == "Linux":
             conan_options += [
             ]
+            build.append("openjpeg")
         settings = []
         build_ext_cmd = self.get_finalized_command("build_ext")
         if build_ext_cmd.debug is not None:
             settings.append("build_type=Debug")
+        # get_default_compiler
+        d = ccompiler.new_compiler()
+        building_profile = "dummy"
+        # new_profile = conan.create_profile(building_profile, detect=True, force=True)
+        # try:
+
+            # settings.append(f"compiler={' '.join(d.compiler)}")
+            # profile_names
+
+            # conan.update_profile(building_profile,"env.CXX", " ".join(d.compiler_cxx))
+
         conan.install(
             options=conan_options,
             cwd=build_dir,
             settings=settings,
-            build=['missing'],
+            build=build,
             path=os.path.abspath(os.path.dirname(__file__)),
             install_folder=build_dir_full_path
         )
+        # finally:
+        #     os.remove(new_profile)
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
@@ -317,6 +334,7 @@ class BuildConan(setuptools.Command):
                 build_ext_cmd.compiler.include_dirs.insert(0, path)
 
         for path in text_md['lib_paths']:
+            assert os.path.exists(path)
             if build_ext_cmd.compiler is None:
                 if path not in build_ext_cmd.library_dirs:
                     build_ext_cmd.library_dirs.insert(0, path)
