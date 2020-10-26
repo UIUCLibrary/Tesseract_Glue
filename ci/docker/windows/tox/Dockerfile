@@ -34,7 +34,7 @@ RUN Invoke-WebRequest https://aka.ms/vs/16/release/vs_buildtools.exe -OutFile ${
 
 ADD ci/docker/windows/build/msvc/startup.bat c:\temp\startup.bat
 RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
-FROM VS_BASE as CHOCOLATEY_BASE
+FROM BASE_BUILDER as CHOCOLATEY_BASE
 ARG CHOCOLATEY_SOURCE=https://chocolatey.org/api/v2
 ARG ChocolateyEnvironmentDebug=false
 ADD ci/docker/shared/chocolatey/install_choco.ps1 choco/install_choco.ps1
