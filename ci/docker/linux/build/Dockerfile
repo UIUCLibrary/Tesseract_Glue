@@ -27,16 +27,17 @@ WORKDIR /home/user
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/home/user/
 RUN conan config home
-RUN conan install /tmp --build  missing --no-import
+RUN conan install /tmp --build  missing --no-import  && \
+    conan remove "*" -b --src -f && \
+    conan remove --locks
 
 # ==============================================================================
 FROM base_python
 COPY --from=wheel_builder /wheels/* /wheels/
-COPY --from=conan_builder /home/user/.conan /home/user/.conan
-
+COPY --from=conan_builder --chown=user:user /home/user/.conan /home/user/.conan
+USER root
 RUN pip install --no-index --find-links=/wheels/ \
          -r /requirements/requirements-ci.txt
-ENV PIP_FIND_LINKS=/wheels
 
 ENV SONAR_SCANNER_VERSION=4.4.0.2170
 ENV SONAR_SCANNER_HOME=/home/user/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux

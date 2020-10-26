@@ -285,12 +285,18 @@ class BuildConan(setuptools.Command):
         self.mkpath(os.path.join(build_dir_full_path, "lib"))
         from conans.client import conan_api
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-        conan_options = []
+
+        conan_options = [
+
+        ]
+        # "build_type"
         if platform.system() == "Linux":
             conan_options += [
-                "leptonica:with_openjpeg=False",
             ]
         settings = []
+        build_ext_cmd = self.get_finalized_command("build_ext")
+        if build_ext_cmd.debug is not None:
+            settings.append("build_type=Debug")
         conan.install(
             options=conan_options,
             cwd=build_dir,
@@ -299,7 +305,7 @@ class BuildConan(setuptools.Command):
             path=os.path.abspath(os.path.dirname(__file__)),
             install_folder=build_dir_full_path
         )
-        build_ext_cmd = self.get_finalized_command("build_ext")
+
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
         text_md = self.get_from_txt(conanbuildinfotext)
