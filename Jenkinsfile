@@ -718,7 +718,7 @@ pipeline {
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     parallel{
-                        stage("Run Tox"){
+                        stage("Linux"){
                             agent {
                                 dockerfile {
                                     filename 'ci/docker/linux/tox/Dockerfile'
