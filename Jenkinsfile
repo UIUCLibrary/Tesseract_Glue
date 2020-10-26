@@ -587,7 +587,9 @@ def run_tox_envs(){
             envs = bat(returnStdout: true, script: "@tox -l").trim().split('\n')
             cmds = envs.collectEntries({ tox_env ->
                 [tox_env, {
-                    bat( label:"Running Tox", script: "tox  -vvve $tox_env")
+                    lock("Tox"){
+                        bat( label:"Running Tox", script: "tox  -vvve $tox_env")
+                    }
                 }]
             })
         }
