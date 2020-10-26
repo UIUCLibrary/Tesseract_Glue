@@ -344,13 +344,13 @@ class BuildConan(setuptools.Command):
             build_ext_cmd.compiler.macros += [(d, ) for d in text_md['definitions']]
         else:
             if hasattr(build_ext_cmd, "macros"):
-                build_ext_cmd.macros += [(d, 1) for d in text_md['definitions']]
+                build_ext_cmd.macros += [(d, ) for d in text_md['definitions']]
             else:
-                build_ext_cmd.macros = [(d, 1) for d in text_md['definitions']]
+                build_ext_cmd.macros = [(d, ) for d in text_md['definitions']]
         # ===================================
         for extension in build_ext_cmd.extensions:
             extension.libraries += text_md['libs']
-            extension.define_macros += [(d, 1) for d in text_md['definitions']]
+            extension.define_macros += [(d,) for d in text_md['definitions']]
         # ===================================
         # raise Exception(text_md['definitions'])
         # conanbuildinfo_file = self.getConanBuildInfo(build_dir_full_path)
