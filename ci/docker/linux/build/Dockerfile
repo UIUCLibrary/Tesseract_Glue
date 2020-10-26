@@ -34,7 +34,8 @@ RUN conan install /tmp --build  missing --no-import  && \
 # ==============================================================================
 FROM base_python
 COPY --from=wheel_builder /wheels/* /wheels/
-COPY --from=conan_builder --chown=user:user /home/user/.conan /home/user/.conan
+COPY --from=conan_builder --chown=user:user /home/user/.conan/ /home/user/.conan/
+ENV CONAN_USER_HOME=/home/user/
 USER root
 RUN pip install --no-index --find-links=/wheels/ \
          -r /requirements/requirements-ci.txt
