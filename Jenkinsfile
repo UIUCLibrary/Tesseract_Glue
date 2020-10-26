@@ -723,6 +723,7 @@ pipeline {
                                 dockerfile {
                                     filename 'ci/docker/windows/tox/Dockerfile'
                                     label 'windows && docker'
+                                    additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
                                 }
                             }
                             steps{
