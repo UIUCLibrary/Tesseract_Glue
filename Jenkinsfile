@@ -718,6 +718,17 @@ pipeline {
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     parallel{
+                        stage("Windows"){
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/windows/build/msvc/Dockerfile'
+                                    label 'windows && docker'
+                                }
+                            }
+                            steps{
+                                echo "hello"
+                            }
+                        }
                         stage("Linux"){
                             agent {
                                 dockerfile {
