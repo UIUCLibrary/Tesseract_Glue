@@ -727,7 +727,7 @@ pipeline {
                                 }
                             }
                             steps{
-                                echo "hello"
+                                run_tox_envs()
                             }
                         }
                         stage("Linux"){
