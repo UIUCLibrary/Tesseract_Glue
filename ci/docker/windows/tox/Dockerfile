@@ -89,8 +89,7 @@ ARG PIP_INDEX_URL
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt && `
-    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements.txt -r c:/requirements/requirements-dev.txt
+    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY37
