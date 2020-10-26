@@ -56,14 +56,14 @@ RUN PYTHON=python3.8 && \
 
 # ==============================================================================
 FROM wheel_builder_base as conan_builder
-RUN pip3 install conan
+RUN pip3 install conan cmake
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
+COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/profiles/default
 USER user
 WORKDIR /home/user
 ADD conanfile.py /tmp/conanfile.py
-ENV CONAN_USER_HOME=/home/user/
 RUN conan config home
-RUN conan install /tmp --build  missing --no-import  && \
+RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
@@ -82,9 +82,14 @@ RUN pip3 install tox conan  cmake
 
 USER user
 WORKDIR /home/user
-COPY --from=conan_builder --chown=user:user /home/user/.conan /home/user/.conan
+COPY --from=conan_builder --chown=user:user /home/user/.conan/ /home/user/.conan/
+COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/.conan/profiles/default
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/home/user/
+RUN conan config home
+RUN conan install /tmp --build missing --no-import  && \
+    conan remove "*" -b --src -f && \
+    conan remove --locks
 WORKDIR /src
 CMD tox --workdir /tmp/tox/ -vv -p=4 --parallel--safe-build --recreate

@@ -240,7 +240,12 @@ class BuildConan(setuptools.Command):
         if self.conan_cache is None:
             build_ext_cmd = self.get_finalized_command("build_ext")
             build_dir = build_ext_cmd.build_temp
-            self.conan_cache = os.path.join(build_dir, "conan_cache")
+
+            self.conan_cache = \
+                os.path.join(
+                    os.environ.get("CONAN_USER_HOME", build_dir),
+                    ".conan"
+                )
 
     def getConanBuildInfo(self, root_dir):
         for root, dirs, files in os.walk(root_dir):
@@ -286,31 +291,15 @@ class BuildConan(setuptools.Command):
         self.mkpath(build_dir_full_path)
         self.mkpath(os.path.join(build_dir_full_path, "lib"))
         from conans.client import conan_api
+        self.announce(f"Using {conan_cache} for conan cache", 5)
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-
-        conan_options = [
-
-        ]
-        # "build_type"
+        conan_options = []
         build = ['missing']
-        if platform.system() == "Linux":
-            conan_options += [
-            ]
-            build.append("openjpeg")
         settings = []
+
         build_ext_cmd = self.get_finalized_command("build_ext")
         if build_ext_cmd.debug is not None:
             settings.append("build_type=Debug")
-        # get_default_compiler
-        d = ccompiler.new_compiler()
-        building_profile = "dummy"
-        # new_profile = conan.create_profile(building_profile, detect=True, force=True)
-        # try:
-
-            # settings.append(f"compiler={' '.join(d.compiler)}")
-            # profile_names
-
-            # conan.update_profile(building_profile,"env.CXX", " ".join(d.compiler_cxx))
 
         conan.install(
             options=conan_options,
@@ -320,8 +309,6 @@ class BuildConan(setuptools.Command):
             path=os.path.abspath(os.path.dirname(__file__)),
             install_folder=build_dir_full_path
         )
-        # finally:
-        #     os.remove(new_profile)
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
@@ -355,11 +342,11 @@ class BuildConan(setuptools.Command):
         # ===================================
         if build_ext_cmd.compiler is not None:
             build_ext_cmd.compiler.macros += [(d, ) for d in text_md['definitions']]
-        # else:
-        if hasattr(build_ext_cmd, "macros"):
-            build_ext_cmd.macros += [(d, 1) for d in text_md['definitions']]
         else:
-            build_ext_cmd.macros = [(d, 1) for d in text_md['definitions']]
+            if hasattr(build_ext_cmd, "macros"):
+                build_ext_cmd.macros += [(d, 1) for d in text_md['definitions']]
+            else:
+                build_ext_cmd.macros = [(d, 1) for d in text_md['definitions']]
         # ===================================
         for extension in build_ext_cmd.extensions:
             extension.libraries += text_md['libs']
