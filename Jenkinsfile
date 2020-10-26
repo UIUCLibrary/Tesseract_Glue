@@ -725,6 +725,7 @@ pipeline {
                                 dockerfile {
                                     filename 'ci/docker/linux/tox/Dockerfile'
                                     label 'linux && docker'
+                                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                                 }
                             }
                             steps {
