@@ -86,10 +86,10 @@ RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --vers
 SHELL ["cmd", "/S", "/C" ]
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extra.txt c:/requirements/
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extra.txt && `
+    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements.txt -r c:/requirements/requirements-dev.txt
 
 # ==============================================================================
@@ -98,36 +98,36 @@ ARG PYTHON_37_VERSION
 ARG CHOCOLATEY_SOURCE
 RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_37_VERSION}
 SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extra.txt c:/requirements/
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extra.txt
+    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY38
 ARG PYTHON_38_VERSION
 ARG CHOCOLATEY_SOURCE
 RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_38_VERSION}
 SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extra.txt c:/requirements/
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extra.txt
+    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY39
 ARG PYTHON_39_VERSION
 ARG CHOCOLATEY_SOURCE
 RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_39_VERSION}
 SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extra.txt c:/requirements/
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extra.txt
+    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 # ==============================================================================
 
 FROM CHOCOLATEY_BASE
