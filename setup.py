@@ -1,3 +1,4 @@
+import platform
 import subprocess
 import json
 import setuptools
@@ -177,7 +178,14 @@ tesseract_extension = setuptools.Extension(
     libraries=[
         "tesseract",
     ],
+    # define_macros=[
+    #     ("OPJ_STATIC",),
+    #     ("LZMA_API_STATIC",),
+    #     ("LIBJPEG_STATIC",)
+    # ],
     language='c++',
+
+
 )
 
 tesseract_extension.cmake_source_dir = \
@@ -265,8 +273,10 @@ class BuildConan(setuptools.Command):
         }
 
     def run(self):
-        build_ext_cmd = self.get_finalized_command("build_ext", create=0)
-        build_dir = build_ext_cmd.build_temp
+        # self.reinitialize_command("build_ext")
+        build_clib = self.get_finalized_command("build_clib")
+
+        build_dir = build_clib.build_temp
 
         build_dir_full_path = os.path.abspath(build_dir)
         conan_cache = self.conan_cache
@@ -276,6 +286,10 @@ class BuildConan(setuptools.Command):
         from conans.client import conan_api
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
         conan_options = []
+        if platform.system() == "Linux":
+            conan_options += [
+                "leptonica:with_openjpeg=False",
+            ]
         settings = []
         conan.install(
             options=conan_options,
@@ -285,37 +299,92 @@ class BuildConan(setuptools.Command):
             path=os.path.abspath(os.path.dirname(__file__)),
             install_folder=build_dir_full_path
         )
-        conanbuildinfo_file = self.getConanBuildInfo(build_dir_full_path)
-        if conanbuildinfo_file is None:
-            raise FileNotFoundError("Unable to locate conanbuildinfo.json")
-
-        self.announce(f"Reading from {conanbuildinfo_file}", 5)
-        with open(conanbuildinfo_file) as f:
-            conan_build_info = json.loads(f.read())
-
-        for dep in conan_build_info['dependencies']:
-            if build_ext_cmd.compiler is not None:
-                build_ext_cmd.compiler.include_dirs = dep[
-                                                 'include_paths'] + build_ext_cmd.compiler.include_dirs
-                build_ext_cmd.compiler.library_dirs = dep[
-                                                 'lib_paths'] + build_ext_cmd.compiler.library_dirs
-                build_ext_cmd.compiler.libraries = dep['libs'] + build_ext_cmd.compiler.libraries
-                # build_ext_cmd.compiler.macros += [(d,) for d in dep['defines']]
-
+        build_ext_cmd = self.get_finalized_command("build_ext")
+        conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
+        assert os.path.exists(conanbuildinfotext)
+        text_md = self.get_from_txt(conanbuildinfotext)
+        for path in text_md['include_paths']:
+            if build_ext_cmd.compiler is None:
+                if path not in build_ext_cmd.include_dirs:
+                    build_ext_cmd.include_dirs.insert(0, path)
             else:
-                build_ext_cmd.include_dirs = dep['include_paths'] + build_ext_cmd.include_dirs
-                build_ext_cmd.library_dirs = dep['lib_paths'] + build_ext_cmd.library_dirs
-                build_ext_cmd.libraries = dep['libs'] + build_ext_cmd.libraries
+                build_ext_cmd.compiler.include_dirs.insert(0, path)
 
+        for path in text_md['lib_paths']:
+            if build_ext_cmd.compiler is None:
+                if path not in build_ext_cmd.library_dirs:
+                    build_ext_cmd.library_dirs.insert(0, path)
+            else:
+                build_ext_cmd.compiler.library_dirs.insert(0, path)
+
+        extension_deps = set()
+        for library_deps in [l.libraries for l in
+                             build_ext_cmd.ext_map.values()]:
+            extension_deps = extension_deps.union(library_deps)
+
+        for lib in text_md['libs']:
+            if lib not in build_ext_cmd.libraries and lib not in extension_deps:
+                if build_ext_cmd.compiler is None:
+                    build_ext_cmd.libraries.insert(0, lib)
+                else:
+                    build_ext_cmd.compiler.libraries.insert(0, lib)
+        # ===================================
+        if build_ext_cmd.compiler is not None:
+            build_ext_cmd.compiler.macros += [(d, ) for d in text_md['definitions']]
+        # else:
+        if hasattr(build_ext_cmd, "macros"):
+            build_ext_cmd.macros += [(d, 1) for d in text_md['definitions']]
+        else:
+            build_ext_cmd.macros = [(d, 1) for d in text_md['definitions']]
+        # ===================================
         for extension in build_ext_cmd.extensions:
-            if "tesseract" in extension.libraries:
-                extension.libraries.remove("tesseract")
+            extension.libraries += text_md['libs']
+            extension.define_macros += [(d, 1) for d in text_md['definitions']]
+        # ===================================
+        # raise Exception(text_md['definitions'])
+        # conanbuildinfo_file = self.getConanBuildInfo(build_dir_full_path)
+        # if conanbuildinfo_file is None:
+        #     raise FileNotFoundError("Unable to locate conanbuildinfo.json")
+        #
+        # with open(conanbuildinfo_file) as f:
+        #     conan_build_info = json.loads(f.read())
+        # for extension in build_ext_cmd.extensions:
+        #     for dep in conan_build_info['dependencies']:
+        #         extension.define_macros += [(d, None) for d in dep['defines']]
 
-            for dep in conan_build_info['dependencies']:
-                extension.include_dirs = dep['include_paths'] + extension.include_dirs
-                extension.library_dirs = dep['lib_paths'] + extension.library_dirs
-                extension.libraries = dep['libs'] + extension.libraries
-                # extension.define_macros += [(d,) for d in dep['defines']]
+        # conanbuildinfo_file = self.getConanBuildInfo(build_dir_full_path)
+        # if conanbuildinfo_file is None:
+        #     raise FileNotFoundError("Unable to locate conanbuildinfo.json")
+        #
+        # self.announce(f"Reading from {conanbuildinfo_file}", 5)
+        # with open(conanbuildinfo_file) as f:
+        #     conan_build_info = json.loads(f.read())
+        #
+        # # for dep in conan_build_info['dependencies']:
+        # #     if build_ext_cmd.compiler is not None:
+        # #         build_ext_cmd.compiler.include_dirs = dep[
+        # #                                          'include_paths'] + build_ext_cmd.compiler.include_dirs
+        # #         build_ext_cmd.compiler.library_dirs = dep[
+        # #                                          'lib_paths'] + build_ext_cmd.compiler.library_dirs
+        # #         build_ext_cmd.compiler.libraries = dep['libs'] + build_ext_cmd.compiler.libraries
+        # #         # build_ext_cmd.compiler.macros += [(d,) for d in dep['defines']]
+        # #
+        # #     else:
+        # #         build_ext_cmd.include_dirs = dep['include_paths'] + build_ext_cmd.include_dirs
+        # #         build_ext_cmd.library_dirs = dep['lib_paths'] + build_ext_cmd.library_dirs
+        # #         build_ext_cmd.libraries = dep['libs'] + build_ext_cmd.libraries
+        #
+        # for extension in build_ext_cmd.extensions:
+        #     # if "tesseract" in extension.libraries:
+        #     #     extension.libraries.remove("tesseract")
+        #
+        #     for dep in conan_build_info['dependencies']:
+        #         # new_include_dirs = dep['include_paths']
+        #         new_include_dirs = [os.path.relpath(p, os.path.abspath(os.path.dirname(__file__))) for p in dep['include_paths']]
+        #         extension.include_dirs = new_include_dirs + extension.include_dirs
+        #         extension.library_dirs = dep['lib_paths'] + extension.library_dirs
+        #         extension.libraries = dep['libs'] + extension.libraries
+        #         extension.define_macros += [(d,) for d in dep['defines']]
         # d = self.reinitialize_command("build_ext")
         # print("")
         # conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
