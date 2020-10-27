@@ -713,44 +713,7 @@ pipeline {
                 equals expected: true, actual: params.RUN_CHECKS
             }
             stages{
-                stage("Run Tox test") {
-                    when {
-                       equals expected: true, actual: params.TEST_RUN_TOX
-                    }
-                    parallel{
-                        stage("Windows"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/windows/tox/Dockerfile'
-                                    label 'windows && docker'
-                                    additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
-                                }
-                            }
-                            steps{
-                                run_tox_envs()
-                            }
-                        }
-                        stage("Linux"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/linux/tox/Dockerfile'
-                                    label 'linux && docker'
-                                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                                }
-                            }
-                            steps {
-                                run_tox_envs()
-//                                 timeout(60){
-//                                     sh  (
-//                                         label: "Run Tox",
-//                                         script: "tox -e py -vv "
-//                                     )
-//                                 }
-                            }
-                        }
-                    }
-                }
-                stage("Testing") {
+                stage("Code Quality") {
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
@@ -885,6 +848,37 @@ pipeline {
                         }
                         cleanup{
                             deleteDir()
+                        }
+                    }
+                }
+                stage("Run Tox test") {
+                    when {
+                       equals expected: true, actual: params.TEST_RUN_TOX
+                    }
+                    parallel{
+                        stage("Windows"){
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/windows/tox/Dockerfile'
+                                    label 'windows && docker'
+                                    additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
+                                }
+                            }
+                            steps{
+                                run_tox_envs()
+                            }
+                        }
+                        stage("Linux"){
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/linux/tox/Dockerfile'
+                                    label 'linux && docker'
+                                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                }
+                            }
+                            steps {
+                                run_tox_envs()
+                            }
                         }
                     }
                 }
