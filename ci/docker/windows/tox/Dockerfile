@@ -46,6 +46,7 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
         choco source add -n=CHOCOLATEY_SOURCE --priority=1 -s=\"$env:CHOCOLATEY_SOURCE\"; `
         choco source remove -n=chocolatey ;`
     }; `
+    choco feature disable --name="showDownloadProgress" ; `
     Remove-Item C:\ProgramData\chocolatey\bin\cpack.exe ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\*
 
@@ -79,20 +80,21 @@ ADD ci/docker/shared/startup.bat c:\temp\startup.bat
 RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
 
 # ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY36
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY36
 ARG PYTHON_36_VERSION
 ARG CHOCOLATEY_SOURCE
 RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_36_VERSION}
 SHELL ["cmd", "/S", "/C" ]
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
+ENV PIP_NO_CACHE_DIR=off
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 
 # ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY37
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY37
 ARG PYTHON_37_VERSION
 ARG CHOCOLATEY_SOURCE
 RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_37_VERSION}
@@ -100,11 +102,12 @@ SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
+ENV PIP_NO_CACHE_DIR=off
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 # ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY38
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
 ARG PYTHON_38_VERSION
 ARG CHOCOLATEY_SOURCE
 RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_38_VERSION}
@@ -112,11 +115,12 @@ SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
+ENV PIP_NO_CACHE_DIR=off
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 # ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY39
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
 ARG PYTHON_39_VERSION
 ARG CHOCOLATEY_SOURCE
 RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_39_VERSION}
@@ -124,6 +128,7 @@ SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
+ENV PIP_NO_CACHE_DIR=off
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
@@ -143,11 +148,11 @@ RUN choco install python3 --version ${Env:PYTHON_38_VERSION} -my
 ARG PYTHON_39_VERSION
 RUN choco install python3 --version ${Env:PYTHON_39_VERSION} -my
 
-COPY --from=WHEEL_BUilDER_PY36 c:/wheels/ c:/wheels/
-COPY --from=WHEEL_BUilDER_PY37 c:/wheels/ c:/wheels/
-COPY --from=WHEEL_BUilDER_PY38 c:/wheels/ c:/wheels/
-COPY --from=WHEEL_BUilDER_PY39 c:/wheels/ c:/wheels/
 
+COPY --from=WHEEL_BUILDER_PY36 C:/wheels/* c:/wheels/
+COPY --from=WHEEL_BUILDER_PY37 C:/wheels/* c:/wheels/
+COPY --from=WHEEL_BUILDER_PY38 C:/wheels/* c:/wheels/
+COPY --from=WHEEL_BUILDER_PY39 C:/wheels/* c:/wheels/
 ENV PIP_FIND_LINKS=c:\wheels
 
 RUN python -m pip install pip --upgrade ; pip install tox
