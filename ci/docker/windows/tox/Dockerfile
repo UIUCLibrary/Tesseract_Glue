@@ -152,16 +152,23 @@ RUN choco install python3 --version ${Env:PYTHON_38_VERSION} -my
 ARG PYTHON_39_VERSION
 RUN choco install python3 --version ${Env:PYTHON_39_VERSION} -my
 
-
 COPY --from=WHEEL_BUILDER_PY36 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY37 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
-ENV PIP_FIND_LINKS=c:\wheels
 
-RUN python -m pip install pip --upgrade ; pip install tox
+ENV PIP_FIND_LINKS=c:\wheels
+RUN python -m pip install pip --upgrade ; pip install tox conan
 COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
+COPY --from=CONAN_BUILDER C:/Users/ContainerAdministrator/.conan/ C:/Users/ContainerAdministrator/.conan/
+ENV CONAN_USER_HOME=C:/Users/ContainerAdministrator
+COPY conanfile.py c:/temp/conanfile.py
+RUN conan config home
+RUN conan install c:/temp/ --build missing --no-import  ; `
+    conan remove "*" -b --src -f ; `
+    conan remove --locks
+
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
