@@ -580,14 +580,14 @@ def run_tox_envs(){
             envs = sh(returnStdout: true, script: "tox -l").trim().split('\n')
             cmds = envs.collectEntries({ tox_env ->
                 [tox_env, {
-                    sh( label:"Running Tox", script: "tox  -vv -e $tox_env --parallel--safe-build")
+                    sh( label: "Running Tox with ${tox_env} environment", script: "tox  -vv -e $tox_env --parallel--safe-build")
                 }]
             })
         } else{
             envs = bat(returnStdout: true, script: "@tox -l").trim().split('\n')
             cmds = envs.collectEntries({ tox_env ->
                 [tox_env, {
-                    bat( label:"Running Tox", script: "tox  -vv -e $tox_env")
+                    bat( label: "Running Tox with ${tox_env} environment", script: "tox  -vv -e $tox_env")
                 }]
             })
         }
