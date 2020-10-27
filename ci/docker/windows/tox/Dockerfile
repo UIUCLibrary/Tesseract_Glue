@@ -149,10 +149,10 @@ ARG PYTHON_39_VERSION
 RUN choco install python3 --version ${Env:PYTHON_39_VERSION} -my
 
 
-COPY --from=WHEEL_BUILDER_PY36 C:/wheels/* c:/wheels/
-COPY --from=WHEEL_BUILDER_PY37 C:/wheels/* c:/wheels/
-COPY --from=WHEEL_BUILDER_PY38 C:/wheels/* c:/wheels/
-COPY --from=WHEEL_BUILDER_PY39 C:/wheels/* c:/wheels/
+COPY --from=WHEEL_BUILDER_PY36 C:/wheels/ c:/wheels/
+COPY --from=WHEEL_BUILDER_PY37 C:/wheels/ c:/wheels/
+COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
+COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
 ENV PIP_FIND_LINKS=c:\wheels
 
 RUN python -m pip install pip --upgrade ; pip install tox
