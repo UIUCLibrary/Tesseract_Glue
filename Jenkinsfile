@@ -571,6 +571,31 @@ def test_pkg(glob, timeout_time){
         }
     }
 }
+
+def run_tox_envs(){
+    script {
+        def cmds
+        def envs
+        if(isUnix()){
+            envs = sh(returnStdout: true, script: "tox -l").trim().split('\n')
+            cmds = envs.collectEntries({ tox_env ->
+                [tox_env, {
+                    sh( label: "Running Tox with ${tox_env} environment", script: "tox  -vv -e $tox_env --parallel--safe-build")
+                }]
+            })
+        } else{
+            envs = bat(returnStdout: true, script: "@tox -l").trim().split('\n')
+            cmds = envs.collectEntries({ tox_env ->
+                [tox_env, {
+                    bat( label: "Running Tox with ${tox_env} environment", script: "tox  -vv -e $tox_env")
+                }]
+            })
+        }
+        echo "Setting up tox tests for ${envs.join(', ')}"
+        parallel(cmds)
+    }
+}
+
 def startup(){
     node('linux && docker') {
         timeout(2){
@@ -630,7 +655,7 @@ pipeline {
                             tee("logs/python_build.log"){
                                 sh(
                                     label: "Build python package",
-                                    script: 'CFLAGS="--coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
+                                    script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
                                 )
                             }
                         }
@@ -686,7 +711,7 @@ pipeline {
                 equals expected: true, actual: params.RUN_CHECKS
             }
             stages{
-                stage("Testing") {
+                stage("Code Quality") {
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
@@ -709,23 +734,6 @@ pipeline {
                         }
                         stage("Running Tests"){
                             parallel {
-                                stage("Run Tox test") {
-                                    when {
-                                       equals expected: true, actual: params.TEST_RUN_TOX
-                                    }
-                                    stages{
-                                        stage("Run Tox"){
-                                            steps {
-                                                timeout(60){
-                                                    sh  (
-                                                        label: "Run Tox",
-                                                        script: "tox -e py -vv "
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
                                 stage("Run Pytest Unit Tests"){
                                     steps{
                                         timeout(10){
@@ -838,6 +846,37 @@ pipeline {
                         }
                         cleanup{
                             deleteDir()
+                        }
+                    }
+                }
+                stage("Run Tox test") {
+                    when {
+                       equals expected: true, actual: params.TEST_RUN_TOX
+                    }
+                    parallel{
+                        stage("Windows"){
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/windows/tox/Dockerfile'
+                                    label 'windows && docker'
+                                    additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
+                                }
+                            }
+                            steps{
+                                run_tox_envs()
+                            }
+                        }
+                        stage("Linux"){
+                            agent {
+                                dockerfile {
+                                    filename 'ci/docker/linux/tox/Dockerfile'
+                                    label 'linux && docker'
+                                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                }
+                            }
+                            steps {
+                                run_tox_envs()
+                            }
                         }
                     }
                 }

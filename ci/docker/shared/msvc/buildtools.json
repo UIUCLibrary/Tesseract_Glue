@@ -1,0 +1,18 @@
+{
+  "installChannelUri": "C:\\TEMP\\VisualStudio.chman",
+  "channelUri": "C:\\TEMP\\VisualStudio.chman",
+  "channelId": "VisualStudio.16.Release",
+  "installCatalogUri": ".\\Catalog.json",
+  "productId": "Microsoft.VisualStudio.Product.BuildTools",
+  "installPath": "C:\\BuildTools",
+  "quiet": true,
+  "passive": true,
+  "includeRecommended": true,
+  "norestart": true,
+  "addProductLang": [],
+  "add": [
+    "Microsoft.VisualStudio.Workload.VCTools",
+    "Microsoft.VisualStudio.Component.VC.CLI.Support",
+    "Microsoft.VisualStudio.Component.VC.Tools.x86.x64"
+  ]
+}

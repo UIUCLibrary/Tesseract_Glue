@@ -9,5 +9,4 @@ class Exiv2BindConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
 
     generators = ["json"]
-    default_options = {
-    }
+    default_options = {}
