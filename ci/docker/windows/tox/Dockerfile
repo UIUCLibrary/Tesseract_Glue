@@ -6,6 +6,9 @@ ARG PYTHON_38_VERSION=3.8.5
 ARG PYTHON_39_VERSION=3.9.0
 
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8
+FROM ${FROM_IMAGE} as certsgen
+RUN certutil -generateSSTFromWU roots.sst
+
 FROM ${FROM_IMAGE} as BASE_BUILDER
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
@@ -156,6 +159,8 @@ COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
 ENV PIP_FIND_LINKS=c:\wheels
 
 RUN python -m pip install pip --upgrade ; pip install tox
-
+COPY --from=certsgen c:/roots.sst roots.sst
+RUN certutil -addstore -f root roots.sst ; `
+    del roots.sst
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
