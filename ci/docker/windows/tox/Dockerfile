@@ -53,20 +53,6 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     Remove-Item C:\ProgramData\chocolatey\bin\cpack.exe ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\*
 
-
-#ADD ci/docker/shared/chocolatey/visual_studio.config choco/visual_studio.config
-#RUN $CocoPackageInstallConfig = \"choco\\visual_studio.config\" ; `
-#    C:\ProgramData\chocolatey\bin\choco.exe sources ; `
-#    Get-Content -Path $CocoPackageInstallConfig ; `
-#    C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress --verbose $CocoPackageInstallConfig; `
-#    Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
-#    refreshenv ; `
-#    Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
-#    if (! (Test-Path 'C:\BuildTools\Common7\Tools\VsDevCmd.bat')) `
-#    { `
-#        throw 'VsDevCmd.bat not found' ; `
-#    }
-
 ADD ci/docker/shared/chocolatey/packages.config choco/packages.config
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress --verbose choco/packages.config ;`
@@ -135,6 +121,21 @@ ENV PIP_NO_CACHE_DIR=off
 RUN pip install --upgrade pip wheel && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
+# ==============================================================================
+FROM CHOCOLATEY_BASE as CONAN_BUILDER
+RUN choco install -y --stoponfirstfailure --verbose python3
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+RUN python -m pip install --upgrade pip ; `
+    pip install wheel ; `
+    pip install conan cmake
+COPY conanfile.py c:/temp/conanfile.py
+COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
+RUN conan config home
+RUN conan install c:/temp/ --no-import  ; `
+    conan remove "*" -b --src -f ; `
+    conan remove --lock
 # ==============================================================================
 
 FROM CHOCOLATEY_BASE
