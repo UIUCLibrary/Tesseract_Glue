@@ -42,13 +42,15 @@ RUN pip install --no-index --find-links=/wheels/ \
 
 ENV SONAR_SCANNER_VERSION=4.5.0.2216
 ENV SONAR_SCANNER_HOME=/home/user/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
+USER user
 RUN curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip \
         https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip && \
     unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/ && \
     rm $HOME/.sonar/sonar-scanner.zip && \
-    mkdir -p /home/user/.sonar/cache && \
-    chown user:user /home/user/.sonar/cache && \
-    find $HOME -name "sonar-scanner" -exec ln -s {} /usr/bin/sonar-scanner \; && \
+    mkdir -p /home/user/.sonar/cache
+RUN mkdir -p ~/bin && find $HOME -name "sonar-scanner" -exec ln -sv {} ~/bin/sonar-scanner \; && \
+    export PATH=/home/user/bin:$PATH && \
     sonar-scanner --version
-
+ENV PATH=/home/user/bin:$PATH
+RUN sonar-scanner --version
 ENV SONAR_SCANNER_OPTS="-server"
