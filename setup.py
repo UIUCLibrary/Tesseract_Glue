@@ -334,6 +334,8 @@ class BuildConan(setuptools.Command):
             extension_deps = extension_deps.union(library_deps)
 
         for lib in text_md['libs']:
+            if lib == "tesseract":
+                continue
             if lib not in build_ext_cmd.libraries and lib not in extension_deps:
                 if build_ext_cmd.compiler is None:
                     build_ext_cmd.libraries.insert(0, lib)
@@ -349,7 +351,12 @@ class BuildConan(setuptools.Command):
                 build_ext_cmd.macros = [(d, ) for d in text_md['definitions']]
         # ===================================
         for extension in build_ext_cmd.extensions:
-            extension.libraries += text_md['libs']
+            if "tesseract" in extension.libraries:
+                extension.libraries.remove("tesseract")
+            for lib in text_md['libs']:
+                if lib == "tesseract`":
+                    continue
+                extension.libraries.append(lib)
             extension.define_macros += [(d,) for d in text_md['definitions']]
         # ===================================
         # raise Exception(text_md['definitions'])
