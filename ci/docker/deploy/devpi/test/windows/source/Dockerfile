@@ -29,10 +29,6 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress choco/packages.config ;`
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
-    if (!(Test-Path 'C:\Program Files\CMake\bin\cmake.exe')) `
-    { `
-        throw 'cmake.exe not found' ; `
-    }; `
     if (!(Test-Path 'C:\Program Files\Git\cmd\git.exe')) `
     { `
         throw 'git.exe not found' ; `
@@ -42,9 +38,6 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
         throw 'VsDevCmd.bat not found' ; `
     }; `
     Write-Host "Finished install packages with Chocolatey"
-
-RUN get-command git
-RUN get-command cmake
 
 ADD ci/docker/shared/startup.bat c:\temp\startup.bat
 RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
