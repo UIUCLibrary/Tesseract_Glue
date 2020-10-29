@@ -9,7 +9,7 @@ FROM ${FROM_IMAGE}
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
-`# First install Visual Studio Build Tools
+# First install Visual Studio Build Tools
 RUN Invoke-WebRequest https://aka.ms/vs/16/release/vs_buildtools.exe -OutFile ${Env:TEMP}\\vs_buildtools.exe ; `
     Invoke-WebRequest https://aka.ms/vs/16/release/channel -OutFile ${Env:TEMP}\\VisualStudio.chman ; `
     Invoke-WebRequest https://aka.ms/vscollect.exe  -OutFile ${Env:TEMP}\\collect.exe ; `
