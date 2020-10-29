@@ -47,6 +47,7 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
         choco source add -n=CHOCOLATEY_SOURCE --priority=1 -s=\"$env:CHOCOLATEY_SOURCE\"; `
         choco source remove -n=chocolatey ;`
     }; `
+    choco feature disable -n=showDownloadProgress ; `
     Remove-Item C:\ProgramData\chocolatey\bin\cpack.exe ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\*
 
