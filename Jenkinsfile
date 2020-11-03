@@ -854,30 +854,55 @@ pipeline {
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     parallel{
-                        stage("Windows"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/windows/tox/Dockerfile'
-                                    label 'windows && docker'
-                                    additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
-                                }
-                            }
-                            steps{
-                                run_tox_envs()
-                            }
-                        }
-                        stage("Linux"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/linux/tox/Dockerfile'
-                                    label 'linux && docker'
-                                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                                }
-                            }
+                        stage("Windows") {
                             steps {
-                                run_tox_envs()
+                                script{
+                                    def tox
+                                    node(){
+                                        checkout scm
+                                        tox = load("ci/jenkins/scripts/tox.groovy")
+                                    }
+                                    parallel(tox.getToxTestsParallel("Windows", "windows && docker", "ci/docker/windows/tox/Dockerfile", "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE"))
+                                }
                             }
                         }
+//                         stage("Windows"){
+//                             agent {
+//                                 dockerfile {
+//                                     filename 'ci/docker/windows/tox/Dockerfile'
+//                                     label 'windows && docker'
+//                                     additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
+//                                 }
+//                             }
+//                             steps{
+//                                 run_tox_envs()
+//                             }
+//                         }
+                        stage("Linux") {
+                            steps {
+                                script{
+                                    def tox
+                                    node(){
+                                        checkout scm
+                                        tox = load("ci/jenkins/scripts/tox.groovy")
+                                    }
+                                    def jobs = tox.getToxTestsParallel("Linux", "linux && docker", "ci/docker/linux/tox/Dockerfile", '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)')
+                                    parallel(jobs)
+                                }
+                            }
+                        }
+//                         stage("Linux"){
+//                             agent {
+//                                 dockerfile {
+//                                     filename 'ci/docker/linux/tox/Dockerfile'
+//                                     label 'linux && docker'
+//                                     additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                                 }
+//                             }
+//                             steps {
+//                                 run_tox_envs()
+//                             }
+//                         }
                     }
                 }
                 stage("Sonarcloud Analysis"){
