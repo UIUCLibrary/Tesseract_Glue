@@ -878,18 +878,31 @@ pipeline {
 //                                 run_tox_envs()
 //                             }
 //                         }
-                        stage("Linux"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/linux/tox/Dockerfile'
-                                    label 'linux && docker'
-                                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                        stage("Linux") {
+                            steps {
+                                script{
+                                    def tox
+                                    node(){
+                                        checkout scm
+                                        tox = load("ci/jenkins/scripts/tox.groovy")
+                                    }
+                                    def jobs = tox.getToxTestsParallel("Linux", "linux && docker", "ci/docker/linux/tox/Dockerfile", '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)')
+                                    parallel(jobs)
                                 }
                             }
-                            steps {
-                                run_tox_envs()
-                            }
                         }
+//                         stage("Linux"){
+//                             agent {
+//                                 dockerfile {
+//                                     filename 'ci/docker/linux/tox/Dockerfile'
+//                                     label 'linux && docker'
+//                                     additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                                 }
+//                             }
+//                             steps {
+//                                 run_tox_envs()
+//                             }
+//                         }
                     }
                 }
                 stage("Sonarcloud Analysis"){
