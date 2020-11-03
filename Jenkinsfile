@@ -854,18 +854,30 @@ pipeline {
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
                     parallel{
-                        stage("Windows"){
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/windows/tox/Dockerfile'
-                                    label 'windows && docker'
-                                    additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
+                        stage("Windows") {
+                            steps {
+                                script{
+                                    def tox
+                                    node(){
+                                        checkout scm
+                                        tox = load("ci/jenkins/scripts/tox.groovy")
+                                    }
+                                    parallel(tox.getToxTestsParallel("Windows", "windows && docker", "ci/docker/windows/tox/Dockerfile", "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE"))
                                 }
                             }
-                            steps{
-                                run_tox_envs()
-                            }
                         }
+//                         stage("Windows"){
+//                             agent {
+//                                 dockerfile {
+//                                     filename 'ci/docker/windows/tox/Dockerfile'
+//                                     label 'windows && docker'
+//                                     additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
+//                                 }
+//                             }
+//                             steps{
+//                                 run_tox_envs()
+//                             }
+//                         }
                         stage("Linux"){
                             agent {
                                 dockerfile {
