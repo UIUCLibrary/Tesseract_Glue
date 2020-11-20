@@ -218,7 +218,7 @@ def run_tox_envs(){
 def startup(){
     node(){
         checkout scm
-//         tox = load("ci/jenkins/scripts/tox.groovy")
+        tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
     }
     node('linux && docker') {
@@ -484,11 +484,6 @@ pipeline {
                         stage("Windows") {
                             steps {
                                 script{
-                                    def tox
-                                    node(){
-                                        checkout scm
-                                        tox = load("ci/jenkins/scripts/tox.groovy")
-                                    }
                                     parallel(tox.getToxTestsParallel("Windows", "windows && docker", "ci/docker/windows/tox/Dockerfile", "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE"))
                                 }
                             }
@@ -508,13 +503,9 @@ pipeline {
                         stage("Linux") {
                             steps {
                                 script{
-                                    def tox
-                                    node(){
-                                        checkout scm
-                                        tox = load("ci/jenkins/scripts/tox.groovy")
-                                    }
-                                    def jobs = tox.getToxTestsParallel("Linux", "linux && docker", "ci/docker/linux/tox/Dockerfile", '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)')
-                                    parallel(jobs)
+                                    parallel(
+                                        tox.getToxTestsParallel("Linux", "linux && docker", "ci/docker/linux/tox/Dockerfile", '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)')
+                                    )
                                 }
                             }
                         }
