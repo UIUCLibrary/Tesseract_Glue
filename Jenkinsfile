@@ -253,14 +253,11 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-//     todo set defaultValue to true
-        booleanParam(name: "RUN_CHECKS", defaultValue: false, description: "Run checks on code")
+        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
-//     todo set defaultValue to false
-        booleanParam(name: "BUILD_PACKAGES", defaultValue: true, description: "Build Python packages")
-//     todo set defaultValue to false
-        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: true, description: "Test Python packages on Mac")
+        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
@@ -584,83 +581,6 @@ pipeline {
                         }
                     }
                 }
-//                 stage("Mac Versions"){
-//                     when{
-//                         equals expected: true, actual: params.BUILD_MAC_PACKAGES
-//                     }
-//                     stages{
-//                         stage('Build wheel for Mac') {
-//                             agent {
-//                                 label 'mac'
-//                             }
-//                             steps{
-//                                 sh(
-//                                     label: "Building wheel",
-//                                     script: 'python3 -m pip wheel . -w dist'
-//                                 )
-//                             }
-//                             post{
-//                                 always{
-//                                     stash includes: 'dist/*.whl', name: "MacOS 10.14 py38 wheel"
-//                                 }
-//                                 success{
-//                                     archiveArtifacts artifacts: "dist/*.whl"
-//                                 }
-//                                 cleanup{
-//                                     cleanWs(
-//                                         deleteDirs: true,
-//                                         patterns: [
-//                                             [pattern: 'build/', type: 'INCLUDE'],
-//                                             [pattern: 'dist/', type: 'INCLUDE'],
-//                                         ]
-//                                     )
-//                                 }
-//                             }
-//                         }
-//                         stage("Testing"){
-//                             when{
-//                                 equals expected: true, actual: params.TEST_PACKAGES
-//                             }
-//                             parallel{
-//                                 stage('Testing Wheel Package on a Mac') {
-//                                     agent {
-//                                         label 'mac'
-//                                     }
-//                                     steps{
-//                                         unstash "MacOS 10.14 py38 wheel"
-//                                         test_package_on_mac("dist/*.whl")
-//
-//                                     }
-//                                     post{
-//                                         cleanup{
-//                                             deleteDir()
-//                                         }
-//                                     }
-//                                 }
-//                                 stage('Testing sdist Package on a Mac') {
-//                                     when{
-//                                         anyOf{
-//                                             equals expected: true, actual: params.TEST_PACKAGES
-//                                         }
-//                                         beforeAgent true
-//                                     }
-//                                     agent {
-//                                         label 'mac'
-//                                     }
-//                                     steps{
-//                                         unstash "sdist"
-//                                         test_package_on_mac("dist/*.tar.gz,dist/*.zip")
-//                                     }
-//                                     post{
-//                                         cleanup{
-//                                             deleteDir()
-//                                         }
-//                                     }
-//                                 }
-//                             }
-//                         }
-//                     }
-//                 }
                 stage("Mac Versions"){
                     when{
                         equals expected: true, actual: params.BUILD_MAC_PACKAGES
