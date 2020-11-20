@@ -91,4 +91,4 @@ RUN conan install /tmp --build missing --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 WORKDIR /src
-CMD tox --workdir /tmp/tox/ -vv -p=4 --parallel--safe-build --recreate
+CMD tox --workdir /tmp/tox/  -p=auto --parallel--safe-build --recreate
