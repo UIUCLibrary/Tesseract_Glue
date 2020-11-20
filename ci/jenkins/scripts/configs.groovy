@@ -388,6 +388,136 @@ def getConfigurations(){
                     sdist: "*.tar.gz"
                 ]
             ],
+            "3.9" : [
+                os: [
+                    windows: [
+                        agents: [
+                            build: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                    label: 'Windows&&Docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.9.0/python-3.9.0-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                ]
+                            ],
+                            package: [
+                                dockerfile: [
+                                    filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                    label: 'Windows&&Docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.9.0/python-3.9.0-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                ]
+                            ],
+                            test: [
+                                sdist: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/windows/build/msvc/Dockerfile',
+                                        label: 'Windows&&Docker',
+                                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.9.0/python-3.9.0-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                    ]
+                                ],
+                                whl: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/windows/test/msvc/Dockerfile',
+                                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.9',
+                                        label: 'windows && docker',
+                                    ]
+                                ]
+                            ],
+                            devpi: [
+                                wheel: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/deploy/devpi/test/windows/whl/Dockerfile',
+                                        label: 'Windows&&Docker',
+                                        additionalBuildArgs: '--build-arg PYTHON_DOCKER_IMAGE_BASE=python:3.9'
+                                    ]
+                                ],
+                                sdist: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/deploy/devpi/test/windows/source/Dockerfile',
+                                        label: 'Windows&&Docker',
+                                        additionalBuildArgs: '--build-arg PYTHON_INSTALLER_URL=https://www.python.org/ftp/python/3.9.0/python-3.9.0-amd64.exe --build-arg CHOCOLATEY_SOURCE'
+                                    ]
+                                ]
+                            ]
+
+                        ],
+                        devpiSelector: [
+                            sdist: "zip",
+                            wheel: "39-win*.*whl",
+                        ],
+                        pkgRegex: [
+                            whl: "*cp39*.whl",
+                            sdist: "uiucprescon.ocr-*.tar.gz,"
+                        ]
+                    ],
+                    linux: [
+                        agents: [
+                            build: [
+                                dockerfile: [
+                                    filename: 'ci/docker/linux/build/Dockerfile',
+                                    label: 'linux&&docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.9 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                ]
+                            ],
+                            package: [
+                                dockerfile: [
+                                    filename: 'ci/docker/linux/package/Dockerfile',
+                                    label: 'linux&&docker',
+                                    additionalBuildArgs: '--build-arg PYTHON_VERSION=3.9 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                ]
+                            ],
+                            test: [
+                                sdist: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/linux/build/Dockerfile',
+                                        label: 'linux&&docker',
+                                        additionalBuildArgs: '--build-arg PYTHON_VERSION=3.9 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                    ]
+                                ],
+                                whl: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/linux/build/Dockerfile',
+                                        label: 'linux&&docker',
+                                        additionalBuildArgs: '--build-arg PYTHON_VERSION=3.9 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                    ]
+                                ]
+                            ],
+                            devpi: [
+                                wheel: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/deploy/devpi/test/linux/Dockerfile',
+                                        label: 'linux&&docker',
+                                        additionalBuildArgs: '--build-arg PYTHON_VERSION=3.9 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                    ]
+                                ],
+                                sdist: [
+                                    dockerfile: [
+                                        filename: 'ci/docker/deploy/devpi/test/linux/Dockerfile',
+                                        label: 'linux&&docker',
+                                        additionalBuildArgs: '--build-arg PYTHON_VERSION=3.9 --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                    ]
+                                ]
+                            ]
+                        ],
+                        devpiSelector: [
+                            sdist: "zip",
+                            wheel: "39-manylinux*.*whl",
+                        ],
+                        pkgRegex: [
+                            whl: "*cp39*.whl",
+                            sdist: "uiucprescon.ocr-*.tar.gz"
+                        ]
+                    ]
+                ],
+                tox_env: "py39",
+                devpiSelector: [
+                    sdist: "zip",
+                    wheel: "39.*whl",
+                ],
+                pkgRegex: [
+                    whl: "*cp39*.whl",
+                    sdist: "*.tar.gz"
+                ]
+            ],
         ]
     return CONFIGURATIONS
 }
