@@ -835,6 +835,7 @@ pipeline {
                             axis {
                                 name "PYTHON_VERSION"
                                 values(
+                                    "3.7",
                                     "3.8",
                                     '3.9'
                                 )
@@ -845,6 +846,18 @@ pipeline {
                                     "wheel",
                                     'sdist'
                                 )
+                            }
+                        }
+                        excludes{
+                            exclude{
+                                axis{
+                                    name 'PYTHON_VERSION'
+                                    values '3.7'
+                                }
+                                axis{
+                                    name 'FORMAT'
+                                    values 'wheel'
+                                }
                             }
                         }
                         agent none
@@ -868,8 +881,10 @@ pipeline {
                                             def devpiPackageName
                                             if(FORMAT == "wheel"){
                                                 devpiPackageName = "${PYTHON_VERSION.replace('.','')}-*macosx*.*whl"
-                                            } else if(FORMAT == "wheel"){
-                                                devpiPackageName ="tar.gz"
+                                            } else if(FORMAT == "sdist"){
+                                                devpiPackageName = "tar.gz"
+                                            } else{
+                                                error "unknown format ${FORMAT}"
                                             }
                                             devpiRunTest(
                                                 "venv/bin/devpi",
