@@ -149,7 +149,7 @@ def devpiRunTest(devpiClient, pkgPropertiesFile, devpiIndex, devpiSelector, devp
         }
     }
 }
-wheel_stashes = []
+wheelStashes = []
 def CONFIGURATIONS = loadConfigs()
 def loadConfigs(){
     node(){
@@ -690,7 +690,7 @@ pipeline {
                                                 name: stashName
                                             ]
                                         )
-                                        wheel_stashes << stashName
+                                        wheelStashes << stashName
                                     }
                                 }
                             }
@@ -762,11 +762,13 @@ pipeline {
                                 post {
                                     always{
                                         script{
+                                            def stashName = "whl ${PYTHON_VERSION}-${PLATFORM}"
                                             if( PLATFORM == 'linux'){
-                                                stash includes: 'dist/*manylinux*.whl', name: "whl ${PYTHON_VERSION}-manylinux"
+                                                stash includes: 'dist/*manylinux*.whl', name: stashName
                                             } else {
-                                                stash includes: "dist/*.whl", name: "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                                stash includes: "dist/*.whl", name: stashName
                                             }
+                                            wheelStashes << stashName
                                         }
                                     }
                                     success{
@@ -810,14 +812,8 @@ pipeline {
                                              }
                                         }
                                         steps{
-                                            script{
-                                                if( PLATFORM == "linux"){
-                                                    unstash "whl ${PYTHON_VERSION}-manylinux"
-                                                } else{
-                                                    unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
-                                                }
-                                                test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
-                                            }
+                                            unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
+                                            test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
                                         }
                                         post{
                                             cleanup{
@@ -886,26 +882,20 @@ pipeline {
                     }
                     steps {
                         script{
-                            if(params.BUILD_MAC_PACKAGES){
-                                unstash "MacOS 10.14 py38 wheel"
+                            wheelStashes.each{
+                                unstash it
                             }
                         }
-//                             unstash "whl 3.6-windows"
-//                             unstash "whl 3.6-manylinux"
-                            unstash "whl 3.7-windows"
-                            unstash "whl 3.7-manylinux"
-                            unstash "whl 3.8-windows"
-                            unstash "whl 3.8-manylinux"
-                            unstash "sdist"
-                            unstash "DOCS_ARCHIVE"
-                            sh(
-                                label: "Uploading to DevPi Staging",
-                                script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                           devpi use /${env.DEVPI_USR}/${env.devpiStagingIndex} --clientdir ./devpi
-                                           devpi upload --from-dir dist --clientdir ./devpi
-                                           """
-                            )
+                        unstash "sdist"
+                        unstash "DOCS_ARCHIVE"
+                        sh(
+                            label: "Uploading to DevPi Staging",
+                            script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
+                                       devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
+                                       devpi use /${env.DEVPI_USR}/${env.devpiStagingIndex} --clientdir ./devpi
+                                       devpi upload --from-dir dist --clientdir ./devpi
+                                       """
+                        )
                     }
                     post{
                         cleanup{
