@@ -654,6 +654,7 @@ pipeline {
                             axis {
                                 name 'PYTHON_VERSION'
                                 values(
+                                    '3.6',
                                     '3.7',
                                     '3.8',
                                     '3.9'
@@ -708,8 +709,8 @@ pipeline {
                                         cleanWs(
                                                 deleteDirs: true,
                                                 patterns: [
-                                                    [pattern: 'dist', type: 'INCLUDE'],
-                                                    [pattern: 'build', type: 'INCLUDE']
+                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                    [pattern: 'build/', type: 'INCLUDE']
                                                 ]
                                             )
                                     }
@@ -958,7 +959,7 @@ pipeline {
                             axis {
                                 name 'PYTHON_VERSION'
                                 values(
-//                                     '3.6',
+                                    '3.6',
                                     '3.7',
                                     '3.8',
                                     "3.9"
