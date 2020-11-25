@@ -3,8 +3,15 @@ FROM quay.io/pypa/manylinux2014_x86_64
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-RUN groupadd -g $GROUP_ID user && \
-    useradd -u $USER_ID -s /bin/sh -m -d /home/user -g user user
+RUN if id $USER_ID ; then \
+        echo 'Existing user id found: Creating an alias' ;\
+        groupadd --non-unique --gid $GROUP_ID user ; \
+        useradd  --non-unique --uid $USER_ID -s /bin/sh -m -d /home/user -g user user  ; \
+    else \
+        groupadd -g $GROUP_ID user ; \
+        useradd  -u $USER_ID -s /bin/sh -m -d /home/user -g user user ;\
+    fi
+
 
 ARG CMAKE_DOWNLOAD_URL=https://github.com/Kitware/CMake/releases/download/v3.17.3/cmake-3.17.3-Linux-x86_64.sh
 RUN curl -L --output  /tmp/install_cmake.sh $CMAKE_DOWNLOAD_URL && \

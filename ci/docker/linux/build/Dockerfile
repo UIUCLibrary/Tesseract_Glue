@@ -4,8 +4,15 @@ FROM python:${PYTHON_VERSION} as base_python
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
-RUN groupadd -g $GROUP_ID user && \
-    useradd -u $USER_ID -s /bin/sh -m -d /home/user -g user user
+RUN if id $USER_ID ; then \
+        echo 'Existing user id found: Creating an alias' ;\
+        groupadd --non-unique --gid $GROUP_ID user ; \
+        useradd  --non-unique --uid $USER_ID -s /bin/sh -m -d /home/user -g user user  ; \
+    else \
+        groupadd -g $GROUP_ID user ; \
+        useradd  -u $USER_ID -s /bin/sh -m -d /home/user -g user user ;\
+    fi
+
 
 RUN apt update && apt install -y ninja-build
 
@@ -19,7 +26,6 @@ RUN pip wheel -r /requirements/requirements-ci.txt --no-cache --wheel-dir /wheel
     pip wheel -r /requirements/requirements-extras.txt --no-cache --wheel-dir /wheels/
 
 FROM base_python as conan_builder
-ENV PIP_FIND_LINKS=/wheels
 RUN pip install conan
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
 USER user
