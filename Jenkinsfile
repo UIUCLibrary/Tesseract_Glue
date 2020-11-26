@@ -1031,15 +1031,17 @@ pipeline {
                                 }
                                 steps{
                                     timeout(10){
-                                        unstash "DIST-INFO"
-                                        devpiRunTest("devpi",
-                                            "uiucprescon.ocr.dist-info/METADATA",
-                                            env.devpiStagingIndex,
-                                            "tar.gz",
-                                            DEVPI_USR,
-                                            DEVPI_PSW,
-                                            "py${PYTHON_VERSION.replace('.', '')}"
+                                    script{
+                                            devpiLib.testDevpiPackage(
+                                                devpiIndex: getDevPiStagingIndex(),
+                                                server: "https://devpi.library.illinois.edu",
+                                                credentialsId: "DS_devpi",
+                                                pkgName: props.Name,
+                                                pkgVersion: props.Version,
+                                                pkgSelector: "tar.gz",
+                                                toxEnv: configurations[PYTHON_VERSION].tox_env
                                             )
+                                        }
                                     }
                                 }
                             }
