@@ -803,20 +803,18 @@ pipeline {
                     }
                     steps {
                         script{
+                            unstash "sdist"
+                            unstash "DOCS_ARCHIVE"
                             wheelStashes.each{
                                 unstash it
                             }
+                            devpi.upload(
+                                server: "https://devpi.library.illinois.edu",
+                                credentialsId: "DS_devpi",
+                                index: getDevPiStagingIndex(),
+                                clientDir: "./devpi"
+                            )
                         }
-                        unstash "sdist"
-                        unstash "DOCS_ARCHIVE"
-                        sh(
-                            label: "Uploading to DevPi Staging",
-                            script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                       devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                       devpi use /${env.DEVPI_USR}/${env.devpiStagingIndex} --clientdir ./devpi
-                                       devpi upload --from-dir dist --clientdir ./devpi
-                                       """
-                        )
                     }
                     post{
                         cleanup{
@@ -877,24 +875,16 @@ pipeline {
                                                        venv/bin/devpi --version
                                             '''
                                         )
-                                        unstash "DIST-INFO"
                                         script{
-                                            def devpiPackageName
-                                            if(FORMAT == "wheel"){
-                                                devpiPackageName = "${PYTHON_VERSION.replace('.','')}-*macosx*.*whl"
-                                            } else if(FORMAT == "sdist"){
-                                                devpiPackageName = "tar.gz"
-                                            } else{
-                                                error "unknown format ${FORMAT}"
-                                            }
-                                            devpiRunTest(
-                                                "venv/bin/devpi",
-                                                "uiucprescon.ocr.dist-info/METADATA",
-                                                env.devpiStagingIndex,
-                                                devpiPackageName,
-                                                DEVPI_USR,
-                                                DEVPI_PSW,
-                                                "py${PYTHON_VERSION.replace('.','')}"
+                                            devpi.testDevpiPackage(
+                                                devpiExec: "venv/bin/devpi",
+                                                devpiIndex: getDevPiStagingIndex(),
+                                                server: "https://devpi.library.illinois.edu",
+                                                credentialsId: "DS_devpi",
+                                                pkgName: props.Name,
+                                                pkgVersion: props.Version,
+                                                pkgSelector: getMacDevpiName(PYTHON_VERSION, FORMAT),
+                                                toxEnv: "py${PYTHON_VERSION.replace('.','')}"
                                             )
                                         }
                                     }
