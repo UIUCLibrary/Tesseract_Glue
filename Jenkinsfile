@@ -150,7 +150,7 @@ def devpiRunTest(devpiClient, pkgPropertiesFile, devpiIndex, devpiSelector, devp
     }
 }
 wheelStashes = []
-def CONFIGURATIONS = loadConfigs()
+def configurations = loadConfigs()
 def loadConfigs(){
     node(){
         echo "loading configurations"
@@ -690,9 +690,9 @@ pipeline {
                             stage("Building Wheel"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.filename}"
+                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.additionalBuildArgs}"
                                      }
                                 }
                                 steps{
@@ -711,7 +711,7 @@ pipeline {
                                         }
                                     }
                                     success{
-                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${configurations[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
                                         script{
                                             if(!isUnix()){
                                                 findFiles(excludes: '', glob: '**/*.pyd').each{
@@ -745,14 +745,14 @@ pipeline {
                                     stage("Testing Wheel Package"){
                                         agent {
                                             dockerfile {
-                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
+                                                filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
                                                 label "${PLATFORM} && docker"
-                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
+                                                additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
                                              }
                                         }
                                         steps{
                                             unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
-                                            test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
+                                            test_pkg("dist/**/${configurations[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
                                         }
                                         post{
                                             cleanup{
@@ -771,15 +771,15 @@ pipeline {
                                     stage("Testing sdist package"){
                                         agent {
                                             dockerfile {
-                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
+                                                filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
                                                 label "${PLATFORM} && docker"
-                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
+                                                additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
                                              }
                                         }
                                         steps{
                                             catchError(stageResult: 'FAILURE') {
                                                 unstash "sdist"
-                                                test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
+                                                test_pkg("dist/**/${configurations[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
                                             }
                                         }
                                     }
@@ -985,9 +985,9 @@ pipeline {
                             stage("Testing DevPi Wheel Package"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
+                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
                                      }
                                 }
                                 options {
@@ -1010,7 +1010,7 @@ pipeline {
 //                                         devpiRunTest("devpi",
 //                                             "uiucprescon.ocr.dist-info/METADATA",
 //                                             env.devpiStagingIndex,
-//                                             CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
+//                                             configurations[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
 //                                             DEVPI_USR,
 //                                             DEVPI_PSW,
 //                                             "py${PYTHON_VERSION.replace('.', '')}"
@@ -1021,9 +1021,9 @@ pipeline {
                             stage("Testing DevPi sdist Package"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
+                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
                                      }
                                 }
                                 options {
