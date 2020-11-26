@@ -214,7 +214,27 @@ def run_tox_envs(){
         parallel(cmds)
     }
 }
+def get_props(){
+    stage("Reading Package Metadata"){
+        node() {
+            try{
+                unstash "DIST-INFO"
+                findFiles(excludes: '', glob: '*.dist-info/METADATA').each{
+                    echo "Found ${it}"
+                    def package_metadata = readProperties interpolate: true, file: it.path
+                    echo """Metadata:
 
+    Name      ${package_metadata.Name}
+    Version   ${package_metadata.Version}
+    """
+                    return package_metadata
+                }
+            } finally {
+                deleteDir()
+            }
+        }
+    }
+}
 def startup(){
     node(){
         checkout scm
@@ -247,7 +267,7 @@ def startup(){
     }
 }
 startup()
-
+def props = get_props()
 pipeline {
     agent none
     options {
@@ -308,8 +328,6 @@ pipeline {
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             script{
-                                unstash "DIST-INFO"
-                                def props = readProperties(interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA")
                                 def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
                                 zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
@@ -1056,8 +1074,6 @@ pipeline {
                     }
                     steps {
                         script {
-                            unstash "DIST-INFO"
-                            def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
                             sh(
                                 label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
                                 script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
@@ -1076,8 +1092,6 @@ pipeline {
                         script{
                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
                                 if (!env.TAG_NAME?.trim()){
-                                    unstash "DIST-INFO"
-                                    def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
                                     sh(
                                         label: "Connecting to DevPi Server",
                                         script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
@@ -1095,8 +1109,6 @@ pipeline {
                     node('linux && docker') {
                        script{
                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                unstash "DIST-INFO"
-                                def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
                                 sh(
                                 label: "Connecting to DevPi Server",
                                 script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
