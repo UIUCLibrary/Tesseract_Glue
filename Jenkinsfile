@@ -807,7 +807,7 @@ pipeline {
                 beforeAgent true
             }
             environment{
-                DEVPI = credentials("DS_devpi")
+//                 DEVPI = credentials("DS_devpi")
                 devpiStagingIndex = getDevPiStagingIndex()
             }
             stages{
@@ -1006,15 +1006,6 @@ pipeline {
                                                 toxEnv: configurations[PYTHON_VERSION].tox_env
                                             )
                                         }
-//                                         unstash "DIST-INFO"
-//                                         devpiRunTest("devpi",
-//                                             "uiucprescon.ocr.dist-info/METADATA",
-//                                             env.devpiStagingIndex,
-//                                             configurations[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
-//                                             DEVPI_USR,
-//                                             DEVPI_PSW,
-//                                             "py${PYTHON_VERSION.replace('.', '')}"
-//                                             )
                                     }
                                 }
                             }
@@ -1074,52 +1065,89 @@ pipeline {
                         }
                     }
                     steps {
-                        script {
-                            sh(
-                                label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
-                                script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                           devpi push --index DS_Jenkins/${env.devpiStagingIndex} ${props.Name}==${props.Version} production/release --clientdir ./devpi
-                                           """
+                        script{
+                            echo "Pushing to production/release index"
+                            devpiLib.pushPackageToIndex(
+                                pkgName: props.Name,
+                                pkgVersion: props.Version,
+                                server: "https://devpi.library.illinois.edu",
+                                indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                indexDestination: "production/release",
+                                credentialsId: 'DS_devpi'
                             )
                         }
+//                         script {
+//                             sh(
+//                                 label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
+//                                 script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
+//                                            devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
+//                                            devpi push --index DS_Jenkins/${env.devpiStagingIndex} ${props.Name}==${props.Version} production/release --clientdir ./devpi
+//                                            """
+//                             )
+//                         }
                     }
                 }
             }
             post {
                 success{
                     node('linux && docker') {
-                        checkout scm
                         script{
-                            docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                if (!env.TAG_NAME?.trim()){
-                                    sh(
-                                        label: "Connecting to DevPi Server",
-                                        script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                                   devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                                   devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-                                                   devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
-                                                   """
+                            if (!env.TAG_NAME?.trim()){
+                                docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                                    devpi.pushPackageToIndex(
+                                        pkgName: props.Name,
+                                        pkgVersion: props.Version,
+                                        server: "https://devpi.library.illinois.edu",
+                                        indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                        indexDestination: "DS_Jenkins/${env.BRANCH_NAME}",
+                                        credentialsId: 'DS_devpi'
                                     )
                                 }
                             }
                         }
+//                         checkout scm
+//                         script{
+//                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+//                                 if (!env.TAG_NAME?.trim()){
+//                                     sh(
+//                                         label: "Connecting to DevPi Server",
+//                                         script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
+//                                                    devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
+//                                                    devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
+//                                                    devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
+//                                                    """
+//                                     )
+//                                 }
+//                             }
+//                         }
                     }
                 }
                 cleanup{
                     node('linux && docker') {
-                       script{
+                        script{
                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                sh(
-                                label: "Connecting to DevPi Server",
-                                script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                           devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-                                           devpi remove -y ${props.Name}==${props.Version} --clientdir ./devpi
-                                           """
-                               )
+                                devpi.removePackage(
+                                    pkgName: props.Name,
+                                    pkgVersion: props.Version,
+                                    index: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                    server: "https://devpi.library.illinois.edu",
+                                    credentialsId: 'DS_devpi',
+
+                                )
                             }
-                       }
+                        }
+//                        script{
+//                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+//                                 sh(
+//                                 label: "Connecting to DevPi Server",
+//                                 script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
+//                                            devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
+//                                            devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
+//                                            devpi remove -y ${props.Name}==${props.Version} --clientdir ./devpi
+//                                            """
+//                                )
+//                             }
+//                        }
                     }
                 }
             }
