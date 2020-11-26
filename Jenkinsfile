@@ -219,16 +219,14 @@ def get_props(){
         node() {
             try{
                 unstash "DIST-INFO"
-                findFiles(excludes: '', glob: '*.dist-info/METADATA').each{
-                    echo "Found ${it}"
-                    def package_metadata = readProperties interpolate: true, file: it.path
-                    echo """Metadata:
+                def metadataFile = findFiles(excludes: '', glob: '*.dist-info/METADATA')[0]
+                def package_metadata = readProperties interpolate: true, file: metadataFile.path
+                echo """Metadata:
 
     Name      ${package_metadata.Name}
     Version   ${package_metadata.Version}
     """
-                    return package_metadata
-                }
+                return package_metadata
             } finally {
                 deleteDir()
             }
