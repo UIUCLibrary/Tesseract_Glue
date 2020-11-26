@@ -28,6 +28,7 @@ RUN pip wheel -r /requirements/requirements-ci.txt --no-cache --wheel-dir /wheel
 FROM base_python as conan_builder
 RUN pip install conan
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
+COPY --chown=user:user ci/docker/linux/build/conan/profile.ini  /home/user/.conan/profiles/default
 USER user
 WORKDIR /home/user
 ADD conanfile.py /tmp/conanfile.py
@@ -41,6 +42,7 @@ RUN conan install /tmp --build  missing --no-import  && \
 FROM base_python
 COPY --from=wheel_builder /wheels/* /wheels/
 COPY --from=conan_builder --chown=user:user /home/user/.conan/ /home/user/.conan/
+COPY --chown=user:user ci/docker/linux/build/conan/profile.ini  /home/user/.conan/profiles/default
 ENV CONAN_USER_HOME=/home/user/
 USER root
 RUN pip install --no-index --find-links=/wheels/ \
