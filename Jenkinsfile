@@ -1094,7 +1094,7 @@ pipeline {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                    devpi.pushPackageToIndex(
+                                    devpiLib.pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
                                         server: "https://devpi.library.illinois.edu",
