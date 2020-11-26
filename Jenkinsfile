@@ -220,6 +220,7 @@ def startup(){
         checkout scm
         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
+        devpiLib = load("ci/jenkins/scripts/devpi.groovy")
     }
     node('linux && docker') {
         timeout(2){
@@ -808,7 +809,7 @@ pipeline {
                             wheelStashes.each{
                                 unstash it
                             }
-                            devpi.upload(
+                            devpiLib.upload(
                                 server: "https://devpi.library.illinois.edu",
                                 credentialsId: "DS_devpi",
                                 index: getDevPiStagingIndex(),
