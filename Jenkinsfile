@@ -1002,7 +1002,7 @@ pipeline {
                                                 credentialsId: "DS_devpi",
                                                 pkgName: props.Name,
                                                 pkgVersion: props.Version,
-                                                pkgSelector: configurations[PYTHON_VERSION].os[PLATFORM].devpiSelector['whl'],
+                                                pkgSelector: configurations[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
                                                 toxEnv: configurations[PYTHON_VERSION].tox_env
                                             )
                                         }
