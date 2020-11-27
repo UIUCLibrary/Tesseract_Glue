@@ -191,6 +191,15 @@ def test_pkg(glob, timeout_time){
     }
 }
 
+def getMacDevpiName(pythonVersion, format){
+    if(format == "wheel"){
+        return "${pythonVersion.replace('.','')}-*macosx*.*whl"
+    } else if(format == "sdist"){
+        return "tar.gz"
+    } else{
+        error "unknown format ${format}"
+    }
+}
 def run_tox_envs(){
     script {
         def cmds
@@ -524,18 +533,6 @@ pipeline {
                                 }
                             }
                         }
-//                         stage("Linux"){
-//                             agent {
-//                                 dockerfile {
-//                                     filename 'ci/docker/linux/tox/Dockerfile'
-//                                     label 'linux && docker'
-//                                     additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-//                                 }
-//                             }
-//                             steps {
-//                                 run_tox_envs()
-//                             }
-//                         }
                     }
                 }
                 stage("Sonarcloud Analysis"){
@@ -919,45 +916,6 @@ pipeline {
                                     }
                                 }
                             }
-
-//                             stage("sdist"){
-//                                 agent {
-//                                     label "mac && 10.14 && python${PYTHON_VERSION}"
-//                                 }
-//                                 steps{
-//                                     timeout(10){
-//                                         sh(
-//                                             label: "Installing devpi client",
-//                                             script: '''python${PYTHON_VERSION} -m venv venv
-//                                                        venv/bin/python -m pip install --upgrade pip
-//                                                        venv/bin/pip install devpi-client
-//                                                        venv/bin/devpi --version
-//                                             '''
-//                                         )
-//                                         unstash "DIST-INFO"
-//                                         devpiRunTest(
-//                                             "venv/bin/devpi",
-//                                             "uiucprescon.ocr.dist-info/METADATA",
-//                                             env.devpiStagingIndex,
-//                                             "tar.gz",
-//                                             DEVPI_USR,
-//                                             DEVPI_PSW,
-//                                             "py${PYTHON_VERSION.replace('.','')}"
-//                                         )
-//                                     }
-//                                 }
-//                                 post{
-//                                     cleanup{
-//                                         cleanWs(
-//                                             notFailBuild: true,
-//                                             deleteDirs: true,
-//                                             patterns: [
-//                                                 [pattern: 'venv/', type: 'INCLUDE'],
-//                                             ]
-//                                         )
-//                                     }
-//                                 }
-//                             }
                         }
                     }
                 }
@@ -1076,15 +1034,6 @@ pipeline {
                                 credentialsId: 'DS_devpi'
                             )
                         }
-//                         script {
-//                             sh(
-//                                 label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
-//                                 script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-//                                            devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-//                                            devpi push --index DS_Jenkins/${env.devpiStagingIndex} ${props.Name}==${props.Version} production/release --clientdir ./devpi
-//                                            """
-//                             )
-//                         }
                     }
                 }
             }
@@ -1105,21 +1054,6 @@ pipeline {
                                 }
                             }
                         }
-//                         checkout scm
-//                         script{
-//                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-//                                 if (!env.TAG_NAME?.trim()){
-//                                     sh(
-//                                         label: "Connecting to DevPi Server",
-//                                         script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-//                                                    devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-//                                                    devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-//                                                    devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
-//                                                    """
-//                                     )
-//                                 }
-//                             }
-//                         }
                     }
                 }
                 cleanup{
@@ -1136,18 +1070,6 @@ pipeline {
                                 )
                             }
                         }
-//                        script{
-//                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-//                                 sh(
-//                                 label: "Connecting to DevPi Server",
-//                                 script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-//                                            devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-//                                            devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-//                                            devpi remove -y ${props.Name}==${props.Version} --clientdir ./devpi
-//                                            """
-//                                )
-//                             }
-//                        }
                     }
                 }
             }
