@@ -150,7 +150,7 @@ def devpiRunTest(devpiClient, pkgPropertiesFile, devpiIndex, devpiSelector, devp
     }
 }
 wheelStashes = []
-def CONFIGURATIONS = loadConfigs()
+def configurations = loadConfigs()
 def loadConfigs(){
     node(){
         echo "loading configurations"
@@ -191,6 +191,15 @@ def test_pkg(glob, timeout_time){
     }
 }
 
+def getMacDevpiName(pythonVersion, format){
+    if(format == "wheel"){
+        return "${pythonVersion.replace('.','')}-*macosx*.*whl"
+    } else if(format == "sdist"){
+        return "tar.gz"
+    } else{
+        error "unknown format ${format}"
+    }
+}
 def run_tox_envs(){
     script {
         def cmds
@@ -214,12 +223,31 @@ def run_tox_envs(){
         parallel(cmds)
     }
 }
+def get_props(){
+    stage("Reading Package Metadata"){
+        node() {
+            try{
+                unstash "DIST-INFO"
+                def metadataFile = findFiles(excludes: '', glob: '*.dist-info/METADATA')[0]
+                def package_metadata = readProperties interpolate: true, file: metadataFile.path
+                echo """Metadata:
 
+    Name      ${package_metadata.Name}
+    Version   ${package_metadata.Version}
+    """
+                return package_metadata
+            } finally {
+                deleteDir()
+            }
+        }
+    }
+}
 def startup(){
     node(){
         checkout scm
         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
+        devpiLib = load("ci/jenkins/scripts/devpi.groovy")
     }
     node('linux && docker') {
         timeout(2){
@@ -246,7 +274,7 @@ def startup(){
     }
 }
 startup()
-
+def props = get_props()
 pipeline {
     agent none
     options {
@@ -307,8 +335,7 @@ pipeline {
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
                             script{
-                                unstash "DIST-INFO"
-                                def props = readProperties(interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA")
+                                echo "props = ${props}"
                                 def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
                                 zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
                                 stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
@@ -506,18 +533,6 @@ pipeline {
                                 }
                             }
                         }
-//                         stage("Linux"){
-//                             agent {
-//                                 dockerfile {
-//                                     filename 'ci/docker/linux/tox/Dockerfile'
-//                                     label 'linux && docker'
-//                                     additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-//                                 }
-//                             }
-//                             steps {
-//                                 run_tox_envs()
-//                             }
-//                         }
                     }
                 }
                 stage("Sonarcloud Analysis"){
@@ -672,9 +687,9 @@ pipeline {
                             stage("Building Wheel"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.filename}"
+                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.package.dockerfile.additionalBuildArgs}"
                                      }
                                 }
                                 steps{
@@ -693,7 +708,7 @@ pipeline {
                                         }
                                     }
                                     success{
-                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
+                                        archiveArtifacts allowEmptyArchive: true, artifacts: "dist/${configurations[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}"
                                         script{
                                             if(!isUnix()){
                                                 findFiles(excludes: '', glob: '**/*.pyd').each{
@@ -727,14 +742,14 @@ pipeline {
                                     stage("Testing Wheel Package"){
                                         agent {
                                             dockerfile {
-                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
+                                                filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.filename}"
                                                 label "${PLATFORM} && docker"
-                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
+                                                additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['whl'].dockerfile.additionalBuildArgs}"
                                              }
                                         }
                                         steps{
                                             unstash "whl ${PYTHON_VERSION}-${PLATFORM}"
-                                            test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
+                                            test_pkg("dist/**/${configurations[PYTHON_VERSION].os[PLATFORM].pkgRegex['whl']}", 20)
                                         }
                                         post{
                                             cleanup{
@@ -753,15 +768,15 @@ pipeline {
                                     stage("Testing sdist package"){
                                         agent {
                                             dockerfile {
-                                                filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
+                                                filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.filename}"
                                                 label "${PLATFORM} && docker"
-                                                additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
+                                                additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.test['sdist'].dockerfile.additionalBuildArgs}"
                                              }
                                         }
                                         steps{
                                             catchError(stageResult: 'FAILURE') {
                                                 unstash "sdist"
-                                                test_pkg("dist/**/${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
+                                                test_pkg("dist/**/${configurations[PYTHON_VERSION].os[PLATFORM].pkgRegex['sdist']}", 20)
                                             }
                                         }
                                     }
@@ -789,7 +804,7 @@ pipeline {
                 beforeAgent true
             }
             environment{
-                DEVPI = credentials("DS_devpi")
+//                 DEVPI = credentials("DS_devpi")
                 devpiStagingIndex = getDevPiStagingIndex()
             }
             stages{
@@ -803,20 +818,18 @@ pipeline {
                     }
                     steps {
                         script{
+                            unstash "sdist"
+                            unstash "DOCS_ARCHIVE"
                             wheelStashes.each{
                                 unstash it
                             }
+                            devpiLib.upload(
+                                server: "https://devpi.library.illinois.edu",
+                                credentialsId: "DS_devpi",
+                                index: getDevPiStagingIndex(),
+                                clientDir: "./devpi"
+                            )
                         }
-                        unstash "sdist"
-                        unstash "DOCS_ARCHIVE"
-                        sh(
-                            label: "Uploading to DevPi Staging",
-                            script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                       devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                       devpi use /${env.DEVPI_USR}/${env.devpiStagingIndex} --clientdir ./devpi
-                                       devpi upload --from-dir dist --clientdir ./devpi
-                                       """
-                        )
                     }
                     post{
                         cleanup{
@@ -877,24 +890,16 @@ pipeline {
                                                        venv/bin/devpi --version
                                             '''
                                         )
-                                        unstash "DIST-INFO"
                                         script{
-                                            def devpiPackageName
-                                            if(FORMAT == "wheel"){
-                                                devpiPackageName = "${PYTHON_VERSION.replace('.','')}-*macosx*.*whl"
-                                            } else if(FORMAT == "sdist"){
-                                                devpiPackageName = "tar.gz"
-                                            } else{
-                                                error "unknown format ${FORMAT}"
-                                            }
-                                            devpiRunTest(
-                                                "venv/bin/devpi",
-                                                "uiucprescon.ocr.dist-info/METADATA",
-                                                env.devpiStagingIndex,
-                                                devpiPackageName,
-                                                DEVPI_USR,
-                                                DEVPI_PSW,
-                                                "py${PYTHON_VERSION.replace('.','')}"
+                                            devpiLib.testDevpiPackage(
+                                                devpiExec: "venv/bin/devpi",
+                                                devpiIndex: getDevPiStagingIndex(),
+                                                server: "https://devpi.library.illinois.edu",
+                                                credentialsId: "DS_devpi",
+                                                pkgName: props.Name,
+                                                pkgVersion: props.Version,
+                                                pkgSelector: getMacDevpiName(PYTHON_VERSION, FORMAT),
+                                                toxEnv: "py${PYTHON_VERSION.replace('.','')}"
                                             )
                                         }
                                     }
@@ -911,45 +916,6 @@ pipeline {
                                     }
                                 }
                             }
-
-//                             stage("sdist"){
-//                                 agent {
-//                                     label "mac && 10.14 && python${PYTHON_VERSION}"
-//                                 }
-//                                 steps{
-//                                     timeout(10){
-//                                         sh(
-//                                             label: "Installing devpi client",
-//                                             script: '''python${PYTHON_VERSION} -m venv venv
-//                                                        venv/bin/python -m pip install --upgrade pip
-//                                                        venv/bin/pip install devpi-client
-//                                                        venv/bin/devpi --version
-//                                             '''
-//                                         )
-//                                         unstash "DIST-INFO"
-//                                         devpiRunTest(
-//                                             "venv/bin/devpi",
-//                                             "uiucprescon.ocr.dist-info/METADATA",
-//                                             env.devpiStagingIndex,
-//                                             "tar.gz",
-//                                             DEVPI_USR,
-//                                             DEVPI_PSW,
-//                                             "py${PYTHON_VERSION.replace('.','')}"
-//                                         )
-//                                     }
-//                                 }
-//                                 post{
-//                                     cleanup{
-//                                         cleanWs(
-//                                             notFailBuild: true,
-//                                             deleteDirs: true,
-//                                             patterns: [
-//                                                 [pattern: 'venv/', type: 'INCLUDE'],
-//                                             ]
-//                                         )
-//                                     }
-//                                 }
-//                             }
                         }
                     }
                 }
@@ -977,9 +943,9 @@ pipeline {
                             stage("Testing DevPi Wheel Package"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
+                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
                                      }
                                 }
                                 options {
@@ -987,24 +953,26 @@ pipeline {
                                 }
                                 steps{
                                     timeout(10){
-                                        unstash "DIST-INFO"
-                                        devpiRunTest("devpi",
-                                            "uiucprescon.ocr.dist-info/METADATA",
-                                            env.devpiStagingIndex,
-                                            CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
-                                            DEVPI_USR,
-                                            DEVPI_PSW,
-                                            "py${PYTHON_VERSION.replace('.', '')}"
+                                        script{
+                                            devpiLib.testDevpiPackage(
+                                                devpiIndex: getDevPiStagingIndex(),
+                                                server: "https://devpi.library.illinois.edu",
+                                                credentialsId: "DS_devpi",
+                                                pkgName: props.Name,
+                                                pkgVersion: props.Version,
+                                                pkgSelector: configurations[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
+                                                toxEnv: configurations[PYTHON_VERSION].tox_env
                                             )
+                                        }
                                     }
                                 }
                             }
                             stage("Testing DevPi sdist Package"){
                                 agent {
                                     dockerfile {
-                                        filename "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
+                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
                                         label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${CONFIGURATIONS[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
+                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
                                      }
                                 }
                                 options {
@@ -1012,15 +980,17 @@ pipeline {
                                 }
                                 steps{
                                     timeout(10){
-                                        unstash "DIST-INFO"
-                                        devpiRunTest("devpi",
-                                            "uiucprescon.ocr.dist-info/METADATA",
-                                            env.devpiStagingIndex,
-                                            "tar.gz",
-                                            DEVPI_USR,
-                                            DEVPI_PSW,
-                                            "py${PYTHON_VERSION.replace('.', '')}"
+                                    script{
+                                            devpiLib.testDevpiPackage(
+                                                devpiIndex: getDevPiStagingIndex(),
+                                                server: "https://devpi.library.illinois.edu",
+                                                credentialsId: "DS_devpi",
+                                                pkgName: props.Name,
+                                                pkgVersion: props.Version,
+                                                pkgSelector: "tar.gz",
+                                                toxEnv: configurations[PYTHON_VERSION].tox_env
                                             )
+                                        }
                                     }
                                 }
                             }
@@ -1053,15 +1023,15 @@ pipeline {
                         }
                     }
                     steps {
-                        script {
-                            unstash "DIST-INFO"
-                            def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                            sh(
-                                label: "Pushing to DS_Jenkins/${env.BRANCH_NAME} index",
-                                script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                           devpi push --index DS_Jenkins/${env.devpiStagingIndex} ${props.Name}==${props.Version} production/release --clientdir ./devpi
-                                           """
+                        script{
+                            echo "Pushing to production/release index"
+                            devpiLib.pushPackageToIndex(
+                                pkgName: props.Name,
+                                pkgVersion: props.Version,
+                                server: "https://devpi.library.illinois.edu",
+                                indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                indexDestination: "production/release",
+                                credentialsId: 'DS_devpi'
                             )
                         }
                     }
@@ -1070,19 +1040,16 @@ pipeline {
             post {
                 success{
                     node('linux && docker') {
-                        checkout scm
                         script{
-                            docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                if (!env.TAG_NAME?.trim()){
-                                    unstash "DIST-INFO"
-                                    def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                                    sh(
-                                        label: "Connecting to DevPi Server",
-                                        script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                                   devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                                   devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-                                                   devpi push ${props.Name}==${props.Version} DS_Jenkins/${env.BRANCH_NAME} --clientdir ./devpi
-                                                   """
+                            if (!env.TAG_NAME?.trim()){
+                                docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
+                                    devpiLib.pushPackageToIndex(
+                                        pkgName: props.Name,
+                                        pkgVersion: props.Version,
+                                        server: "https://devpi.library.illinois.edu",
+                                        indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                        indexDestination: "DS_Jenkins/${env.BRANCH_NAME}",
+                                        credentialsId: 'DS_devpi'
                                     )
                                 }
                             }
@@ -1091,20 +1058,18 @@ pipeline {
                 }
                 cleanup{
                     node('linux && docker') {
-                       script{
+                        script{
                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                unstash "DIST-INFO"
-                                def props = readProperties interpolate: true, file: "uiucprescon.ocr.dist-info/METADATA"
-                                sh(
-                                label: "Connecting to DevPi Server",
-                                script: """devpi use https://devpi.library.illinois.edu --clientdir ./devpi
-                                           devpi login $DEVPI_USR --password $DEVPI_PSW --clientdir ./devpi
-                                           devpi use /DS_Jenkins/${env.devpiStagingIndex} --clientdir ./devpi
-                                           devpi remove -y ${props.Name}==${props.Version} --clientdir ./devpi
-                                           """
-                               )
+                                devpiLib.removePackage(
+                                    pkgName: props.Name,
+                                    pkgVersion: props.Version,
+                                    index: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                    server: "https://devpi.library.illinois.edu",
+                                    credentialsId: 'DS_devpi',
+
+                                )
                             }
-                       }
+                        }
                     }
                 }
             }
