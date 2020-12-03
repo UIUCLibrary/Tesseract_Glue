@@ -504,34 +504,32 @@ pipeline {
                     when {
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
-                    parallel{
-                        stage("Windows") {
-                            steps {
-                                script{
-                                    parallel(tox.getToxTestsParallel("Windows", "windows && docker", "ci/docker/windows/tox/Dockerfile", "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE"))
-                                }
+                    steps {
+                        script{
+                            def windowsJobs = [:]
+                            def linuxJobs = [:]
+                            stage("Scanning Tox Environments"){
+                                parallel(
+                                    "Linux":{
+                                        linuxJobs = tox.getToxTestsParallel(
+                                                envNamePrefix: "Tox",
+                                                label: "linux && docker",
+                                                dockerfile: 'ci/docker/python/linux/tox/Dockerfile',
+                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                            )
+                                    },
+                                    "Windows":{
+                                        windowsJobs = tox.getToxTestsParallel(
+                                                envNamePrefix: "Tox",
+                                                label: "windows && docker",
+                                                dockerfile: 'ci/docker/windows/tox/Dockerfile',
+                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                         )
+                                    },
+                                    failFast: true
+                                )
                             }
-                        }
-//                         stage("Windows"){
-//                             agent {
-//                                 dockerfile {
-//                                     filename 'ci/docker/windows/tox/Dockerfile'
-//                                     label 'windows && docker'
-//                                     additionalBuildArgs '--build-arg CHOCOLATEY_SOURCE'
-//                                 }
-//                             }
-//                             steps{
-//                                 run_tox_envs()
-//                             }
-//                         }
-                        stage("Linux") {
-                            steps {
-                                script{
-                                    parallel(
-                                        tox.getToxTestsParallel("Linux", "linux && docker", "ci/docker/linux/tox/Dockerfile", '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)')
-                                    )
-                                }
-                            }
+                            parallel(windowsJobs + linuxJobs)
                         }
                     }
                 }
