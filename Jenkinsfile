@@ -514,7 +514,7 @@ pipeline {
                                         linuxJobs = tox.getToxTestsParallel(
                                                 envNamePrefix: "Tox",
                                                 label: "linux && docker",
-                                                dockerfile: 'ci/docker/python/linux/tox/Dockerfile',
+                                                dockerfile: 'ci/docker/linux/tox/Dockerfile',
                                                 dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                                             )
                                     },
