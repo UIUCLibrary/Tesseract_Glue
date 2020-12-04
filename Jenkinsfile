@@ -249,7 +249,7 @@ def startup(){
         mac = load("ci/jenkins/scripts/mac.groovy")
         defaultParamValues = readYaml(file: 'ci/jenkins/defaultParameters.yaml').parameters.defaults
         script{
-            try
+            try{
                 configFileProvider([configFile(fileId: 'github-Tesseract_Glue-defaultParamValues', targetLocation: 'config.yaml', variable: 'config')]) {
                     defaultParamValues += readYaml(file: 'config.yaml').parameters.defaults
                 }
