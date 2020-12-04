@@ -248,8 +248,13 @@ def startup(){
         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
         defaultParamValues = readYaml(file: 'ci/jenkins/defaultParameters.yaml').parameters.defaults
-        configFileProvider([configFile(fileId: 'github-Tesseract_Glue-defaultParamValues', targetLocation: 'config.yaml', variable: 'config')]) {
-            defaultParamValues += readYaml(file: 'config.yaml').parameters.defaults
+        script{
+            try
+                configFileProvider([configFile(fileId: 'github-Tesseract_Glue-defaultParamValues', targetLocation: 'config.yaml', variable: 'config')]) {
+                    defaultParamValues += readYaml(file: 'config.yaml').parameters.defaults
+                }
+            } except (e){
+            }
         }
         devpiLib = load("ci/jenkins/scripts/devpi.groovy")
     }
