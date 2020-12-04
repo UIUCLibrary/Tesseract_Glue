@@ -1,0 +1,11 @@
+parameters:
+  defaults:
+    RUN_CHECKS: true
+    TEST_RUN_TOX: false
+    USE_SONARQUBE: true
+    BUILD_PACKAGES: false
+    BUILD_MAC_PACKAGES: false
+    TEST_PACKAGES: true
+    DEPLOY_DEVPI: false
+    DEPLOY_DEVPI_PRODUCTION: false
+    DEPLOY_DOCS: false

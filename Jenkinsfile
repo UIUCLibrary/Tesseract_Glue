@@ -247,6 +247,7 @@ def startup(){
         checkout scm
         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
+        defaultParamValues = readYaml(file: 'ci/jenkins/defaultParameters.yaml').parameters.defaults
         devpiLib = load("ci/jenkins/scripts/devpi.groovy")
     }
     node('linux && docker') {
