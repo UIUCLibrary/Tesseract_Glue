@@ -58,7 +58,7 @@ def getDevPiStagingIndex(){
     }
 }
 
-              
+
 def deploy_docs(pkgName, prefix){
     script{
         try{
@@ -68,21 +68,21 @@ def deploy_docs(pkgName, prefix){
             sshPublisher(
                 publishers: [
                     sshPublisherDesc(
-                        configName: 'apache-ns - lib-dccuser-updater', 
-                        sshLabel: [label: 'Linux'], 
-                        transfers: [sshTransfer(excludes: '', 
-                        execCommand: '', 
-                        execTimeout: 120000, 
-                        flatten: false, 
-                        makeEmptyDirs: false, 
-                        noDefaultExcludes: false, 
-                        patternSeparator: '[, ]+', 
+                        configName: 'apache-ns - lib-dccuser-updater',
+                        sshLabel: [label: 'Linux'],
+                        transfers: [sshTransfer(excludes: '',
+                        execCommand: '',
+                        execTimeout: 120000,
+                        flatten: false,
+                        makeEmptyDirs: false,
+                        noDefaultExcludes: false,
+                        patternSeparator: '[, ]+',
                         remoteDirectory: "${pkgName}",
-                        remoteDirectorySDF: false, 
+                        remoteDirectorySDF: false,
                         removePrefix: "${prefix}",
                         sourceFiles: "${prefix}/**")],
-                    usePromotionTimestamp: false, 
-                    useWorkspaceInPromotion: false, 
+                    usePromotionTimestamp: false,
+                    useWorkspaceInPromotion: false,
                     verbose: true
                     )
                 ]
@@ -282,15 +282,15 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
-        booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
+        booleanParam(name: "RUN_CHECKS", defaultValue: defaultParamValues.RUN_CHECKS, description: "Run checks on code")
+        booleanParam(name: "TEST_RUN_TOX", defaultValue: defaultParamValues.TEST_RUN_TOX, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: defaultParamValues.USE_SONARQUBE, description: "Send data test data to SonarQube")
-        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
-        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
-        booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
-        booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
-        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
+        booleanParam(name: "BUILD_PACKAGES", defaultValue: defaultParamValues.BUILD_PACKAGES, description: "Build Python packages")
+        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: defaultParamValues.BUILD_MAC_PACKAGES, description: "Test Python packages on Mac")
+        booleanParam(name: "TEST_PACKAGES", defaultValue: defaultParamValues.TEST_PACKAGES, description: "Test Python packages by installing them and running tests on the installed package")
+        booleanParam(name: "DEPLOY_DEVPI", defaultValue: defaultParamValues.DEPLOY_DEVPI, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: defaultParamValues.DEPLOY_DEVPI_PRODUCTION, description: "Deploy to https://devpi.library.illinois.edu/production/release")
+        booleanParam(name: "DEPLOY_DOCS", defaultValue: defaultParamValues.DEPLOY_DOCS, description: "Update online documentation")
     }
     stages {
         stage("Building") {
