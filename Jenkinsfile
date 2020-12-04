@@ -250,7 +250,7 @@ def startup(){
         defaultParamValues = readYaml(file: 'ci/jenkins/defaultParameters.yaml').parameters.defaults
         script{
             try{
-                configFileProvider([configFile(fileId: "${env.JOB_BASE_NAME.replace('/','_')}-defaultParamValues", targetLocation: 'config.yaml', variable: 'config')]) {
+                configFileProvider([configFile(fileId: "${env.JOB_NAME.replace('/','_')}-defaultParamValues", targetLocation: 'config.yaml', variable: 'config')]) {
 //                 configFileProvider([configFile(fileId: "${currentBuild.projectName.replace('/','_')}-defaultParamValues", targetLocation: 'config.yaml', variable: 'config')]) {
                     defaultParamValues += readYaml(file: 'config.yaml').parameters.defaults
                 }
