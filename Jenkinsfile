@@ -253,7 +253,7 @@ def startup(){
                 configFileProvider([configFile(fileId: 'github-Tesseract_Glue-defaultParamValues', targetLocation: 'config.yaml', variable: 'config')]) {
                     defaultParamValues += readYaml(file: 'config.yaml').parameters.defaults
                 }
-            } except (e){
+            } catch (e){
             }
         }
         devpiLib = load("ci/jenkins/scripts/devpi.groovy")
