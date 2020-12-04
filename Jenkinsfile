@@ -249,6 +249,10 @@ def startup(){
         mac = load("ci/jenkins/scripts/mac.groovy")
         defaultParamValues = readYaml(file: 'ci/jenkins/defaultParameters.yaml').parameters.defaults
         script{
+            echo "env.JOB_NAME ${env.JOB_NAME}"
+            echo "env.JOB_BASE_NAME ${env.JOB_BASE_NAME}"
+            echo "currentBuild.projectName ${currentBuild.projectName}"
+            echo "currentBuild ${currentBuild}"
             try{
                 configFileProvider([configFile(fileId: "${env.JOB_NAME.replace('/','_')}-defaultParamValues", targetLocation: 'config.yaml', variable: 'config')]) {
 //                 configFileProvider([configFile(fileId: "${currentBuild.projectName.replace('/','_')}-defaultParamValues", targetLocation: 'config.yaml', variable: 'config')]) {
