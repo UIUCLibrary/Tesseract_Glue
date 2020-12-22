@@ -1,3 +1,4 @@
+"""Optical character recogonition that Use Google Tesseract"""
 import os as _os
 
 # the path to the linking shared libraries need to added to the path env var
