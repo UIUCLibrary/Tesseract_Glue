@@ -64,8 +64,8 @@ def tessdata_eng(tmpdir_factory):
 
     if not os.path.exists(tessdata_path):
         os.makedirs(tessdata_path)
-    download_data(osd_data_url, destination=tessdata_path)
-    download_data(english_data_url, destination=tessdata_path)
+    # download_data(osd_data_url, destination=tessdata_path)
+    # download_data(english_data_url, destination=tessdata_path)
 
     return tessdata_path
 
@@ -81,10 +81,10 @@ def sample_images(tmpdir_factory):
     sample_images_path = os.path.join(test_path, "sample_images")
     if not os.path.exists(sample_images_path):
         os.makedirs(sample_images_path)
-    for test_image in test_images:
-        url = "{}/{}".format(USER_CONTENT_URL, test_image)
-
-        download_data(url, destination=sample_images_path)
+    # for test_image in test_images:
+    #     url = "{}/{}".format(USER_CONTENT_URL, test_image)
+    #
+    #     download_data(url, destination=sample_images_path)
 
     yield sample_images_path
     shutil.rmtree(test_path)
