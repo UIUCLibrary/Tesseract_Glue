@@ -1,4 +1,4 @@
-"""This contains everything related to the language data files"""
+"""This contains everything related to the language data files."""
 import os
 import zipfile
 from urllib import request
@@ -182,7 +182,7 @@ def _download_languague(url, destination, md5_hash=None):
 
 def download_language_pack(tesseract_version: str, destination: str,
                            md5_hash: str = None):
-    """Download a specific version of Tesseract training data
+    """Download a specific version of Tesseract training data.
 
         Args:
             tesseract_version: Version of Tesseract used.
@@ -192,7 +192,6 @@ def download_language_pack(tesseract_version: str, destination: str,
                 will not need to be downloaded again.
 
     """
-
     base_url = "https://codeload.github.com/tesseract-ocr/tessdata/zip"
 
     url = "{}/{}".format(base_url, tesseract_version)

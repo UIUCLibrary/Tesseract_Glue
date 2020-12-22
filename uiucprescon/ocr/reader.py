@@ -1,11 +1,19 @@
+"""Reader for extracting text information."""
 import abc
 import os
 from uiucprescon.ocr import tesseractwrap  # type: ignore
 
 
 class AbsReader(metaclass=abc.ABCMeta):
+    """Baseclass used for implementing various reader types."""
 
     def __init__(self, language_code, tesseract_data_path) -> None:
+        """Reader object for interacting with tesseract and the image.
+
+        Args:
+            language_code:
+            tesseract_data_path:
+        """
         super().__init__()
 
         def is_lang_in_path(lang) -> bool:
@@ -29,11 +37,12 @@ class AbsReader(metaclass=abc.ABCMeta):
 
     @abc.abstractmethod
     def read(self, file: str):
+        """Read a image file for text information."""
         raise NotImplementedError
 
 
 class Reader(AbsReader):
-    """Reading the text from an image file
+    """Reading the text from an image file.
 
     Note:
         A Reader object should not be generated directly. Instead, it should be
@@ -42,7 +51,7 @@ class Reader(AbsReader):
     """
 
     def read(self, file: str):
-        """Generate text from an image
+        """Generate text from an image.
 
         Args:
             file: File path to an image
