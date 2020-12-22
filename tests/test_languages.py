@@ -1,15 +1,21 @@
 import os
-from unittest.mock import Mock
+from unittest.mock import Mock, MagicMock, create_autospec
 
 from uiucprescon import ocr
 import urllib.request
 
 
 def test_download_languague_downloads_file(monkeypatch, tmpdir):
+    dummy_data = iter([
+        b"1234555",
+        b"7890312",
+        None
+    ])
+    m = MagicMock()
+
+    m.read = Mock(side_effect=dummy_data)
 
     def mocked_function(*args, **kwargs):
-        m = Mock()
-        m.read = Mock(return_value=None)
         return m
 
     temp_path = str(tmpdir)
