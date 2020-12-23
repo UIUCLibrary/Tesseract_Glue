@@ -315,7 +315,7 @@ pipeline {
                     post{
                         always{
                             stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so,build/**', name: "COMPILED_BINARIES"
-                            recordIssues(filters: [excludeFile('build/*')], tools: [gcc(pattern: 'logs/python_build.log')])
+                            recordIssues(filters: [excludeFile('build/*'), ], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
                     }
                 }
@@ -439,9 +439,8 @@ pipeline {
                                         timeout(3){
                                             sh(
                                                 label: "Running MyPy",
-                                                script: """stubgen uiucprescon -o mypy_stubs
-                                                           mkdir -p reports/mypy/html
-                                                           MYPYPATH="${WORKSPACE}/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                script: """mkdir -p reports/mypy/html
+                                                           mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
                                                            """
                                             )
                                         }
