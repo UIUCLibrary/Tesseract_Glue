@@ -11,7 +11,7 @@ def getToxEnvs(){
                 label: "Getting Tox Environments",
                 returnStdout: true,
                 script: "@tox -l"
-            ).trim().split('\n')
+            ).trim().split('\r\n')
     }
     envs.collect{
         it.trim()
@@ -250,12 +250,11 @@ def getToxTestsParallel(args = [:]){
             dockerImageForTesting = docker.build(dockerImageName, "-f ${dockerfile} ${dockerArgs} . ")
 
         }
-        echo "Adding jobs to ${originalNodeLabel}"
         def jobs = envs.collectEntries({ tox_env ->
             def tox_result
             def githubChecksName = "Tox: ${tox_env} ${envNamePrefix}"
             def jenkinsStageName = "${envNamePrefix} ${tox_env}"
-            echo "Adding ${jenkinsStageName}"
+            echo "Adding ${jenkinsStageName} to ${originalNodeLabel}"
             [jenkinsStageName,{
                 node(originalNodeLabel){
                     ws{
