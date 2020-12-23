@@ -243,7 +243,7 @@ def getToxTestsParallel(args = [:]){
                 )
             }
         }
-        echo "Found tox environments for ${envs.join(', ')}"
+        echo "Found tox environments for |${envs.join(', ')}|"
         def dockerImageForTesting
         node(originalNodeLabel){
             checkout scm
