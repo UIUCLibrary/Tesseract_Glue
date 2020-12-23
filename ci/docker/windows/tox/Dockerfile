@@ -153,7 +153,6 @@ RUN py -m pip install --upgrade pip && `
 
 # ==============================================================================
 FROM CHOCOLATEY_BASE as CONAN_BUILDER
-RUN choco install -y --stoponfirstfailure --verbose python3
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN python -m pip install --upgrade pip ; `
