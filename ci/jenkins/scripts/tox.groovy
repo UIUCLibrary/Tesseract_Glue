@@ -1,9 +1,17 @@
 def getToxEnvs(){
     def envs
     if(isUnix()){
-        envs = sh(returnStdout: true, script: "tox -l").trim().split('\n')
+        envs = sh(
+                label: "Getting Tox Environments",
+                returnStdout: true,
+                script: "tox -l"
+            ).trim().split('\n')
     } else{
-        envs = bat(returnStdout: true, script: "@tox -l").trim().split('\n')
+        envs = bat(
+                label: "Getting Tox Environments",
+                returnStdout: true,
+                script: "@tox -l"
+            ).trim().split('\n')
     }
     envs.collect{
         it.trim()
