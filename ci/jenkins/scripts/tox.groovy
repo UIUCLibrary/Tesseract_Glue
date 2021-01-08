@@ -109,110 +109,6 @@ def generateToxReport(tox_env, toxResultFile){
     return reportSections.join("\n")
 }
 
-// def getToxTestsParallel(envNamePrefix, label, dockerfile, dockerArgs){
-//     script{
-//         def TOX_RESULT_FILE_NAME = "tox_result.json"
-//         def envs
-//         def originalNodeLabel
-//         node(label){
-//             originalNodeLabel = env.NODE_NAME
-//             checkout scm
-//             def dockerImageName = "tox${currentBuild.projectName}".replaceAll("-", "").toLowerCase()
-//             def dockerImage = docker.build(dockerImageName, "-f ${dockerfile} ${dockerArgs} .")
-//             dockerImage.inside{
-//                 envs = getToxEnvs()
-//             }
-//             if(isUnix()){
-//                 sh(
-//                     label: "Removing Docker Image used to run tox",
-//                     script: "docker image ls ${dockerImageName}"
-//                 )
-//             } else {
-//                 bat(
-//                     label: "Removing Docker Image used to run tox",
-//                     script: """docker image ls ${dockerImageName}
-//                                """
-//                 )
-//             }
-//         }
-//         echo "Found tox environments for ${envs.join(', ')}"
-//         def dockerImageForTesting
-//         node(originalNodeLabel){
-//             def dockerImageName = "tox"
-//             checkout scm
-//             dockerImageForTesting = docker.build(dockerImageName, "-f ${dockerfile} ${dockerArgs} . ")
-//
-//         }
-//         echo "Adding jobs to ${originalNodeLabel} with ${dockerImageForTesting}"
-//         def jobs = envs.collectEntries({ tox_env ->
-//             def tox_result
-//             def githubChecksName = "Tox: ${tox_env} ${envNamePrefix}"
-//             def jenkinsStageName = "${envNamePrefix} ${tox_env}"
-//
-//             [jenkinsStageName,{
-//                 node(originalNodeLabel){
-//                     ws{
-//                         checkout scm
-//                         dockerImageForTesting.inside{
-//                             try{
-//                                 publishChecks(
-//                                     conclusion: 'NONE',
-//                                     name: githubChecksName,
-//                                     status: 'IN_PROGRESS',
-//                                     summary: 'Use Tox to test installed package',
-//                                     title: 'Running Tox'
-//                                 )
-//                                 if(isUnix()){
-//                                     sh(
-//                                         label: "Running Tox with ${tox_env} environment",
-//                                         script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} -e $tox_env"
-//                                     )
-//                                 } else {
-//                                     bat(
-//                                         label: "Running Tox with ${tox_env} environment",
-//                                         script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} -e $tox_env "
-//                                     )
-//                                 }
-//                             } catch (e){
-//                                 def text
-//                                 try{
-//                                     text = generateToxReport(tox_env, 'tox_result.json')
-//                                 }
-//                                 catch (ex){
-//                                     text = "No details given. Unable to read tox_result.json"
-//                                 }
-//                                 publishChecks(
-//                                     name: githubChecksName,
-//                                     summary: 'Use Tox to test installed package',
-//                                     text: text,
-//                                     conclusion: 'FAILURE',
-//                                     title: 'Failed'
-//                                 )
-//                                 throw e
-//                             }
-//                             def checksReportText = generateToxReport(tox_env, 'tox_result.json')
-//                             publishChecks(
-//                                     name: githubChecksName,
-//                                     summary: 'Use Tox to test installed package',
-//                                     text: "${checksReportText}",
-//                                     title: 'Passed'
-//                                 )
-//                             cleanWs(
-//                                 deleteDirs: true,
-//                                 patterns: [
-//                                     [pattern: TOX_RESULT_FILE_NAME, type: 'INCLUDE'],
-//                                     [pattern: ".tox/", type: 'INCLUDE'],
-//                                 ]
-//                             )
-//                         }
-//                     }
-//                 }
-//             }]
-//         })
-//         return jobs
-//     }
-// }
-
 def getToxTestsParallel(args = [:]){
     def envNamePrefix = args['envNamePrefix']
     def label = args['label']
@@ -243,18 +139,19 @@ def getToxTestsParallel(args = [:]){
                 )
             }
         }
-        echo "Found tox environments for |${envs.join(', ')}|"
+        echo "Found tox environments for ${envs.join(', ')}"
         def dockerImageForTesting
         node(originalNodeLabel){
             checkout scm
             dockerImageForTesting = docker.build(dockerImageName, "-f ${dockerfile} ${dockerArgs} . ")
 
         }
+        echo "Adding jobs to ${originalNodeLabel}"
         def jobs = envs.collectEntries({ tox_env ->
             def tox_result
             def githubChecksName = "Tox: ${tox_env} ${envNamePrefix}"
             def jenkinsStageName = "${envNamePrefix} ${tox_env}"
-            echo "Adding ${jenkinsStageName} to ${originalNodeLabel}"
+
             [jenkinsStageName,{
                 node(originalNodeLabel){
                     ws{
