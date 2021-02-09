@@ -16,6 +16,25 @@ RUN if id $USER_ID ; then \
 
 RUN apt update && apt install -y ninja-build
 
+RUN mkdir -p /.cache/pip && \
+    chmod -R 777 /.cache
+
+ENV SONAR_SCANNER_VERSION=4.4.0.2170
+ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
+ENV SONAR_USER_HOME=/opt/sonar/.sonar
+ENV SONAR_SCANNER_OPTS="-server"
+RUN curl --create-dirs -sSLo /tmp/sonar-scanner.zip \
+        https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip && \
+    unzip -o /tmp/sonar-scanner.zip -d /opt/sonar/ && \
+    rm /tmp/sonar-scanner.zip && \
+    mkdir -p $SONAR_USER_HOME/cache && \
+    chmod -R 777 "${SONAR_USER_HOME}" &&\
+    mkdir -p /home/user/.sonar/cache && \
+    chown user:user /home/user/.sonar/cache && \
+    ln -s /opt/sonar/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner && \
+    sonar-scanner --version
+
+
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
     pip install wheel cmake
@@ -47,18 +66,3 @@ ENV CONAN_USER_HOME=/home/user/
 USER root
 RUN pip install --no-index --find-links=/wheels/ \
          -r /requirements/requirements-ci.txt
-
-ENV SONAR_SCANNER_VERSION=4.5.0.2216
-ENV SONAR_SCANNER_HOME=/home/user/.sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux
-USER user
-RUN curl --create-dirs -sSLo $HOME/.sonar/sonar-scanner.zip \
-        https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip && \
-    unzip -o $HOME/.sonar/sonar-scanner.zip -d $HOME/.sonar/ && \
-    rm $HOME/.sonar/sonar-scanner.zip && \
-    mkdir -p /home/user/.sonar/cache
-RUN mkdir -p ~/bin && find $HOME -name "sonar-scanner" -exec ln -sv {} ~/bin/sonar-scanner \; && \
-    export PATH=/home/user/bin:$PATH && \
-    sonar-scanner --version
-ENV PATH=/home/user/bin:$PATH
-RUN sonar-scanner --version
-ENV SONAR_SCANNER_OPTS="-server"
