@@ -1,4 +1,6 @@
 include LICENSE README.rst tox.ini Pipfile CMakeLists.txt CHANGELOG.rst conanfile.py tests/feature/engine.feature
+recursive-include builders *.py
+
 recursive-include uiucprescon *.cpp *.h CMakeLists.txt
 recursive-include tests *.py *.cpp *.feature CMakeLists.txt *.feature
 
