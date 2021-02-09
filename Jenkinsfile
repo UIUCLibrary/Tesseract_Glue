@@ -150,7 +150,7 @@ def devpiRunTest(devpiClient, pkgPropertiesFile, devpiIndex, devpiSelector, devp
     }
 }
 wheelStashes = []
-def configurations = loadConfigs()
+configurations = loadConfigs()
 def loadConfigs(){
     node(){
         echo "loading configurations"
