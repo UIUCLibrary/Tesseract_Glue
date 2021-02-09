@@ -1,3 +1,5 @@
+SONARQUBE_CREDENTIAL_ID = 'sonarcloud-uiucprescon.ocr'
+
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
 
@@ -223,6 +225,10 @@ def run_tox_envs(){
         parallel(cmds)
     }
 }
+defaultParameterValues = [
+    USE_SONARQUBE: false
+]
+
 def get_props(){
     stage("Reading Package Metadata"){
         node() {
@@ -243,35 +249,62 @@ def get_props(){
     }
 }
 def startup(){
+    def SONARQUBE_CREDENTIAL_ID = SONARQUBE_CREDENTIAL_ID
     node(){
         checkout scm
         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
         devpiLib = load("ci/jenkins/scripts/devpi.groovy")
     }
-    node('linux && docker') {
-        timeout(2){
-            ws{
-                checkout scm
-                try{
-                    docker.image('python:3.8').inside {
-                        stage("Getting Distribution Info"){
-                            sh(
-                               label: "Running setup.py with dist_info",
-                               script: """python --version
-                                          python setup.py dist_info
-                                       """
-                            )
-                            stash includes: "uiucprescon.ocr.dist-info/**", name: 'DIST-INFO'
-                            archiveArtifacts artifacts: "uiucprescon.ocr.dist-info/**"
+    parallel(
+        [
+            failFast: true,
+            'Checking sonarqube Settings': {
+                node(){
+                    try{
+                        withCredentials([string(credentialsId: SONARQUBE_CREDENTIAL_ID, variable: 'dddd')]) {
+                            echo 'Found credentials for sonarqube'
+                        }
+                        defaultParameterValues.USE_SONARQUBE = true
+                    } catch(e){
+                        echo "Setting defaultValue for USE_SONARQUBE to false. Reason: ${e}"
+                        defaultParameterValues.USE_SONARQUBE = false
+                    }
+                }
+            },
+            'Getting Distribution Info': {
+                node('linux && docker') {
+                    timeout(2){
+                        ws{
+                            checkout scm
+                            try{
+                                docker.image('python:3.8').inside {
+                                    sh(
+                                       label: "Running setup.py with dist_info",
+                                       script: """python --version
+                                                  python setup.py dist_info
+                                               """
+                                    )
+                                    stash includes: "*.dist-info/**", name: 'DIST-INFO'
+                                    archiveArtifacts artifacts: "*.dist-info/**"
+                                }
+                            } finally{
+                                cleanWs(
+                                    patterns: [
+                                            [pattern: '*.dist-info/**', type: 'INCLUDE'],
+                                            [pattern: '.eggs/', type: 'INCLUDE'],
+                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                        ],
+                                    notFailBuild: true,
+                                    deleteDirs: true
+                                    )
+                            }
                         }
                     }
-                } finally{
-                    deleteDir()
                 }
             }
-        }
-    }
+        ]
+    )
 }
 startup()
 def props = get_props()
@@ -283,7 +316,7 @@ pipeline {
     parameters {
         booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
-        booleanParam(name: "USE_SONARQUBE", defaultValue: true, description: "Send data test data to SonarQube")
+        booleanParam(name: "USE_SONARQUBE", defaultValue: defaultParameterValues.USE_SONARQUBE, description: "Send data test data to SonarQube")
         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
         booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
