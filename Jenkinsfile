@@ -555,7 +555,7 @@ pipeline {
                                                 envNamePrefix: "Tox Linux",
                                                 label: "linux && docker",
                                                 dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                             )
                                     },
                                     "Windows":{
