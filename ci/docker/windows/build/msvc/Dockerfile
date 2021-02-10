@@ -91,3 +91,4 @@ RUN conan install C:/TEMP/ --build  missing --no-import ;`
     conan remove * -b --src -f ; `
     conan remove --locks
 ENV PIP_FIND_LINKS=c:/wheels
+ENV CONAN_USER_HOME=C:/Users/ContainerAdministrator
