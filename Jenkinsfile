@@ -46,7 +46,8 @@ def build_wheel(platform){
     } else {
         bat(
             label: 'Building Python Wheel',
-            script: "python -m pep517.build --binary --out-dir dist\\ ."
+            script: "python -m pip wheel --no-deps -w dist\\ ."
+//             script: "python -m pep517.build --binary --out-dir dist\\ ."
         )
     }
 }
