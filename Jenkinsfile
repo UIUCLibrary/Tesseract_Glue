@@ -244,7 +244,13 @@ def get_props(){
     """
                 return package_metadata
             } finally {
-                deleteDir()
+                cleanWs(
+                    patterns: [
+                            [pattern: '*.dist-info/**', type: 'INCLUDE'],
+                        ],
+                    notFailBuild: true,
+                    deleteDirs: true
+                )
             }
         }
     }
