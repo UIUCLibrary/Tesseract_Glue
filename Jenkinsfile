@@ -675,26 +675,50 @@ pipeline {
                 }
                 beforeAgent true
             }
-            parallel{
-                stage("ssss"){
-                    stages{
-                        stage("Dummy"){
-                            steps{
-                                echo "HHHH"
-                            }
-                        }
-                        stage("Dummy12"){
-                            steps{
-                                echo "HHHH"
-                            }
-                        }
-                    }
-                }
-                stage("ddd"){
+            stages{
+                stage('Building'){
                     steps{
                         script{
-                            parallel(buildAndTestWheel(SUPPORTED_WINDOWS_VERSIONS))
+                            def packages
+                            node(){
+                                checkout scm
+                                packages = load 'ci/jenkins/scripts/packaging.groovy'
+                            }
+                            def windowsBuildStages = [:]
+                            SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
+                                windowsBuildStages["Windows - Python ${pythonVersion}: wheel"] = {
+                                    packages.buildPkg(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'windows && docker',
+                                                filename: 'ci/docker/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                            ]
+                                        ],
+                                            buildCmd: {
+                                                bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                                            },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: './dist/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+        //                                             archiveArtifacts artifacts: 'dist/*.whl'
+                                                stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
+                                            }
+                                        ]
+                                    )
+                                }
+                            }
+                            parallel(windowsBuildStages)
                         }
+
                     }
                 }
             }
