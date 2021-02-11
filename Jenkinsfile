@@ -775,6 +775,9 @@ pipeline {
                                 }
                             ]
                             buildStages = buildStages + windowsBuildStages
+                            if(params.BUILD_MAC_PACKAGES == true){
+                                buildStages = buildStages + macBuildStages
+                            }
                             parallel(buildStages)
                         }
 
