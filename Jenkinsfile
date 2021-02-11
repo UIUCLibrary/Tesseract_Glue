@@ -758,7 +758,7 @@ pipeline {
                                         },
                                         post:[
                                             success: {
-                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: "python sdist"
+                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
                                             },
                                             cleanup: {
                                                 cleanWs(
@@ -773,7 +773,42 @@ pipeline {
                                     )
                                 }
                             ]
-                            buildStages = buildStages + windowsBuildStages
+                            def linuxBuildStages = [:]
+                            SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
+                                linuxBuildStages["Linux - Python ${pythonVersion}: wheel"] = {
+                                    packages.buildPkg(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'linux && docker',
+                                                filename: 'ci/docker/linux/package/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                            ]
+                                        ],
+                                        buildCmd: {
+                                            sh(label: "Building python wheel",
+                                               script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
+                                                         auditwheel repair ./dist/*.whl -w ./dist
+                                                         """
+                                               )
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+                                                stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
+                                            }
+                                        ]
+                                    )
+                                }
+                            }
+                            buildStages = buildStages + windowsBuildStages + linuxBuildStages
                             if(params.BUILD_MAC_PACKAGES == true){
                                 buildStages = buildStages + macBuildStages
                             }
