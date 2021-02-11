@@ -77,6 +77,46 @@ def testPkg(args = [:]){
     }
 }
 
+def testPkg2(args = [:]){
+//     def tox = args['toxExec'] ? args['toxExec']: "tox"
+    def testCommand = args['testCommand'] ? args['testCommand']: {
+        def distroFiles = findFiles(glob: 'dist/*.tar.gz,dist/*.zip,dist/*.whl')
+        if (distroFiles.size() == 0){
+            error("No files located to test")
+        }
+        distroFiles.each{
+            def toxCommand = "tox --installpkg ${it.path} -e py"
+            if(isUnix()){
+                sh(label: "Testing tox version", script: "tox --version")
+                toxCommand = toxCommand + " --workdir /tmp/tox"
+                sh(label: "Running Tox", script: toxCommand)
+            } else{
+                bat(label: "Testing tox version", script: "tox --version")
+                testCommand = toxCommand + " --workdir %TEMP%\\tox"
+                bat(label: "Running Tox", script: toxCommand)
+            }
+        }
+    }
+    def setup = args['testSetup'] ? args['testSetup']: {
+        checkout scm
+    }
+    def cleanup =  args['post']['cleanup'] ? args['post']['cleanup']: {}
+    def successful = args['post']['success'] ? args['post']['success']: {}
+    def failure = args['post']['failure'] ? args['post']['failure']: {}
+    def agentRunner = getAgent(args)
+    agentRunner {
+        setup()
+        try{
+            testCommand()
+            successful()
+        } catch(e){
+            failure()
+        } finally{
+            cleanup()
+        }
+    }
+}
+
 def buildPkg(args = [:]){
     def agentRunner = getAgent(args)
     def setup = args['buildSetup'] ? args['buildSetup']: {
@@ -104,5 +144,6 @@ def buildPkg(args = [:]){
 }
 return [
     testPkg: this.&testPkg,
+    testPkg2: this.&testPkg2,
     buildPkg: this.&buildPkg
 ]

@@ -731,7 +731,7 @@ pipeline {
                             def windowsTestStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
-                                    packages.testPkg(
+                                    packages.testPkg2(
                                         agent: [
                                             dockerfile: [
                                                 label: 'windows && docker',
@@ -739,11 +739,25 @@ pipeline {
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                             ]
                                         ],
-                                        glob: 'dist/*.whl',
-                                        stash: "python${pythonVersion} windows wheel",
-                                        pythonVersion: pythonVersion
+                                        testSetup: {
+                                            checkout scm
+                                            unstash "python${pythonVersion} windows wheel"
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+                                                archiveArtifacts artifacts: 'dist/*.whl'
+                                            }
+                                        ]
                                     )
-//                                     archiveArtifacts artifacts: 'dist/*.whl'
                                 }
 
                             }
