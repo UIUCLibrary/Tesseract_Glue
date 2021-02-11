@@ -793,30 +793,42 @@ pipeline {
                             def macTestStages = [:]
                             SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
                                 macTestStages["MacOS - Python ${pythonVersion}: wheel"] = {
-                                    echo "Mac testing here"
-//                                     packages.buildPkg(
-//                                         agent: [
-//                                             label: "mac && python${pythonVersion}",
-//                                         ],
-//                                         buildCmd: {
-//                                             sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-//                                         },
-//                                         post:[
-//                                             cleanup: {
-//                                                 cleanWs(
-//                                                     patterns: [
-//                                                             [pattern: 'dist/', type: 'INCLUDE'],
-//                                                         ],
-//                                                     notFailBuild: true,
-//                                                     deleteDirs: true
-//                                                 )
-//                                             },
-//                                             success: {
-//         //                                             archiveArtifacts artifacts: 'dist/*.whl'
-//                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
-//                                             }
-//                                         ]
-//                                     )
+                                    packages.testPkg2(
+                                        agent: [
+                                            label: "mac && python${pythonVersion}",
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash "python${pythonVersion} mac wheel"
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.whl').each{
+                                                sh(label: "Running Tox",
+                                                   script: """python${pythonVersion} -m venv venv
+                                                   ./venv/bin/python -m pip install --upgrade pip
+                                                   ./venv/bin/pip install tox
+                                                   ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                )
+                                            }
+
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                                            [pattern: '.tox/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+                                                archiveArtifacts artifacts: 'dist/*.whl'
+                                            }
+                                        ]
+                                    )
                                 }
                             }
                             def windowsTestStages = [:]
