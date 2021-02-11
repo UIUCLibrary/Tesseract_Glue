@@ -783,6 +783,9 @@ pipeline {
                     }
                 }
                 stage("Testing"){
+                    when{
+                        equals expected: true, actual: params.TEST_PACKAGES
+                    }
                     steps{
                         script{
                             def packages
