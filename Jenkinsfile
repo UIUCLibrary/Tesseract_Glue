@@ -771,6 +771,9 @@ pipeline {
                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                         ]
                                     ],
+                                    buildCmd: {
+                                        sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                                    },
                                     glob: 'dist/*.whl',
                                     stash: stashName,
                                     pythonVersion: pythonVersion
