@@ -628,7 +628,7 @@ pipeline {
                     def windowsStages = [:]
                     SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                         windowsStages["Windows - Python ${pythonVersion}: wheel"] = {
-                            [
+                            return [
                                 stage('Build Wheel'){
                                     packages.buildPkg(
                                         agent: [
