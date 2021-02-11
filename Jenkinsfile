@@ -777,135 +777,67 @@ pipeline {
 //                                             }
 //                                         ]
 //                                     )
-//                                 },
-//                                 stage('Test Wheel'){
-//     //                             TODO test with something other than the tox
-//                                     packages.testPkg(
-//                                         agent: [
-//                                             dockerfile: [
-//                                                 label: 'windows && docker',
-//                                                 filename: 'ci/docker/windows/tox/Dockerfile',
-//                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-//                                             ]
-//                                         ],
-//                                         glob: 'dist/*.whl',
-//                                         stash: "python${pythonVersion} windows wheel",
-//                                         pythonVersion: pythonVersion
-//                                     )
 //                                 }
-//                             ]
-//
+//     //                         packages.testPkg(
+//     //                             agent: [
+//     //                                 label: "mac && python${pythonVersion}",
+//     //                             ],
+//     //                             glob: 'dist/*.tar.gz,dist/*.zip',
+//     //                             stash: 'PYTHON_PACKAGES',
+//     //                             pythonVersion: pythonVersion,
+//     //                             toxExec: 'venv/bin/tox',
+//     //                             testSetup: {
+//     //                                 checkout scm
+//     //                                 unstash 'PYTHON_PACKAGES'
+//     //                                 sh(
+//     //                                     label:'Install Tox',
+//     //                                     script: '''python3 -m venv venv
+//     //                                                venv/bin/pip install pip --upgrade
+//     //                                                venv/bin/pip install tox
+//     //                                                '''
+//     //                                 )
+//     //                             },
+//     //                             testTeardown: {
+//     //                                 sh 'rm -r venv/'
+//     //                             }
+//     //                         )
 //                         }
 //                     }
-                    def macStages = [:]
-                    SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
-                        macStages["Mac - Python ${pythonVersion}: wheel"] = {
-                            def stashName = "python${pythonVersion} MacOS wheel"
-                            packages.buildPkg(
-                                    agent: [
-                                        label: "mac && python${pythonVersion}",
-                                    ],
-//                                     buildSetup: {
-//                                         checkout scm
+//                     def linuxStages = [:]
+//                     SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
+// //                         TODO: Make work with ci/docker/linux/package/Dockerfile
+//                         linuxStages["Linux - Python ${pythonVersion}: wheel"] = {
+//                             def stashName = "python${pythonVersion} linux wheel"
+//                             stage('Build Wheel'){
+//                                 packages.buildPkg(
+//                                     agent: [
+//                                         dockerfile: [
+//                                             label: 'linux && docker',
+//                                             filename: 'ci/docker/linux/tox/Dockerfile',
+//                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+//                                         ]
+//                                     ],
+//                                     buildCmd: {
+//                                         sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
 //                                     },
-                                    buildCmd: {
-                                        sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-                                    },
-                                    post:[
-                                        cleanup: {
-                                            cleanWs(
-                                                patterns: [
-                                                        [pattern: './dist/', type: 'INCLUDE'],
-                                                    ],
-                                                notFailBuild: true,
-                                                deleteDirs: true
-                                            )
-                                        },
-                                        success: {
-//                                             archiveArtifacts artifacts: 'dist/*.whl'
-                                            stash includes: 'dist/*.whl', name: stashName
-                                        }
-                                    ]
-                                )
-                            }
-//                         packages.testPkg(
-//                             agent: [
-//                                 label: "mac && python${pythonVersion}",
-//                             ],
-//                             glob: 'dist/*.tar.gz,dist/*.zip',
-//                             stash: 'PYTHON_PACKAGES',
-//                             pythonVersion: pythonVersion,
-//                             toxExec: 'venv/bin/tox',
-//                             testSetup: {
-//                                 checkout scm
-//                                 unstash 'PYTHON_PACKAGES'
-//                                 sh(
-//                                     label:'Install Tox',
-//                                     script: '''python3 -m venv venv
-//                                                venv/bin/pip install pip --upgrade
-//                                                venv/bin/pip install tox
-//                                                '''
+//                                     post:[
+//                                         cleanup: {
+//                                             cleanWs(
+//                                                 patterns: [
+//                                                         [pattern: './dist/', type: 'INCLUDE'],
+//                                                     ],
+//                                                 notFailBuild: true,
+//                                                 deleteDirs: true
+//                                             )
+//                                         },
+//                                         success: {
+// //                                             archiveArtifacts artifacts: 'dist/*.whl'
+//                                             stash includes: 'dist/*.whl', name: stashName
+//                                         }
+//                                     ]
 //                                 )
-//                             },
-//                             testTeardown: {
-//                                 sh 'rm -r venv/'
 //                             }
-//                         )
-                    }
-                    def linuxStages = [:]
-                    SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
-//                         TODO: Make work with ci/docker/linux/package/Dockerfile
-                        linuxStages["Linux - Python ${pythonVersion}: wheel"] = {
-                            def stashName = "python${pythonVersion} linux wheel"
-                            stage('Build Wheel'){
-                                packages.buildPkg(
-                                    agent: [
-                                        dockerfile: [
-                                            label: 'linux && docker',
-                                            filename: 'ci/docker/linux/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                        ]
-                                    ],
-                                    buildCmd: {
-                                        sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-                                    },
-                                    post:[
-                                        cleanup: {
-                                            cleanWs(
-                                                patterns: [
-                                                        [pattern: './dist/', type: 'INCLUDE'],
-                                                    ],
-                                                notFailBuild: true,
-                                                deleteDirs: true
-                                            )
-                                        },
-                                        success: {
-//                                             archiveArtifacts artifacts: 'dist/*.whl'
-                                            stash includes: 'dist/*.whl', name: stashName
-                                        }
-                                    ]
-                                )
-                            }
-                            stage('Test Wheel'){
-                                packages.testPkg(
-                                    agent: [
-                                        dockerfile: [
-                                            label: 'linux && docker',
-                                            filename: 'ci/docker/linux/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                        ]
-                                    ],
-                                    buildCmd: {
-                                        sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-                                    },
-                                    glob: 'dist/*.whl',
-                                    stash: stashName,
-                                    pythonVersion: pythonVersion
-                                )
-                            }
-                        }
-//                         TODO: Make linux sdist tests
-//                             linuxTests["Linux - Python ${pythonVersion}: sdist"] = {
+//                             stage('Test Wheel'){
 //                                 packages.testPkg(
 //                                     agent: [
 //                                         dockerfile: [
