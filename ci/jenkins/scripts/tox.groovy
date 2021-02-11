@@ -200,13 +200,6 @@ def getToxTestsParallel(args = [:]){
                                     text: "${checksReportText}",
                                     title: 'Passed'
                                 )
-                            cleanWs(
-                                deleteDirs: true,
-                                patterns: [
-                                    [pattern: TOX_RESULT_FILE_NAME, type: 'INCLUDE'],
-                                    [pattern: ".tox/", type: 'INCLUDE'],
-                                ]
-                            )
                         }
                     }
                 }
