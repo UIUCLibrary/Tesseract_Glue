@@ -676,6 +676,20 @@ pipeline {
                 beforeAgent true
             }
             parallel{
+                stage("ssss"){
+                    stages{
+                        stage("Dummy"){
+                            steps{
+                                echo "HHHH"
+                            }
+                        }
+                        stage("Dummy12"){
+                            steps{
+                                echo "HHHH"
+                            }
+                        }
+                    }
+                }
                 stage("ddd"){
                     steps{
                         script{
