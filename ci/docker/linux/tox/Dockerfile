@@ -87,16 +87,18 @@ ENV PIP_FIND_LINKS=/wheels
 RUN pip3 install tox conan cmake
 RUN python3 -m pip install pep517
 
-USER user
-WORKDIR /home/user
-COPY --from=conan_builder --chown=user:user /home/user/.conan/ /home/user/.conan/
-COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/.conan/profiles/default
-COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
+
+COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
+COPY ci/docker/shared/conan/profile.ini  /conan/.conan/profiles/default
+COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
-ENV CONAN_USER_HOME=/home/user/
+ENV CONAN_USER_HOME=/conan
 RUN conan config home
-RUN conan install /tmp --build missing --no-import  && \
+RUN conan install /tmp --build  missing --no-import  && \
     conan remove "*" -b --src -f && \
-    conan remove --locks
+    conan remove --locks && \
+    chmod -R 777 /conan
+
+
 WORKDIR /src
 CMD tox --workdir /tmp/tox/  -p=auto --parallel--safe-build --recreate
