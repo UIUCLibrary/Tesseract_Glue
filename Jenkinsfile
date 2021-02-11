@@ -628,7 +628,6 @@ pipeline {
                     def windowsStages = [:]
                     SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                         windowsStages["Windows - Python ${pythonVersion}: wheel"] = {
-                            def stashName = "python${pythonVersion} windows wheel"
                             stage('Build Wheel'){
                                 packages.buildPkg(
                                     agent: [
@@ -653,7 +652,7 @@ pipeline {
                                         },
                                         success: {
     //                                             archiveArtifacts artifacts: 'dist/*.whl'
-                                            stash includes: 'dist/*.whl', name: stashName
+                                            stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                         }
                                     ]
                                 )
@@ -669,7 +668,7 @@ pipeline {
                                         ]
                                     ],
                                     glob: 'dist/*.whl',
-                                    stash: stashName,
+                                    stash: "python${pythonVersion} windows wheel",
                                     pythonVersion: pythonVersion
                                 )
                             }
