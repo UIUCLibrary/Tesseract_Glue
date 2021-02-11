@@ -1,4 +1,5 @@
 SONARQUBE_CREDENTIAL_ID = 'sonarcloud-uiucprescon.ocr'
+SUPPORTED_MAC_VERSIONS = ['3.8', '3.9']
 SUPPORTED_LINUX_VERSIONS = ['3.7', '3.8', '3.9']
 SUPPORTED_WINDOWS_VERSIONS = ['3.7', '3.8', '3.9']
 def get_sonarqube_unresolved_issues(report_task_file){
@@ -675,6 +676,58 @@ pipeline {
 
                         }
                     }
+                    def macStages = [:]
+                    ['3.7'].each{ pythonVersion ->
+                        macStages["Mac - Python ${pythonVersion}: wheel"] = {
+                            packages.buildPkg(
+                                    agent: [
+                                        label: "mac && python${pythonVersion}",
+                                    ],
+//                                     buildSetup: {
+//                                         checkout scm
+//                                         sh 'python'
+//                                     },
+                                    post:[
+                                        cleanup: {
+                                            cleanWs(
+                                                patterns: [
+                                                        [pattern: './dist/', type: 'INCLUDE'],
+                                                    ],
+                                                notFailBuild: true,
+                                                deleteDirs: true
+                                            )
+                                        },
+                                        success: {
+//                                             archiveArtifacts artifacts: 'dist/*.whl'
+                                            stash includes: 'dist/*.whl', name: stashName
+                                        }
+                                    ]
+                                )
+                            }
+//                         packages.testPkg(
+//                             agent: [
+//                                 label: "mac && python${pythonVersion}",
+//                             ],
+//                             glob: 'dist/*.tar.gz,dist/*.zip',
+//                             stash: 'PYTHON_PACKAGES',
+//                             pythonVersion: pythonVersion,
+//                             toxExec: 'venv/bin/tox',
+//                             testSetup: {
+//                                 checkout scm
+//                                 unstash 'PYTHON_PACKAGES'
+//                                 sh(
+//                                     label:'Install Tox',
+//                                     script: '''python3 -m venv venv
+//                                                venv/bin/pip install pip --upgrade
+//                                                venv/bin/pip install tox
+//                                                '''
+//                                 )
+//                             },
+//                             testTeardown: {
+//                                 sh 'rm -r venv/'
+//                             }
+//                         )
+                    }
                     def linuxStages = [:]
                     SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
 //                         TODO: Make work with ci/docker/linux/package/Dockerfile
@@ -725,36 +778,36 @@ pipeline {
                             }
                         }
 //                         TODO: Make linux sdist tests
-//                             linuxTests["Linux - Python ${pythonVersion}: sdist"] = {
-//                                 packages.testPkg(
-//                                     agent: [
-//                                         dockerfile: [
-//                                             label: 'linux && docker',
-//                                             filename: 'ci/docker/python/linux/tox/Dockerfile',
-//                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-//                                         ]
-//                                     ],
-//                                     glob: 'dist/*.tar.gz',
-//                                     stash: 'PYTHON_PACKAGES',
-//                                     pythonVersion: pythonVersion
-//                                 )
-//                             }
-//                             linuxTests["Linux - Python ${pythonVersion}: wheel"] = {
-//                                 packages.testPkg(
-//                                     agent: [
-//                                         dockerfile: [
-//                                             label: 'linux && docker',
-//                                             filename: 'ci/docker/python/linux/tox/Dockerfile',
-//                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-//                                         ]
-//                                     ],
-//                                     glob: 'dist/*.whl',
-//                                     stash: 'PYTHON_PACKAGES',
-//                                     pythonVersion: pythonVersion
-//                                 )
-//                             }
+                            linuxTests["Linux - Python ${pythonVersion}: sdist"] = {
+                                packages.testPkg(
+                                    agent: [
+                                        dockerfile: [
+                                            label: 'linux && docker',
+                                            filename: 'ci/docker/python/linux/tox/Dockerfile',
+                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                        ]
+                                    ],
+                                    glob: 'dist/*.tar.gz',
+                                    stash: 'PYTHON_PACKAGES',
+                                    pythonVersion: pythonVersion
+                                )
+                            }
+                            linuxTests["Linux - Python ${pythonVersion}: wheel"] = {
+                                packages.testPkg(
+                                    agent: [
+                                        dockerfile: [
+                                            label: 'linux && docker',
+                                            filename: 'ci/docker/python/linux/tox/Dockerfile',
+                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+                                        ]
+                                    ],
+                                    glob: 'dist/*.whl',
+                                    stash: 'PYTHON_PACKAGES',
+                                    pythonVersion: pythonVersion
+                                )
+                            }
                         }
-                    def packageStages = linuxStages + windowsStages
+                    def packageStages = linuxStages + windowsStages + macStages
                     parallel(packageStages)
 //                     parallel(windowsStages)
                 }
