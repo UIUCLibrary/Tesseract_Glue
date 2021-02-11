@@ -64,6 +64,11 @@ def getDevPiStagingIndex(){
 }
 def buildAndTestWheel(pythonVersions){
 // TODO: build inmto
+    def packages
+    node(){
+        checkout scm
+        packages = load 'ci/jenkins/scripts/packaging.groovy'
+    }
     def windowsStages = [:]
     pythonVersions.each{ pythonVersion ->
         windowsStages["Windows - Python ${pythonVersion}: wheel"] = {
