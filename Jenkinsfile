@@ -684,6 +684,33 @@ pipeline {
                                 checkout scm
                                 packages = load 'ci/jenkins/scripts/packaging.groovy'
                             }
+                            def macBuildStages = [:]
+                            ['3.9'].each{ pythonVersion ->
+                                packages.buildPkg(
+                                    agent: [
+                                        label: "mac && python${pythonVersion}",
+                                    ],
+                                    buildCmd: {
+                                        sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                                    },
+                                    post:[
+                                        cleanup: {
+                                            cleanWs(
+                                                patterns: [
+                                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                                    ],
+                                                notFailBuild: true,
+                                                deleteDirs: true
+                                            )
+                                        },
+                                        success: {
+    //                                             archiveArtifacts artifacts: 'dist/*.whl'
+                                            stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
+                                        }
+                                    ]
+                                )
+//                             SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
+                            }
                             def windowsBuildStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                                 windowsBuildStages["Windows - Python ${pythonVersion}: wheel"] = {
