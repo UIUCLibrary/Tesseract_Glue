@@ -318,7 +318,7 @@ def startup(){
     def SONARQUBE_CREDENTIAL_ID = SONARQUBE_CREDENTIAL_ID
     node(){
         checkout scm
-        tox = load("ci/jenkins/scripts/tox.groovy")
+//         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
         devpiLib = load("ci/jenkins/scripts/devpi.groovy")
     }
@@ -605,6 +605,11 @@ pipeline {
                     }
                     steps {
                         script{
+                            def tox
+                            node(){
+                                checkout scm
+                                tox = load("ci/jenkins/scripts/tox.groovy")
+                            }
                             def windowsJobs = [:]
                             def linuxJobs = [:]
                             stage("Scanning Tox Environments"){
@@ -705,7 +710,6 @@ pipeline {
                                                 )
                                             },
                                             success: {
-        //                                             archiveArtifacts artifacts: 'dist/*.whl'
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
                                             }
                                         ]
