@@ -675,9 +675,13 @@ pipeline {
                 }
                 beforeAgent true
             }
-            steps{
-                script{
-                    parallel(buildAndTestWheel(SUPPORTED_WINDOWS_VERSIONS))
+            stages{
+                stage("ddd"){
+                    steps{
+                        script{
+                            parallel(buildAndTestWheel(SUPPORTED_WINDOWS_VERSIONS))
+                        }
+                    }
                 }
             }
         }
