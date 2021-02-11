@@ -628,49 +628,51 @@ pipeline {
                     def windowsStages = [:]
                     SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                         windowsStages["Windows - Python ${pythonVersion}: wheel"] = {
-                            stage('Build Wheel'){
-                                packages.buildPkg(
-                                    agent: [
-                                        dockerfile: [
-                                            label: 'windows && docker',
-                                            filename: 'ci/docker/windows/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                            stage("x"){
+                                stage('Build Wheel'){
+                                    packages.buildPkg(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'windows && docker',
+                                                filename: 'ci/docker/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                            ]
+                                        ],
+                                            buildCmd: {
+                                                bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                                            },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: './dist/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+        //                                             archiveArtifacts artifacts: 'dist/*.whl'
+                                                stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
+                                            }
                                         ]
-                                    ],
-                                        buildCmd: {
-                                            bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-                                        },
-                                    post:[
-                                        cleanup: {
-                                            cleanWs(
-                                                patterns: [
-                                                        [pattern: './dist/', type: 'INCLUDE'],
-                                                    ],
-                                                notFailBuild: true,
-                                                deleteDirs: true
-                                            )
-                                        },
-                                        success: {
-    //                                             archiveArtifacts artifacts: 'dist/*.whl'
-                                            stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
-                                        }
-                                    ]
-                                )
-                            }
-                            stage('Test Wheel'){
-//                             TODO test with something other than the tox
-                                packages.testPkg(
-                                    agent: [
-                                        dockerfile: [
-                                            label: 'windows && docker',
-                                            filename: 'ci/docker/windows/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                                        ]
-                                    ],
-                                    glob: 'dist/*.whl',
-                                    stash: "python${pythonVersion} windows wheel",
-                                    pythonVersion: pythonVersion
-                                )
+                                    )
+                                }
+                                stage('Test Wheel'){
+    //                             TODO test with something other than the tox
+                                    packages.testPkg(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'windows && docker',
+                                                filename: 'ci/docker/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                            ]
+                                        ],
+                                        glob: 'dist/*.whl',
+                                        stash: "python${pythonVersion} windows wheel",
+                                        pythonVersion: pythonVersion
+                                    )
+                                }
                             }
 
                         }
