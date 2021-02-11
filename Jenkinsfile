@@ -677,7 +677,7 @@ pipeline {
                         }
                     }
                     def macStages = [:]
-                    ['3.7'].each{ pythonVersion ->
+                    SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
                         macStages["Mac - Python ${pythonVersion}: wheel"] = {
                             def stashName = "python${pythonVersion} MacOS wheel"
                             packages.buildPkg(
