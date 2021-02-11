@@ -715,7 +715,38 @@ pipeline {
                                     )
                                 }
                             }
-                            parallel(windowsBuildStages)
+                            def buildStages =  [
+                                'Source Distribution': {
+                                    packages.buildPkg(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'linux && docker',
+                                                filename: 'ci/docker/linux/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                            ]
+                                        ],
+                                        buildCmd: {
+                                            sh "python3 -m pep517.build --source --out-dir dist/ ."
+                                        },
+                                        post:[
+                                            success: {
+                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: "python sdist"
+                                            },
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            }
+                                        ]
+                                    )
+                                }
+                            ]
+                            buildStages = buildStages + windowsBuildStages
+                            parallel(buildStages)
                         }
 
                     }
