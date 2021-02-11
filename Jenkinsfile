@@ -812,7 +812,8 @@ pipeline {
 //                                 )
 //                             }
                         }
-                    def packageStages = linuxStages + windowsStages + macStages
+                    def packageStages =  windowsStages + macStages
+//                     def packageStages = linuxStages + windowsStages + macStages
                     parallel(packageStages)
 //                     parallel(windowsStages)
                 }
