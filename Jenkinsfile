@@ -774,6 +774,12 @@ pipeline {
                                             checkout scm
                                             unstash "python${pythonVersion} windows wheel"
                                         },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.whl').each{
+                                                bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
+                                            }
+
+                                        },
                                         post:[
                                             cleanup: {
                                                 cleanWs(
