@@ -679,6 +679,7 @@ pipeline {
                     def macStages = [:]
                     ['3.7'].each{ pythonVersion ->
                         macStages["Mac - Python ${pythonVersion}: wheel"] = {
+                            def stashName = "python${pythonVersion} MacOS wheel"
                             packages.buildPkg(
                                     agent: [
                                         label: "mac && python${pythonVersion}",
