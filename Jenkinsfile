@@ -740,7 +740,7 @@ pipeline {
                                             ]
                                         ],
                                         glob: 'dist/*.whl',
-                                        stash: "python${pythonVersion} windows wheel",
+                                        stash: "python${pythonVersion} windows wheel"
                                         pythonVersion: pythonVersion
                                     )
 //                                     archiveArtifacts artifacts: 'dist/*.whl'
