@@ -695,14 +695,14 @@ pipeline {
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                             ]
                                         ],
-                                            buildCmd: {
-                                                bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-                                            },
+                                        buildCmd: {
+                                            bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                                        },
                                         post:[
                                             cleanup: {
                                                 cleanWs(
                                                     patterns: [
-                                                            [pattern: './dist/', type: 'INCLUDE'],
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
                                                         ],
                                                     notFailBuild: true,
                                                     deleteDirs: true
@@ -793,6 +793,38 @@ pipeline {
                                             success: {
                                                 archiveArtifacts artifacts: 'dist/*.whl'
                                             }
+                                        ]
+                                    )
+                                }
+                                windowsTestStages["Windows - Python ${pythonVersion}: sdist"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'windows && docker',
+                                                filename: 'ci/docker/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                            ]
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash 'python sdist'
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.tar.gz').each{
+                                                bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
+                                            }
+
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
                                         ]
                                     )
                                 }
