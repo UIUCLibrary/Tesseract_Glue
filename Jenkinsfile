@@ -786,7 +786,7 @@ pipeline {
                                         ],
                                         buildCmd: {
                                             sh(label: "Building python wheel",
-                                               script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
+                                               script:"""python${pythonVersion} -m pip wheel --no-deps -w ./dist .
                                                          auditwheel repair ./dist/*.whl -w ./dist
                                                          """
                                                )
@@ -796,6 +796,7 @@ pipeline {
                                                 cleanWs(
                                                     patterns: [
                                                             [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
                                                         ],
                                                     notFailBuild: true,
                                                     deleteDirs: true
@@ -930,6 +931,7 @@ pipeline {
                                                 cleanWs(
                                                     patterns: [
                                                             [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
                                                         ],
                                                     notFailBuild: true,
                                                     deleteDirs: true
@@ -965,6 +967,7 @@ pipeline {
                                                 cleanWs(
                                                     patterns: [
                                                             [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
                                                         ],
                                                     notFailBuild: true,
                                                     deleteDirs: true
@@ -974,7 +977,85 @@ pipeline {
                                     )
                                 }
                             }
-                            def testingStages = windowsTestStages
+                            def linuxTestStages = [:]
+                            SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
+                                linuxTestStages["Linux - Python ${pythonVersion}: wheel"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'linux && docker',
+                                                filename: 'ci/docker/linux/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                            ]
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash "python${pythonVersion} linux wheel"
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.whl').each{
+                                                sh(
+                                                    label: 'Running Tox',
+                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                    )
+                                            }
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+                                                archiveArtifacts artifacts: 'dist/*.whl'
+                                            },
+                                        ]
+                                    )
+                                }
+                                linuxTestStages["Linux - Python ${pythonVersion}: sdist"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'linux && docker',
+                                                filename: 'ci/docker/linux/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                            ]
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash "python sdist"
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.tar.gz').each{
+                                                sh(
+                                                    label: 'Running Tox',
+                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                    )
+                                            }
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                        ]
+                                    )
+                                }
+
+                            }
+
+                            def testingStages = windowsTestStages + linuxTestStages
                             if(params.BUILD_MAC_PACKAGES == true){
                                 testingStages = testingStages + macTestStages
                             }
