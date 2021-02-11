@@ -685,8 +685,10 @@ pipeline {
                                     ],
 //                                     buildSetup: {
 //                                         checkout scm
-//                                         sh 'python'
 //                                     },
+                                    buildCmd: {
+                                        sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                                    },
                                     post:[
                                         cleanup: {
                                             cleanWs(
