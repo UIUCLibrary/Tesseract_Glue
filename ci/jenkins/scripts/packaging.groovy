@@ -78,7 +78,6 @@ def testPkg(args = [:]){
 }
 
 def testPkg2(args = [:]){
-//     def tox = args['toxExec'] ? args['toxExec']: "tox"
     def testCommand = args['testCommand'] ? args['testCommand']: {
         def distroFiles = findFiles(glob: 'dist/*.tar.gz,dist/*.zip,dist/*.whl')
         if (distroFiles.size() == 0){
@@ -92,7 +91,7 @@ def testPkg2(args = [:]){
                 sh(label: "Running Tox", script: toxCommand)
             } else{
                 bat(label: "Testing tox version", script: "tox --version")
-                testCommand = toxCommand + " --workdir %TEMP%\\tox"
+                toxCommand = toxCommand + " --workdir %TEMP%\\tox"
                 bat(label: "Running Tox", script: toxCommand)
             }
         }
