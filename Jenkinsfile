@@ -778,34 +778,34 @@ pipeline {
                             }
                         }
 //                         TODO: Make linux sdist tests
-                            linuxTests["Linux - Python ${pythonVersion}: sdist"] = {
-                                packages.testPkg(
-                                    agent: [
-                                        dockerfile: [
-                                            label: 'linux && docker',
-                                            filename: 'ci/docker/python/linux/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                        ]
-                                    ],
-                                    glob: 'dist/*.tar.gz',
-                                    stash: 'PYTHON_PACKAGES',
-                                    pythonVersion: pythonVersion
-                                )
-                            }
-                            linuxTests["Linux - Python ${pythonVersion}: wheel"] = {
-                                packages.testPkg(
-                                    agent: [
-                                        dockerfile: [
-                                            label: 'linux && docker',
-                                            filename: 'ci/docker/python/linux/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-                                        ]
-                                    ],
-                                    glob: 'dist/*.whl',
-                                    stash: 'PYTHON_PACKAGES',
-                                    pythonVersion: pythonVersion
-                                )
-                            }
+//                             linuxTests["Linux - Python ${pythonVersion}: sdist"] = {
+//                                 packages.testPkg(
+//                                     agent: [
+//                                         dockerfile: [
+//                                             label: 'linux && docker',
+//                                             filename: 'ci/docker/python/linux/tox/Dockerfile',
+//                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+//                                         ]
+//                                     ],
+//                                     glob: 'dist/*.tar.gz',
+//                                     stash: 'PYTHON_PACKAGES',
+//                                     pythonVersion: pythonVersion
+//                                 )
+//                             }
+//                             linuxTests["Linux - Python ${pythonVersion}: wheel"] = {
+//                                 packages.testPkg(
+//                                     agent: [
+//                                         dockerfile: [
+//                                             label: 'linux && docker',
+//                                             filename: 'ci/docker/python/linux/tox/Dockerfile',
+//                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
+//                                         ]
+//                                     ],
+//                                     glob: 'dist/*.whl',
+//                                     stash: 'PYTHON_PACKAGES',
+//                                     pythonVersion: pythonVersion
+//                                 )
+//                             }
                         }
                     def packageStages = linuxStages + windowsStages + macStages
                     parallel(packageStages)
