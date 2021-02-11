@@ -685,7 +685,7 @@ pipeline {
                                 packages = load 'ci/jenkins/scripts/packaging.groovy'
                             }
                             def macBuildStages = [:]
-                            ['3.9'].each{ pythonVersion ->
+                            SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
                                 macBuildStages["MacOS - Python ${pythonVersion}: wheel"] = {
                                     packages.buildPkg(
                                         agent: [
@@ -711,7 +711,6 @@ pipeline {
                                         ]
                                     )
                                 }
-//                             SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
                             }
                             def windowsBuildStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
