@@ -790,6 +790,35 @@ pipeline {
                                 checkout scm
                                 packages = load 'ci/jenkins/scripts/packaging.groovy'
                             }
+                            def macTestStages = [:]
+                            SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
+                                macTestStages["MacOS - Python ${pythonVersion}: wheel"] = {
+                                    echo "Mac testing here"
+//                                     packages.buildPkg(
+//                                         agent: [
+//                                             label: "mac && python${pythonVersion}",
+//                                         ],
+//                                         buildCmd: {
+//                                             sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+//                                         },
+//                                         post:[
+//                                             cleanup: {
+//                                                 cleanWs(
+//                                                     patterns: [
+//                                                             [pattern: 'dist/', type: 'INCLUDE'],
+//                                                         ],
+//                                                     notFailBuild: true,
+//                                                     deleteDirs: true
+//                                                 )
+//                                             },
+//                                             success: {
+//         //                                             archiveArtifacts artifacts: 'dist/*.whl'
+//                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
+//                                             }
+//                                         ]
+//                                     )
+                                }
+                            }
                             def windowsTestStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
@@ -859,9 +888,12 @@ pipeline {
                                         ]
                                     )
                                 }
-
                             }
-                            parallel(windowsTestStages)
+                            def testingStages = windowsTestStages
+                            if(params.BUILD_MAC_PACKAGES == true){
+                                testingStages = testingStages + macTestStages
+                            }
+                            parallel(testingStages)
                         }
                     }
                 }
