@@ -686,7 +686,7 @@ pipeline {
                             }
                             def macBuildStages = [:]
                             ['3.9'].each{ pythonVersion ->
-                                windowsBuildStages["MacOS - Python ${pythonVersion}: wheel"] = {
+                                macBuildStages["MacOS - Python ${pythonVersion}: wheel"] = {
                                     packages.buildPkg(
                                         agent: [
                                             label: "mac && python${pythonVersion}",
