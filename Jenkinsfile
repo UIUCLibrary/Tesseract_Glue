@@ -709,7 +709,6 @@ pipeline {
                                                 )
                                             },
                                             success: {
-        //                                             archiveArtifacts artifacts: 'dist/*.whl'
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                             }
                                         ]
@@ -719,6 +718,37 @@ pipeline {
                             parallel(windowsBuildStages)
                         }
 
+                    }
+                }
+                stage("Testing"){
+                    steps{
+                        script{
+                            def packages
+                            node(){
+                                checkout scm
+                                packages = load 'ci/jenkins/scripts/packaging.groovy'
+                            }
+                            def windowsTestStages = [:]
+                            SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
+                                windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
+                                    packages.testPkg(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'windows && docker',
+                                                filename: 'ci/docker/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                            ]
+                                        ],
+                                        glob: 'dist/*.whl',
+                                        stash: "python${pythonVersion} windows wheel",
+                                        pythonVersion: pythonVersion
+                                    )
+//                                     archiveArtifacts artifacts: 'dist/*.whl'
+                                }
+
+                            }
+                            parallel(windowsTestStages)
+                        }
                     }
                 }
             }
