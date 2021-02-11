@@ -628,7 +628,7 @@ pipeline {
                     def windowsStages = [:]
                     SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                         windowsStages["Windows - Python ${pythonVersion}: wheel"] = {
-                            stage("x"){
+                            [
                                 stage('Build Wheel'){
                                     packages.buildPkg(
                                         agent: [
@@ -657,7 +657,7 @@ pipeline {
                                             }
                                         ]
                                     )
-                                }
+                                },
                                 stage('Test Wheel'){
     //                             TODO test with something other than the tox
                                     packages.testPkg(
@@ -673,7 +673,7 @@ pipeline {
                                         pythonVersion: pythonVersion
                                     )
                                 }
-                            }
+                            ]
 
                         }
                     }
