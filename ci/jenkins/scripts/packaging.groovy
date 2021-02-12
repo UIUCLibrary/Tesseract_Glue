@@ -124,7 +124,7 @@ def buildPkg(args = [:]){
     }
     def cleanup =  args['post']['cleanup'] ? args['post']['cleanup']: {}
     def successful = args['post']['success'] ? args['post']['success']: {}
-
+    def failure = args['post']['failure'] ? args['post']['failure']: {}
     def buildCmd = args['buildCmd'] ? args['buildCmd']: {
         if(isUnix()){
             sh "python -m pip wheel --no-deps -w ./dist ."
@@ -137,6 +137,8 @@ def buildPkg(args = [:]){
         try{
             buildCmd()
             successful()
+        } catch(e){
+            failure()
         } finally{
             cleanup()
         }
