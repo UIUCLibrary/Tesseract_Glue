@@ -6,6 +6,9 @@ RUN apt update && \
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 RUN cat /tmp/apt-packages.txt | xargs apt install -y python3-pip
 
+RUN mkdir -p /.cache/pip && \
+    chmod -R 777 /.cache
+
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
