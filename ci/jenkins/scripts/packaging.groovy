@@ -102,7 +102,7 @@ def testPkg2(args = [:]){
     def cleanup =  args['post']['cleanup'] ? args['post']['cleanup']: {}
     def successful = args['post']['success'] ? args['post']['success']: {}
     def failure = args['post']['failure'] ? args['post']['failure']: {}
-    def dockerImageName = "${currentBuild.fullProjectName}_${getToxEnv(args)}_build".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
+    def dockerImageName = args['dockerImageName'] ? args['dockerImageName']:  "${currentBuild.fullProjectName}_${getToxEnv(args)}_build".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
     def agentRunner = getAgent(args, dockerImageName)
     agentRunner {
         setup()
