@@ -139,6 +139,7 @@ def buildPkg(args = [:]){
             successful()
         } catch(e){
             failure()
+            throw e
         } finally{
             cleanup()
         }
