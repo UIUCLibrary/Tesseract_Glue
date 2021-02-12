@@ -772,6 +772,9 @@ pipeline {
                                                     notFailBuild: true,
                                                     deleteDirs: true
                                                 )
+                                            },
+                                            failure: {
+                                                sh "python3 -m pip list"
                                             }
                                         ]
                                     )
