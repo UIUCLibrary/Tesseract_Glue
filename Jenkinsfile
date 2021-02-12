@@ -372,18 +372,18 @@ def startup(){
         ]
     )
 }
-startup()
-def props = get_props()
+// startup()
+// def props = get_props()
 pipeline {
     agent none
     options {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
+        booleanParam(name: "RUN_CHECKS", defaultValue: false, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: defaultParameterValues.USE_SONARQUBE, description: "Send data test data to SonarQube")
-        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+        booleanParam(name: "BUILD_PACKAGES", defaultValue: true, description: "Build Python packages")
         booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -392,6 +392,9 @@ pipeline {
     }
     stages {
         stage("Building") {
+            when{
+                equals expected: true, actual: false
+            }
             agent {
                 dockerfile {
                     filename 'ci/docker/linux/build/Dockerfile'
@@ -462,6 +465,10 @@ pipeline {
             }
             stages{
                 stage("Code Quality") {
+                    when{
+                        equals expected: true, actual: false
+                    }
+
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
@@ -469,7 +476,6 @@ pipeline {
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
                         }
                     }
-                    failFast true
                     stages{
                         stage("Setting up Tests"){
                             steps{
@@ -748,6 +754,7 @@ pipeline {
                                 }
                             }
                             def buildStages =  [
+                               failFast: true,
                                 'Source Distribution': {
                                     packages.buildPkg(
                                         agent: [
@@ -827,7 +834,8 @@ pipeline {
                 }
                 stage("Testing"){
                     when{
-                        equals expected: true, actual: params.TEST_PACKAGES
+                        equals expected: true, actual: true
+//                         equals expected: true, actual: params.TEST_PACKAGES
                     }
                     steps{
                         script{
@@ -915,6 +923,7 @@ pipeline {
                             def windowsTestStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
+                                    // FIXME: MAKE THIS WORK WHERE MSVC WASNT INSTALLED!!!!
                                     packages.testPkg2(
                                         agent: [
                                             dockerfile: [
@@ -1077,12 +1086,6 @@ pipeline {
 //                 }
 //             }
 //             steps{
-//                 script{
-// //                     def packages
-// //                     node(){
-// //                         checkout scm
-// //                         packages = load 'ci/jenkins/scripts/packaging.groovy'
-// //                     }
 // //                     def windowsStages = [:]
 //                     def windowsStages = buildAndTestWheel(SUPPORTED_WINDOWS_VERSIONS)
 // //                     SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
@@ -1143,15 +1146,14 @@ pipeline {
 //                             stage('Build Wheel'){
 //                                 packages.buildPkg(
 //                                         agent: [
-//                                             dockerfile: [
-//                                                 label: 'windows && docker',
-//                                                 filename: 'ci/docker/windows/tox/Dockerfile',
-//                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-//                                             ]
+//                                             label: "mac && python${pythonVersion}",
 //                                         ],
-//                                             buildCmd: {
-//                                                 bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-//                                             },
+//     //                                     buildSetup: {
+//     //                                         checkout scm
+//     //                                     },
+//                                         buildCmd: {
+//                                             sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+//                                         },
 //                                         post:[
 //                                             cleanup: {
 //                                                 cleanWs(
@@ -1163,8 +1165,8 @@ pipeline {
 //                                                 )
 //                                             },
 //                                             success: {
-//         //                                             archiveArtifacts artifacts: 'dist/*.whl'
-//                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
+//     //                                             archiveArtifacts artifacts: 'dist/*.whl'
+//                                                 stash includes: 'dist/*.whl', name: stashName
 //                                             }
 //                                         ]
 //                                     )
@@ -1233,26 +1235,15 @@ pipeline {
 //                                     agent: [
 //                                         dockerfile: [
 //                                             label: 'linux && docker',
-//                                             filename: 'ci/docker/python/linux/tox/Dockerfile',
+//                                             filename: 'ci/docker/linux/tox/Dockerfile',
 //                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
 //                                         ]
 //                                     ],
-//                                     glob: 'dist/*.tar.gz',
-//                                     stash: 'PYTHON_PACKAGES',
-//                                     pythonVersion: pythonVersion
-//                                 )
-//                             }
-//                             linuxTests["Linux - Python ${pythonVersion}: wheel"] = {
-//                                 packages.testPkg(
-//                                     agent: [
-//                                         dockerfile: [
-//                                             label: 'linux && docker',
-//                                             filename: 'ci/docker/python/linux/tox/Dockerfile',
-//                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
-//                                         ]
-//                                     ],
+//                                     buildCmd: {
+//                                         sh "python${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+//                                     },
 //                                     glob: 'dist/*.whl',
-//                                     stash: 'PYTHON_PACKAGES',
+//                                     stash: stashName,
 //                                     pythonVersion: pythonVersion
 //                                 )
 //                             }
