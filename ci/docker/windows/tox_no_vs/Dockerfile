@@ -62,5 +62,6 @@ RUN $PYTHON_VERSIONS = @(${Env:PYTHON_36_VERSION}, ${Env:PYTHON_37_VERSION}, ${E
     py -3.9 --version ; `
     Write-Host "Installing Python with Chocolatey - Done"
 
+RUN python -m pip install pip --upgrade ; pip install tox
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
