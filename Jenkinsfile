@@ -921,9 +921,9 @@ pipeline {
                                 }
                             }
                             def windowsTestStages = [:]
-//                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
-//                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
-//                                     // FIXME: MAKE THIS WORK WHERE MSVC WASNT INSTALLED!!!!
+                            SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
+                                windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
+                                    // FIXME: MAKE THIS WORK WHERE MSVC WASNT INSTALLED!!!!
 //                                     packages.testPkg2(
 //                                         agent: [
 //                                             dockerfile: [
@@ -963,40 +963,40 @@ pipeline {
 //                                         ]
 //                                     )
 //                                 }
-//                                 windowsTestStages["Windows - Python ${pythonVersion}: sdist"] = {
-//                                     packages.testPkg2(
-//                                         agent: [
-//                                             dockerfile: [
-//                                                 label: 'windows && docker',
-//                                                 filename: 'ci/docker/windows/tox/Dockerfile',
-//                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-//                                             ]
-//                                         ],
-//                                         testSetup: {
-//                                             checkout scm
-//                                             unstash 'python sdist'
-//                                         },
-//                                         testCommand: {
-//                                             findFiles(glob: 'dist/*.tar.gz').each{
-//                                                 bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
-//                                             }
-//
-//                                         },
-//                                         post:[
-//                                             cleanup: {
-//                                                 cleanWs(
-//                                                     patterns: [
-//                                                             [pattern: 'dist/', type: 'INCLUDE'],
-//                                                             [pattern: '**/__pycache__/', type: 'INCLUDE'],
-//                                                         ],
-//                                                     notFailBuild: true,
-//                                                     deleteDirs: true
-//                                                 )
-//                                             },
-//                                         ]
-//                                     )
-//                                 }
-//                             }
+                                windowsTestStages["Windows - Python ${pythonVersion}: sdist"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'windows && docker',
+                                                filename: 'ci/docker/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                            ]
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash 'python sdist'
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.tar.gz').each{
+                                                bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
+                                            }
+
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                        ]
+                                    )
+                                }
+                            }
                             def linuxTestStages = [:]
                             SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
                                 linuxTestStages["Linux - Python ${pythonVersion}: wheel"] = {
