@@ -954,6 +954,9 @@ pipeline {
                                                     deleteDirs: true
                                                 )
                                             },
+                                            failure: {
+                                                bat "dir"
+                                            },
                                             success: {
                                                 archiveArtifacts artifacts: 'dist/*.whl'
                                             }
