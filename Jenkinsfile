@@ -925,44 +925,46 @@ pipeline {
                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
                                     echo "TEstin wheel"
                                     // FIXME: MAKE THIS WORK WHERE MSVC WASNT INSTALLED!!!!
-//                                     packages.testPkg2(
-//                                         agent: [
-//                                             dockerfile: [
-//                                                 label: 'windows && docker',
-//                                                 filename: 'ci/docker/windows/tox_no_vs/Dockerfile',
-//                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-//                                             ]
-//                                         ],
-//                                         dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase(),
-//                                         testSetup: {
+                                    packages.testPkg2(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'windows && docker',
+                                                filename: 'ci/docker/windows/tox_no_vs/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                            ]
+                                        ],
+                                        dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase(),
+                                        testSetup: {
+                                            echo "setup testCommand"
 //                                             checkout scm
 //                                             unstash "python${pythonVersion} windows wheel"
-//                                         },
-//                                         testCommand: {
+                                        },
+                                        testCommand: {
+                                            echo "Inside testCommand"
 //                                             findFiles(glob: 'dist/*.whl').each{
 //                                                 bat(label: "Running Tox", script: "tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
 //                                             }
-//
-//                                         },
-//                                         post:[
-//                                             cleanup: {
-//                                                 cleanWs(
-//                                                     patterns: [
-//                                                             [pattern: 'dist/', type: 'INCLUDE'],
-//                                                             [pattern: '**/__pycache__/', type: 'INCLUDE'],
-//                                                         ],
-//                                                     notFailBuild: true,
-//                                                     deleteDirs: true
-//                                                 )
-//                                             },
-//                                             failure: {
-//                                                 bat "tree /A /F"
-//                                             },
-//                                             success: {
-//                                                 archiveArtifacts artifacts: 'dist/*.whl'
-//                                             }
-//                                         ]
-//                                     )
+
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            failure: {
+                                                bat "tree /A /F"
+                                            },
+                                            success: {
+                                                archiveArtifacts artifacts: 'dist/*.whl'
+                                            }
+                                        ]
+                                    )
                                 }
                                 windowsTestStages["Windows - Python ${pythonVersion}: sdist"] = {
                                     packages.testPkg2(
