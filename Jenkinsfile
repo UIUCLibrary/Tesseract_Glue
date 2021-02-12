@@ -980,6 +980,7 @@ pipeline {
                                             unstash 'python sdist'
                                         },
                                         testCommand: {
+
                                             findFiles(glob: 'dist/*.tar.gz').each{
                                                 bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
                                             }
@@ -1017,10 +1018,12 @@ pipeline {
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.whl').each{
-                                                sh(
-                                                    label: 'Running Tox',
-                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
-                                                    )
+                                                timeout(5){
+                                                    sh(
+                                                        label: 'Running Tox',
+                                                        script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                        )
+                                                }
                                             }
                                         },
                                         post:[
