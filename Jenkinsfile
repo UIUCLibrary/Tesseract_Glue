@@ -939,7 +939,7 @@ pipeline {
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.whl').each{
-                                                bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
+                                                bat(label: "Running Tox", script: "tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
                                             }
 
                                         },
