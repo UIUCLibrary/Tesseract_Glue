@@ -14,7 +14,7 @@ def getToxEnv(args){
     }
 }
 
-def getAgent(args){
+def getAgent(args, dockerImageName=null){
     if (args.agent.containsKey("label")){
         return { inner ->
             node(args.agent.label){
@@ -33,7 +33,7 @@ def getAgent(args){
                 ws{
                     checkout scm
                     def dockerImage
-                    def dockerImageName = "${currentBuild.fullProjectName}_${getToxEnv(args)}".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
+                    dockerImageName = dockerImageName ? dockerImageName: "${currentBuild.fullProjectName}_${getToxEnv(args)}".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
                     lock("docker build-${env.NODE_NAME}"){
                         dockerImage = docker.build(dockerImageName, "-f ${args.agent.dockerfile.filename} ${args.agent.dockerfile.additionalBuildArgs} .")
                     }
