@@ -2,7 +2,7 @@ FROM quay.io/pypa/manylinux2014_x86_64 as base_python
 ENV PATH=/opt/python/cp39-cp39/bin:/opt/python/cp38-cp38/bin:/opt/python/cp37-cp37m/bin:/opt/python/cp36-cp36m/bin:/opt/python/cp35-cp35m/bin:$PATH
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN python -m pip install conan
+RUN python -m pip install conan pep157
 COPY ci/docker/linux/package/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py

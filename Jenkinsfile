@@ -753,7 +753,7 @@ pipeline {
                                         agent: [
                                             dockerfile: [
                                                 label: 'linux && docker',
-                                                filename: 'ci/docker/linux/tox/Dockerfile',
+                                                filename: 'ci/docker/linux/package/Dockerfile',
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                             ]
                                         ],
