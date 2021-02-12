@@ -118,6 +118,7 @@ def testPkg2(args = [:]){
 }
 
 def buildPkg(args = [:]){
+    def dockerImageName = "${currentBuild.fullProjectName}_${getToxEnv(args)}_build".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
     def agentRunner = getAgent(args)
     def setup = args['buildSetup'] ? args['buildSetup']: {
         checkout scm
