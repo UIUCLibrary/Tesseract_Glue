@@ -941,9 +941,9 @@ pipeline {
                                         },
                                         testCommand: {
                                             echo "Inside testCommand"
-//                                             findFiles(glob: 'dist/*.whl').each{
-//                                                 bat(label: "Running Tox", script: "tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
-//                                             }
+                                             findFiles(glob: 'dist/*.whl').each{
+                                                 bat(label: "Running Tox", script: "tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
+                                             }
 
                                         },
                                         post:[
