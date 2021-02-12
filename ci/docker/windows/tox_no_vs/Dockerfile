@@ -64,6 +64,8 @@ RUN $PYTHON_VERSIONS = @(${Env:PYTHON_36_VERSION}, ${Env:PYTHON_37_VERSION}, ${E
 COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
 RUN python -m pip install pip --upgrade ; pip install tox
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
