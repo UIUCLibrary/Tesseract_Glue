@@ -955,7 +955,7 @@ pipeline {
                                                 )
                                             },
                                             failure: {
-                                                bat "dir"
+                                                bat "tree /A /F"
                                             },
                                             success: {
                                                 archiveArtifacts artifacts: 'dist/*.whl'
