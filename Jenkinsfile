@@ -372,8 +372,8 @@ def startup(){
         ]
     )
 }
-// startup()
-// def props = get_props()
+startup()
+def props = get_props()
 pipeline {
     agent none
     options {
