@@ -462,10 +462,6 @@ pipeline {
             }
             stages{
                 stage("Code Quality") {
-                    when{
-                        equals expected: true, actual: false
-                    }
-
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
