@@ -927,7 +927,6 @@ pipeline {
                                         ],
                                         dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase(),
                                         testSetup: {
-                                            echo "setup testCommand"
                                              checkout scm
                                              unstash "python${pythonVersion} windows wheel"
                                         },
