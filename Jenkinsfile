@@ -710,6 +710,7 @@ pipeline {
                                             },
                                             success: {
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
+                                                wheelStashes << "python${pythonVersion} mac wheel"
                                             }
                                         ]
                                     )
@@ -741,6 +742,7 @@ pipeline {
                                             },
                                             success: {
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
+                                                wheelStashes << "python${pythonVersion} windows wheel"
                                             }
                                         ]
                                     )
@@ -763,6 +765,7 @@ pipeline {
                                         post:[
                                             success: {
                                                 stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
+                                                wheelStashes << 'python sdist'
                                             },
                                             cleanup: {
                                                 cleanWs(
@@ -811,6 +814,7 @@ pipeline {
                                             },
                                             success: {
                                                 stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
+                                                wheelStashes << "python${pythonVersion} linux wheel"
                                             }
                                         ]
                                     )
