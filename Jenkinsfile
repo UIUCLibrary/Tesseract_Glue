@@ -392,9 +392,6 @@ pipeline {
     }
     stages {
         stage("Building") {
-            when{
-                equals expected: true, actual: false
-            }
             agent {
                 dockerfile {
                     filename 'ci/docker/linux/build/Dockerfile'
@@ -834,8 +831,7 @@ pipeline {
                 }
                 stage("Testing"){
                     when{
-                        equals expected: true, actual: true
-//                         equals expected: true, actual: params.TEST_PACKAGES
+                        equals expected: true, actual: params.TEST_PACKAGES
                     }
                     steps{
                         script{
