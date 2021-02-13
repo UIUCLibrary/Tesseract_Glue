@@ -931,7 +931,6 @@ pipeline {
                                              unstash "python${pythonVersion} windows wheel"
                                         },
                                         testCommand: {
-                                            echo "Inside testCommand"
                                              findFiles(glob: 'dist/*.whl').each{
                                                  powershell(label: "Running Tox", script: "tox --installpkg ${it.path} --workdir $env:TEMP\\tox  -e py${pythonVersion.replace('.', '')}")
                                              }
