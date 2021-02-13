@@ -372,18 +372,18 @@ def startup(){
         ]
     )
 }
-// startup()
-// def props = get_props()
+startup()
+def props = get_props()
 pipeline {
     agent none
     options {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-        booleanParam(name: "RUN_CHECKS", defaultValue: false, description: "Run checks on code")
+        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: defaultParameterValues.USE_SONARQUBE, description: "Send data test data to SonarQube")
-        booleanParam(name: "BUILD_PACKAGES", defaultValue: true, description: "Build Python packages")
+        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
         booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
         booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
@@ -392,9 +392,6 @@ pipeline {
     }
     stages {
         stage("Building") {
-            when{
-                equals expected: true, actual: false
-            }
             agent {
                 dockerfile {
                     filename 'ci/docker/linux/build/Dockerfile'
@@ -465,10 +462,6 @@ pipeline {
             }
             stages{
                 stage("Code Quality") {
-                    when{
-                        equals expected: true, actual: false
-                    }
-
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
@@ -717,6 +710,7 @@ pipeline {
                                             },
                                             success: {
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
+                                                wheelStashes << "python${pythonVersion} mac wheel"
                                             }
                                         ]
                                     )
@@ -748,6 +742,7 @@ pipeline {
                                             },
                                             success: {
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
+                                                wheelStashes << "python${pythonVersion} windows wheel"
                                             }
                                         ]
                                     )
@@ -770,6 +765,8 @@ pipeline {
                                         post:[
                                             success: {
                                                 stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
+                                                wheelStashes << 'python sdist'
+                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
                                             },
                                             cleanup: {
                                                 cleanWs(
@@ -818,6 +815,7 @@ pipeline {
                                             },
                                             success: {
                                                 stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
+                                                wheelStashes << "python${pythonVersion} linux wheel"
                                             }
                                         ]
                                     )
@@ -834,8 +832,7 @@ pipeline {
                 }
                 stage("Testing"){
                     when{
-                        equals expected: true, actual: true
-//                         equals expected: true, actual: params.TEST_PACKAGES
+                        equals expected: true, actual: params.TEST_PACKAGES
                     }
                     steps{
                         script{
@@ -879,7 +876,7 @@ pipeline {
                                                 )
                                             },
                                             success: {
-                                                archiveArtifacts artifacts: 'dist/*.whl'
+                                                 archiveArtifacts artifacts: 'dist/*.whl'
                                             }
                                         ]
                                     )
@@ -923,7 +920,6 @@ pipeline {
                             def windowsTestStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
-                                    // FIXME: MAKE THIS WORK WHERE MSVC WASNT INSTALLED!!!!
                                     packages.testPkg2(
                                         agent: [
                                             dockerfile: [
@@ -934,13 +930,13 @@ pipeline {
                                         ],
                                         dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase(),
                                         testSetup: {
-                                            checkout scm
-                                            unstash "python${pythonVersion} windows wheel"
+                                             checkout scm
+                                             unstash "python${pythonVersion} windows wheel"
                                         },
                                         testCommand: {
-                                            findFiles(glob: 'dist/*.whl').each{
-                                                bat(label: "Running Tox", script: "tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
-                                            }
+                                             findFiles(glob: 'dist/*.whl').each{
+                                                 powershell(label: "Running Tox", script: "tox --installpkg ${it.path} --workdir \$env:TEMP\\tox  -e py${pythonVersion.replace('.', '')}")
+                                             }
 
                                         },
                                         post:[
@@ -953,9 +949,6 @@ pipeline {
                                                     notFailBuild: true,
                                                     deleteDirs: true
                                                 )
-                                            },
-                                            failure: {
-                                                bat "tree /A /F"
                                             },
                                             success: {
                                                 archiveArtifacts artifacts: 'dist/*.whl'
@@ -972,6 +965,7 @@ pipeline {
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                             ]
                                         ],
+                                        dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase(),
                                         testSetup: {
                                             checkout scm
                                             unstash 'python sdist'
@@ -980,7 +974,6 @@ pipeline {
                                             findFiles(glob: 'dist/*.tar.gz').each{
                                                 bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
                                             }
-
                                         },
                                         post:[
                                             cleanup: {
@@ -1014,10 +1007,12 @@ pipeline {
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.whl').each{
-                                                sh(
-                                                    label: 'Running Tox',
-                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
-                                                    )
+                                                timeout(5){
+                                                    sh(
+                                                        label: 'Running Tox',
+                                                        script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                        )
+                                                }
                                             }
                                         },
                                         post:[
