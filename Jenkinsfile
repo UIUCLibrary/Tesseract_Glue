@@ -766,6 +766,7 @@ pipeline {
                                             success: {
                                                 stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
                                                 wheelStashes << 'python sdist'
+                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
                                             },
                                             cleanup: {
                                                 cleanWs(
@@ -875,7 +876,7 @@ pipeline {
                                                 )
                                             },
                                             success: {
-                                                archiveArtifacts artifacts: 'dist/*.whl'
+                                                 archiveArtifacts artifacts: 'dist/*.whl'
                                             }
                                         ]
                                     )
