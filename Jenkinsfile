@@ -1,7 +1,7 @@
 SONARQUBE_CREDENTIAL_ID = 'sonarcloud-uiucprescon.ocr'
 SUPPORTED_MAC_VERSIONS = ['3.8', '3.9']
 SUPPORTED_LINUX_VERSIONS = ['3.6', '3.7', '3.8', '3.9']
-SUPPORTED_WINDOWS_VERSIONS = ['3.7', '3.8', '3.9']
+SUPPORTED_WINDOWS_VERSIONS = ['3.6', '3.7', '3.8', '3.9']
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
 
