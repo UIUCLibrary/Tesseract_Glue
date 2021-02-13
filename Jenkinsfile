@@ -915,8 +915,6 @@ pipeline {
                             def windowsTestStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
-                                    echo "TEstin wheel"
-                                    // FIXME: MAKE THIS WORK WHERE MSVC WASNT INSTALLED!!!!
                                     packages.testPkg2(
                                         agent: [
                                             dockerfile: [
