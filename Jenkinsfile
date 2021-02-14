@@ -1546,6 +1546,9 @@ pipeline {
                             additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                           }
                     }
+                    options{
+                        retry(3)
+                    }
                     steps {
                         script{
                             unstash "DOCS_ARCHIVE"
