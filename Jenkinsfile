@@ -1,7 +1,23 @@
+def getDevPiStagingIndex(){
+
+    if (env.TAG_NAME?.trim()){
+        return "tag_staging"
+    } else{
+        return "${env.BRANCH_NAME}_staging"
+    }
+}
+
 SONARQUBE_CREDENTIAL_ID = 'sonarcloud-uiucprescon.ocr'
 SUPPORTED_MAC_VERSIONS = ['3.8', '3.9']
 SUPPORTED_LINUX_VERSIONS = ['3.6', '3.7', '3.8', '3.9']
 SUPPORTED_WINDOWS_VERSIONS = ['3.6', '3.7', '3.8', '3.9']
+
+def DEVPI_CONFIG = [
+    stagingIndex: getDevPiStagingIndex(),
+    server: 'https://devpi.library.illinois.edu',
+    credentialsId: 'DS_devpi',
+]
+
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
 
@@ -54,14 +70,7 @@ def build_wheel(platform){
     }
 }
 
-def getDevPiStagingIndex(){
 
-    if (env.TAG_NAME?.trim()){
-        return "tag_staging"
-    } else{
-        return "${env.BRANCH_NAME}_staging"
-    }
-}
 def buildAndTestWheel(pythonVersions){
 // TODO: build inmto
     def packages
@@ -1554,6 +1563,58 @@ pipeline {
                         }
                     }
                 }
+                stage('Test DevPi packages') {
+                    steps{
+                        script{
+                            def macPackages = [:]
+                            SUPPORTED_MAC_VERSIONS.each{pythonVersion ->
+                                macPackages["Test Python ${pythonVersion}: wheel Mac"] = {
+                                    devpiLib.testDevpiPackage(
+                                        agent: [
+                                            label: "mac && python${pythonVersion}"
+                                        ],
+                                        devpi: [
+                                            index: DEVPI_CONFIG.stagingIndex,
+                                            server: DEVPI_CONFIG.server,
+                                            credentialsId: DEVPI_CONFIG.credentialsId,
+                                            devpiExec: 'venv/bin/devpi'
+                                        ],
+                                        package:[
+                                            name: props.Name,
+                                            version: props.Version,
+                                            selector: 'whl'
+                                        ],
+                                        test:[
+                                            setup: {
+                                                sh(
+                                                    label:'Installing Devpi client',
+                                                    script: '''python3 -m venv venv
+                                                                venv/bin/python -m pip install pip --upgrade
+                                                                venv/bin/python -m pip install devpi_client
+                                                                '''
+                                                )
+                                            },
+                                            toxEnv: "py${pythonVersion}".replace('.',''),
+                                            teardown: {
+                                                sh( label: 'Remove Devpi client', script: 'rm -r venv')
+                                            }
+                                        ]
+                                    )
+                                }
+                            }
+
+                            def windowsPackages = [:]
+                            def linuxPackages = [:]
+                            def devpiPackagesTesting = windowsPackages + linuxPackages
+                            if (params.BUILD_MAC_PACKAGES){
+                                 devpiPackagesTesting = devpiPackagesTesting + macPackages
+                            }
+
+                            parallel(devpiPackagesTesting)
+                        }
+                    }
+                }
+//                 TODO: Make all devbi tests run at same time
                 stage("Test DevPi packages mac") {
                     when{
                         equals expected: true, actual: params.BUILD_MAC_PACKAGES
@@ -1634,7 +1695,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Test DevPi packages") {
+                stage("Test DevPi packages old") {
                     matrix{
                         axes {
                             axis {
