@@ -389,11 +389,14 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
+        booleanParam(name: "RUN_CHECKS", defaultValue: false, description: "Run checks on code")
+//         booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
         booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
         booleanParam(name: "USE_SONARQUBE", defaultValue: defaultParameterValues.USE_SONARQUBE, description: "Send data test data to SonarQube")
-        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
-        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
+//         booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
+        booleanParam(name: "BUILD_PACKAGES", defaultValue: true, description: "Build Python packages")
+//         booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
+        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: true, description: "Test Python packages on Mac")
         booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
         booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
@@ -1518,7 +1521,8 @@ pipeline {
             }
             when {
                 allOf{
-                    equals expected: true, actual: params.DEPLOY_DEVPI
+                    equals expected: true, actual: true
+//                     equals expected: true, actual: params.DEPLOY_DEVPI
                     anyOf {
                         equals expected: "master", actual: env.BRANCH_NAME
                         equals expected: "dev", actual: env.BRANCH_NAME
@@ -1647,164 +1651,164 @@ pipeline {
                     }
                 }
 //                 TODO: Make all devbi tests run at same time
-                stage("Test DevPi packages mac") {
-                    when{
-                        equals expected: true, actual: params.BUILD_MAC_PACKAGES
-                        beforeAgent true
-                    }
-                    matrix {
-                        axes{
-                            axis {
-                                name "PYTHON_VERSION"
-                                values(
-                                    "3.7",
-                                    "3.8",
-                                    '3.9'
-                                )
-                            }
-                            axis {
-                                name "FORMAT"
-                                values(
-                                    "wheel",
-                                    'sdist'
-                                )
-                            }
-                        }
-                        excludes{
-                            exclude{
-                                axis{
-                                    name 'PYTHON_VERSION'
-                                    values '3.7'
-                                }
-                                axis{
-                                    name 'FORMAT'
-                                    values 'wheel'
-                                }
-                            }
-                        }
-                        agent none
-                        stages{
-                            stage("Test devpi Package"){
-                                agent {
-                                    label "mac && 10.14 && python${PYTHON_VERSION}"
-                                }
-                                steps{
-                                    timeout(10){
-                                        sh(
-                                            label: "Installing devpi client",
-                                            script: '''python${PYTHON_VERSION} -m venv venv
-                                                       venv/bin/python -m pip install --upgrade pip
-                                                       venv/bin/pip install devpi-client
-                                                       venv/bin/devpi --version
-                                            '''
-                                        )
-                                        script{
-                                            devpiLib.testDevpiPackage(
-                                                devpiExec: "venv/bin/devpi",
-                                                devpiIndex: getDevPiStagingIndex(),
-                                                server: "https://devpi.library.illinois.edu",
-                                                credentialsId: "DS_devpi",
-                                                pkgName: props.Name,
-                                                pkgVersion: props.Version,
-                                                pkgSelector: getMacDevpiName(PYTHON_VERSION, FORMAT),
-                                                toxEnv: "py${PYTHON_VERSION.replace('.','')}"
-                                            )
-                                        }
-                                    }
-                                }
-                                post{
-                                    cleanup{
-                                        cleanWs(
-                                            notFailBuild: true,
-                                            deleteDirs: true,
-                                            patterns: [
-                                                [pattern: 'venv/', type: 'INCLUDE'],
-                                            ]
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                stage("Test DevPi packages old") {
-                    matrix{
-                        axes {
-                            axis {
-                                name 'PYTHON_VERSION'
-                                values(
-                                    '3.6',
-                                    '3.7',
-                                    '3.8',
-                                    "3.9"
-                                )
-                            }
-                            axis {
-                                name 'PLATFORM'
-                                values(
-                                    "windows",
-                                    "linux"
-                                )
-                            }
-                        }
-                        stages {
-                            stage("Testing DevPi Wheel Package"){
-                                agent {
-                                    dockerfile {
-                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
-                                        label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
-                                     }
-                                }
-                                options {
-                                    warnError('Package Testing Failed')
-                                }
-                                steps{
-                                    timeout(10){
-                                        script{
-                                            devpiLib.testDevpiPackage(
-                                                devpiIndex: getDevPiStagingIndex(),
-                                                server: "https://devpi.library.illinois.edu",
-                                                credentialsId: "DS_devpi",
-                                                pkgName: props.Name,
-                                                pkgVersion: props.Version,
-                                                pkgSelector: configurations[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
-                                                toxEnv: configurations[PYTHON_VERSION].tox_env
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                            stage("Testing DevPi sdist Package"){
-                                agent {
-                                    dockerfile {
-                                        filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
-                                        label "${PLATFORM} && docker"
-                                        additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
-                                     }
-                                }
-                                options {
-                                    warnError('Package Testing Failed')
-                                }
-                                steps{
-                                    timeout(10){
-                                    script{
-                                            devpiLib.testDevpiPackage(
-                                                devpiIndex: getDevPiStagingIndex(),
-                                                server: "https://devpi.library.illinois.edu",
-                                                credentialsId: "DS_devpi",
-                                                pkgName: props.Name,
-                                                pkgVersion: props.Version,
-                                                pkgSelector: "tar.gz",
-                                                toxEnv: configurations[PYTHON_VERSION].tox_env
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
+//                 stage("Test DevPi packages mac") {
+//                     when{
+//                         equals expected: true, actual: params.BUILD_MAC_PACKAGES
+//                         beforeAgent true
+//                     }
+//                     matrix {
+//                         axes{
+//                             axis {
+//                                 name "PYTHON_VERSION"
+//                                 values(
+//                                     "3.7",
+//                                     "3.8",
+//                                     '3.9'
+//                                 )
+//                             }
+//                             axis {
+//                                 name "FORMAT"
+//                                 values(
+//                                     "wheel",
+//                                     'sdist'
+//                                 )
+//                             }
+//                         }
+//                         excludes{
+//                             exclude{
+//                                 axis{
+//                                     name 'PYTHON_VERSION'
+//                                     values '3.7'
+//                                 }
+//                                 axis{
+//                                     name 'FORMAT'
+//                                     values 'wheel'
+//                                 }
+//                             }
+//                         }
+//                         agent none
+//                         stages{
+//                             stage("Test devpi Package"){
+//                                 agent {
+//                                     label "mac && 10.14 && python${PYTHON_VERSION}"
+//                                 }
+//                                 steps{
+//                                     timeout(10){
+//                                         sh(
+//                                             label: "Installing devpi client",
+//                                             script: '''python${PYTHON_VERSION} -m venv venv
+//                                                        venv/bin/python -m pip install --upgrade pip
+//                                                        venv/bin/pip install devpi-client
+//                                                        venv/bin/devpi --version
+//                                             '''
+//                                         )
+//                                         script{
+//                                             devpiLib.testDevpiPackage(
+//                                                 devpiExec: "venv/bin/devpi",
+//                                                 devpiIndex: getDevPiStagingIndex(),
+//                                                 server: "https://devpi.library.illinois.edu",
+//                                                 credentialsId: "DS_devpi",
+//                                                 pkgName: props.Name,
+//                                                 pkgVersion: props.Version,
+//                                                 pkgSelector: getMacDevpiName(PYTHON_VERSION, FORMAT),
+//                                                 toxEnv: "py${PYTHON_VERSION.replace('.','')}"
+//                                             )
+//                                         }
+//                                     }
+//                                 }
+//                                 post{
+//                                     cleanup{
+//                                         cleanWs(
+//                                             notFailBuild: true,
+//                                             deleteDirs: true,
+//                                             patterns: [
+//                                                 [pattern: 'venv/', type: 'INCLUDE'],
+//                                             ]
+//                                         )
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
+//                 stage("Test DevPi packages old") {
+//                     matrix{
+//                         axes {
+//                             axis {
+//                                 name 'PYTHON_VERSION'
+//                                 values(
+//                                     '3.6',
+//                                     '3.7',
+//                                     '3.8',
+//                                     "3.9"
+//                                 )
+//                             }
+//                             axis {
+//                                 name 'PLATFORM'
+//                                 values(
+//                                     "windows",
+//                                     "linux"
+//                                 )
+//                             }
+//                         }
+//                         stages {
+//                             stage("Testing DevPi Wheel Package"){
+//                                 agent {
+//                                     dockerfile {
+//                                         filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.filename}"
+//                                         label "${PLATFORM} && docker"
+//                                         additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['wheel'].dockerfile.additionalBuildArgs}"
+//                                      }
+//                                 }
+//                                 options {
+//                                     warnError('Package Testing Failed')
+//                                 }
+//                                 steps{
+//                                     timeout(10){
+//                                         script{
+//                                             devpiLib.testDevpiPackage(
+//                                                 devpiIndex: getDevPiStagingIndex(),
+//                                                 server: "https://devpi.library.illinois.edu",
+//                                                 credentialsId: "DS_devpi",
+//                                                 pkgName: props.Name,
+//                                                 pkgVersion: props.Version,
+//                                                 pkgSelector: configurations[PYTHON_VERSION].os[PLATFORM].devpiSelector["wheel"],
+//                                                 toxEnv: configurations[PYTHON_VERSION].tox_env
+//                                             )
+//                                         }
+//                                     }
+//                                 }
+//                             }
+//                             stage("Testing DevPi sdist Package"){
+//                                 agent {
+//                                     dockerfile {
+//                                         filename "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.filename}"
+//                                         label "${PLATFORM} && docker"
+//                                         additionalBuildArgs "${configurations[PYTHON_VERSION].os[PLATFORM].agents.devpi['sdist'].dockerfile.additionalBuildArgs}"
+//                                      }
+//                                 }
+//                                 options {
+//                                     warnError('Package Testing Failed')
+//                                 }
+//                                 steps{
+//                                     timeout(10){
+//                                     script{
+//                                             devpiLib.testDevpiPackage(
+//                                                 devpiIndex: getDevPiStagingIndex(),
+//                                                 server: "https://devpi.library.illinois.edu",
+//                                                 credentialsId: "DS_devpi",
+//                                                 pkgName: props.Name,
+//                                                 pkgVersion: props.Version,
+//                                                 pkgSelector: "tar.gz",
+//                                                 toxEnv: configurations[PYTHON_VERSION].tox_env
+//                                             )
+//                                         }
+//                                     }
+//                                 }
+//                             }
+//                         }
+//                     }
+//                 }
                 stage("Deploy to DevPi Production") {
                     when {
                         allOf{
