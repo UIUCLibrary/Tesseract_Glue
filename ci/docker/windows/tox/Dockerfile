@@ -174,7 +174,7 @@ COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
 
 ENV PIP_FIND_LINKS=c:\wheels
-RUN python -m pip install pip --upgrade ; pip install tox conan cmake
+RUN python -m pip install pip --upgrade ; pip install tox conan cmake devpi_client
 COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
