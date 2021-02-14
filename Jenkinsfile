@@ -1533,7 +1533,7 @@ pipeline {
                     }
                     steps {
                         script{
-                            unstash "Python sdist"
+                            unstash "python sdist"
                             unstash "DOCS_ARCHIVE"
                             wheelStashes.each{
                                 unstash it
