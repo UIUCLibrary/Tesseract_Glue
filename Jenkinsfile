@@ -1582,7 +1582,7 @@ pipeline {
                                         package:[
                                             name: props.Name,
                                             version: props.Version,
-                                            selector: 'whl'
+                                            selector: getMacDevpiName(PYTHON_VERSION, FORMAT),
                                         ],
                                         test:[
                                             setup: {
