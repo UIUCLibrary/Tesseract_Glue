@@ -330,7 +330,7 @@ def startup(){
         checkout scm
 //         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
-        devpiLib = load("ci/jenkins/scripts/devpi.groovy")
+        devpi = load("ci/jenkins/scripts/devpi.groovy")
     }
     parallel(
         [
@@ -1535,7 +1535,6 @@ pipeline {
                 beforeAgent true
             }
             environment{
-//                 DEVPI = credentials("DS_devpi")
                 devpiStagingIndex = getDevPiStagingIndex()
             }
             stages{
@@ -1556,7 +1555,7 @@ pipeline {
                             wheelStashes.each{
                                 unstash it
                             }
-                            devpiLib.upload(
+                            devpi.upload(
                                 server: "https://devpi.library.illinois.edu",
                                 credentialsId: "DS_devpi",
                                 index: getDevPiStagingIndex(),
@@ -1578,7 +1577,7 @@ pipeline {
                             def macPackages = [:]
                             SUPPORTED_MAC_VERSIONS.each{pythonVersion ->
                                 macPackages["Test Python ${pythonVersion}: wheel Mac"] = {
-                                    devpiLib.testDevpiPackage(
+                                    devpi.testDevpiPackage(
                                         agent: [
                                             label: "mac && python${pythonVersion}"
                                         ],
@@ -1611,7 +1610,7 @@ pipeline {
                                     )
                                 }
                                 macPackages["Test Python ${pythonVersion}: sdist Mac"]= {
-                                    devpiLib.testDevpiPackage(
+                                    devpi.testDevpiPackage(
                                         agent: [
                                             label: "mac && python${pythonVersion}"
                                         ],
@@ -1646,6 +1645,56 @@ pipeline {
                             }
 
                             def windowsPackages = [:]
+                            SUPPORTED_WINDOWS_VERSIONS.each{pythonVersion ->
+                                windowsPackages["Test Python ${pythonVersion}: sdist Windows"] = {
+                                    devpi.testDevpiPackage(
+                                        agent: [
+                                            dockerfile: [
+                                                filename: 'ci/docker/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+                                                label: 'windows && docker'
+                                            ]
+                                        ],
+                                        devpi: [
+                                            index: DEVPI_CONFIG.stagingIndex,
+                                            server: DEVPI_CONFIG.server,
+                                            credentialsId: DEVPI_CONFIG.credentialsId,
+                                        ],
+                                        package:[
+                                            name: props.Name,
+                                            version: props.Version,
+                                            selector: 'tar.gz'
+                                        ],
+                                        test:[
+                                            toxEnv: "py${pythonVersion}".replace('.',''),
+                                        ]
+                                    )
+                                }
+//                                 windowsPackages["Test Python ${pythonVersion}: wheel Windows"] = {
+//                                     devpi.testDevpiPackage(
+//                                         agent: [
+//                                             dockerfile: [
+//                                                 filename: 'ci/docker/python/windows/tox/Dockerfile',
+//                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+//                                                 label: 'windows && docker'
+//                                             ]
+//                                         ],
+//                                         devpi: [
+//                                             index: DEVPI_CONFIG.stagingIndex,
+//                                             server: DEVPI_CONFIG.server,
+//                                             credentialsId: DEVPI_CONFIG.credentialsId,
+//                                         ],
+//                                         package:[
+//                                             name: props.Name,
+//                                             version: props.Version,
+//                                             selector: 'whl'
+//                                         ],
+//                                         test:[
+//                                             toxEnv: "py${pythonVersion}".replace('.',''),
+//                                         ]
+//                                     )
+//                                 }
+                            }
                             def linuxPackages = [:]
                             SUPPORTED_LINUX_VERSIONS.each{pythonVersion ->
                                 linuxPackages["Test Python ${pythonVersion}: sdist Linux"] = {
@@ -1759,7 +1808,7 @@ pipeline {
 //                                             '''
 //                                         )
 //                                         script{
-//                                             devpiLib.testDevpiPackage(
+//                                             devpi.testDevpiPackage(
 //                                                 devpiExec: "venv/bin/devpi",
 //                                                 devpiIndex: getDevPiStagingIndex(),
 //                                                 server: "https://devpi.library.illinois.edu",
@@ -1822,7 +1871,7 @@ pipeline {
 //                                 steps{
 //                                     timeout(10){
 //                                         script{
-//                                             devpiLib.testDevpiPackage(
+//                                             devpi.testDevpiPackage(
 //                                                 devpiIndex: getDevPiStagingIndex(),
 //                                                 server: "https://devpi.library.illinois.edu",
 //                                                 credentialsId: "DS_devpi",
@@ -1849,7 +1898,7 @@ pipeline {
 //                                 steps{
 //                                     timeout(10){
 //                                     script{
-//                                             devpiLib.testDevpiPackage(
+//                                             devpi.testDevpiPackage(
 //                                                 devpiIndex: getDevPiStagingIndex(),
 //                                                 server: "https://devpi.library.illinois.edu",
 //                                                 credentialsId: "DS_devpi",
@@ -1893,7 +1942,7 @@ pipeline {
                     steps {
                         script{
                             echo "Pushing to production/release index"
-                            devpiLib.pushPackageToIndex(
+                            devpi.pushPackageToIndex(
                                 pkgName: props.Name,
                                 pkgVersion: props.Version,
                                 server: "https://devpi.library.illinois.edu",
@@ -1912,7 +1961,7 @@ pipeline {
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
                                 docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                    devpiLib.pushPackageToIndex(
+                                    devpi.pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
                                         server: "https://devpi.library.illinois.edu",
@@ -1930,7 +1979,7 @@ pipeline {
                         script{
                             checkout scm
                             docker.build("ocr:devpi",'-f ./ci/docker/deploy/devpi/deploy/Dockerfile --build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) .').inside{
-                                devpiLib.removePackage(
+                                devpi.removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
                                     index: "DS_Jenkins/${getDevPiStagingIndex()}",
