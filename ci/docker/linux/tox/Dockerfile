@@ -87,8 +87,7 @@ COPY --from=wheel_builder_py36 /wheels/* /wheels/
 COPY --from=wheel_builder_py37 /wheels/* /wheels/
 COPY --from=wheel_builder_py38 /wheels/* /wheels/
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox conan cmake
-RUN python3 -m pip install pep517 && \
+RUN pip3 install tox conan cmake devpi_client pep517 && \
     python3 -m pep517.build -h
 
 
