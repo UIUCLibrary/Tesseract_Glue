@@ -888,7 +888,7 @@ pipeline {
                                         ],
                                         testSetup: {
                                             checkout scm
-                                            unstash 'python sdist'
+                                            unstash 'Python sdist'
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.tar.gz').each{
@@ -1533,7 +1533,7 @@ pipeline {
                     }
                     steps {
                         script{
-                            unstash "sdist"
+                            unstash "Python sdist"
                             unstash "DOCS_ARCHIVE"
                             wheelStashes.each{
                                 unstash it
