@@ -1542,7 +1542,6 @@ pipeline {
                     }
                     steps {
                         script{
-                            unstash "python sdist"
                             unstash "DOCS_ARCHIVE"
                             wheelStashes.each{
                                 unstash it
@@ -1582,7 +1581,40 @@ pipeline {
                                         package:[
                                             name: props.Name,
                                             version: props.Version,
-                                            selector: getMacDevpiName(PYTHON_VERSION, FORMAT),
+                                            selector: getMacDevpiName(pythonVersion, 'wheel'),
+                                        ],
+                                        test:[
+                                            setup: {
+                                                sh(
+                                                    label:'Installing Devpi client',
+                                                    script: '''python3 -m venv venv
+                                                                venv/bin/python -m pip install pip --upgrade
+                                                                venv/bin/python -m pip install devpi_client
+                                                                '''
+                                                )
+                                            },
+                                            toxEnv: "py${pythonVersion}".replace('.',''),
+                                            teardown: {
+                                                sh( label: 'Remove Devpi client', script: 'rm -r venv')
+                                            }
+                                        ]
+                                    )
+                                }
+                                macPackages["Test Python ${pythonVersion}: sdist Mac"]= {
+                                    devpiLib.testDevpiPackage(
+                                        agent: [
+                                            label: "mac && python${pythonVersion}"
+                                        ],
+                                        devpi: [
+                                            index: DEVPI_CONFIG.stagingIndex,
+                                            server: DEVPI_CONFIG.server,
+                                            credentialsId: DEVPI_CONFIG.credentialsId,
+                                            devpiExec: 'venv/bin/devpi'
+                                        ],
+                                        package:[
+                                            name: props.Name,
+                                            version: props.Version,
+                                            selector: 'tar.gz'
                                         ],
                                         test:[
                                             setup: {
