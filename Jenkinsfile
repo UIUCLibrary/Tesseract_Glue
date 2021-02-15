@@ -1232,6 +1232,7 @@ pipeline {
                                                 label: 'windows && docker'
                                             ]
                                         ],
+                                        dockerImageName:  "${currentBuild.fullProjectName}_devpi_with_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
                                         devpi: [
                                             index: DEVPI_CONFIG.stagingIndex,
                                             server: DEVPI_CONFIG.server,
