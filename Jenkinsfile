@@ -1104,6 +1104,7 @@ pipeline {
                     }
                 }
                 beforeAgent true
+                beforeOptions true
             }
             environment{
                 devpiStagingIndex = getDevPiStagingIndex()
@@ -1328,7 +1329,6 @@ pipeline {
                         }
                     }
                 }
-//                 TODO: Make all devbi tests run at same time
                 stage("Deploy to DevPi Production") {
                     when {
                         allOf{
