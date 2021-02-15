@@ -1248,30 +1248,31 @@ pipeline {
                                         ]
                                     )
                                 }
-//                                 windowsPackages["Test Python ${pythonVersion}: wheel Windows"] = {
-//                                     devpi.testDevpiPackage(
-//                                         agent: [
-//                                             dockerfile: [
-//                                                 filename: 'ci/docker/python/windows/tox/Dockerfile',
-//                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
-//                                                 label: 'windows && docker'
-//                                             ]
-//                                         ],
-//                                         devpi: [
-//                                             index: DEVPI_CONFIG.stagingIndex,
-//                                             server: DEVPI_CONFIG.server,
-//                                             credentialsId: DEVPI_CONFIG.credentialsId,
-//                                         ],
-//                                         package:[
-//                                             name: props.Name,
-//                                             version: props.Version,
-//                                             selector: 'whl'
-//                                         ],
-//                                         test:[
-//                                             toxEnv: "py${pythonVersion}".replace('.',''),
-//                                         ]
-//                                     )
-//                                 }
+                                windowsPackages["Test Python ${pythonVersion}: wheel Windows"] = {
+                                    devpi.testDevpiPackage(
+                                        agent: [
+                                            dockerfile: [
+                                                filename: 'ci/docker/python/windows/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+                                                label: 'windows && docker'
+                                            ]
+                                        ],
+                                        devpi: [
+                                            index: DEVPI_CONFIG.stagingIndex,
+                                            server: DEVPI_CONFIG.server,
+                                            credentialsId: DEVPI_CONFIG.credentialsId,
+                                        ],
+                                        dockerImageName:  "${currentBuild.fullProjectName}_devpi_without_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
+                                        package:[
+                                            name: props.Name,
+                                            version: props.Version,
+                                            selector: "${pythonVersion.replace('.','')}-win*.*whl",
+                                        ],
+                                        test:[
+                                            toxEnv: "py${pythonVersion}".replace('.',''),
+                                        ]
+                                    )
+                                }
                             }
                             def linuxPackages = [:]
                             SUPPORTED_LINUX_VERSIONS.each{pythonVersion ->

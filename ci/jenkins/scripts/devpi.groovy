@@ -168,7 +168,7 @@ def getAgent(args, dockerImageName=null){
                 ws{
                     checkout scm
                     def dockerImage
-                    dockerImageName = dockerImageName ? dockerImageNam :  "${currentBuild.fullProjectName}_devpi".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
+                    dockerImageName = dockerImageName ? dockerImageName :  "${currentBuild.fullProjectName}_devpi".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
                     lock("docker build-${env.NODE_NAME}"){
                         dockerImage = docker.build(dockerImageName, "-f ${args.agent.dockerfile.filename} ${args.agent.dockerfile.additionalBuildArgs} .")
                     }
@@ -237,7 +237,7 @@ def getToxEnvName(args){
 }
 
 def testDevpiPackage2(args=[:]){
-    def dockerImageName = args['dockerImageName'] ? args['dockerImageName']:  "${currentBuild.fullProjectName}_${getToxEnv(args)}_build".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
+    def dockerImageName = args['dockerImageName'] ? args['dockerImageName']:  "${currentBuild.fullProjectName}_devpi".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
     def agent = getAgent(args, dockerImageName)
     def devpiExec = args.devpi['devpiExec'] ? args.devpi['devpiExec'] : "devpi"
     def devpiIndex = args.devpi.index
