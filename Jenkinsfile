@@ -52,84 +52,7 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
          writeJSON file: outputJson, json: outstandingIssues
      }
 }
-def build_wheel(platform){
-    if(isUnix()){
-        sh(
-            label: 'Building Python Wheel',
-            script: "python -m pep517.build --binary --out-dir dist/ ."
-        )
-        if( platform == 'linux'){
-            sh "auditwheel repair ./dist/*.whl -w ./dist"
-        }
-    } else {
-        bat(
-            label: 'Building Python Wheel',
-            script: "python -m pip wheel --no-deps -w dist\\ ."
-//             script: "python -m pep517.build --binary --out-dir dist\\ ."
-        )
-    }
-}
 
-
-def buildAndTestWheel(pythonVersions){
-// TODO: build inmto
-    def packages
-    node(){
-        checkout scm
-        packages = load 'ci/jenkins/scripts/packaging.groovy'
-    }
-    def windowsStages = [:]
-    pythonVersions.each{ pythonVersion ->
-        windowsStages["Windows - Python ${pythonVersion}: wheel"] = {
-            stage('Build Wheel'){
-                packages.buildPkg(
-                    agent: [
-                        dockerfile: [
-                            label: 'windows && docker',
-                            filename: 'ci/docker/windows/tox/Dockerfile',
-                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                        ]
-                    ],
-                        buildCmd: {
-                            bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-                        },
-                    post:[
-                        cleanup: {
-                            cleanWs(
-                                patterns: [
-                                        [pattern: './dist/', type: 'INCLUDE'],
-                                    ],
-                                notFailBuild: true,
-                                deleteDirs: true
-                            )
-                        },
-                        success: {
-//                                             archiveArtifacts artifacts: 'dist/*.whl'
-                            stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
-                        }
-                    ]
-                )
-            }
-            stage('Test Wheel'){
-//                             TODO test with something other than the tox
-                packages.testPkg(
-                    agent: [
-                        dockerfile: [
-                            label: 'windows && docker',
-                            filename: 'ci/docker/windows/tox/Dockerfile',
-                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                        ]
-                    ],
-                    glob: 'dist/*.whl',
-                    stash: "python${pythonVersion} windows wheel",
-                    pythonVersion: pythonVersion
-                )
-            }
-        }
-    }
-    return windowsStages
-}
-              
 def deploy_docs(pkgName, prefix){
     script{
         try{
@@ -164,62 +87,6 @@ def deploy_docs(pkgName, prefix){
     }
 }
 
-def test_package_on_mac(glob){
-    script{
-        findFiles(glob: glob).each{
-            sh(
-                label: "Testing ${it}",
-                script: """python3 -m venv venv
-                           venv/bin/python -m pip install pip --upgrade
-                           venv/bin/python -m pip install wheel
-                           venv/bin/python -m pip install --upgrade setuptools
-                           venv/bin/python -m pip install tox
-                           venv/bin/tox --installpkg=${it.path} -e py -vv --recreate
-                           """
-            )
-        }
-    }
-}
-
-
-def get_package_name(stashName, metadataFile){
-    ws {
-        unstash "${stashName}"
-        script{
-            def props = readProperties interpolate: true, file: "${metadataFile}"
-            deleteDir()
-            return props.Name
-        }
-    }
-}
-
-def devpiRunTest(devpiClient, pkgPropertiesFile, devpiIndex, devpiSelector, devpiUsername, devpiPassword, toxEnv){
-    script{
-        if(!fileExists(pkgPropertiesFile)){
-            error "${pkgPropertiesFile} does not exist"
-        }
-        def props = readProperties interpolate: false, file: pkgPropertiesFile
-        if (isUnix()){
-            sh(
-                label: "Running test",
-                script: """${devpiClient} use https://devpi.library.illinois.edu --clientdir certs/
-                           ${devpiClient} login ${devpiUsername} --password ${devpiPassword} --clientdir certs/
-                           ${devpiClient} use ${devpiIndex} --clientdir certs/
-                           ${devpiClient} test --index ${devpiIndex} ${props.Name}==${props.Version} -s ${devpiSelector} --clientdir certs/ -e ${toxEnv} --tox-args=\"-vv\"
-                """
-            )
-        } else {
-            bat(
-                label: "Running tests on Devpi",
-                script: """devpi use https://devpi.library.illinois.edu --clientdir certs\\
-                           devpi login ${devpiUsername} --password ${devpiPassword} --clientdir certs\\
-                           devpi use ${devpiIndex} --clientdir certs\\
-                           devpi test --index ${devpiIndex} ${props.Name}==${props.Version} -s ${devpiSelector} --clientdir certs\\ -e ${toxEnv} --tox-args=\"-vv\"
-                           """
-            )
-        }
-    }
-}
 wheelStashes = []
 configurations = loadConfigs()
 def loadConfigs(){
@@ -1424,7 +1291,7 @@ pipeline {
                     }
                     steps{
                         unstash "DOCS_ARCHIVE"
-                        deploy_docs(get_package_name("DIST-INFO", "uiucprescon.ocr.dist-info/METADATA"), "build/docs/html")
+                        deploy_docs(props.Name, "build/docs/html")
                     }
                 }
             }
