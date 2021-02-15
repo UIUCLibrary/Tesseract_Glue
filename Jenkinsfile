@@ -1261,7 +1261,7 @@ pipeline {
                                         package:[
                                             name: props.Name,
                                             version: props.Version,
-                                            selector: "${pythonVersion.replace('.','')}*-win*.*whl",
+                                            selector: "(${pythonVersion.replace('.','')}).*(win_amd64\\.whl)"
                                         ],
                                         test:[
                                             toxEnv: "py${pythonVersion}".replace('.',''),
@@ -1312,7 +1312,7 @@ pipeline {
                                         package:[
                                             name: props.Name,
                                             version: props.Version,
-                                            selector: "${pythonVersion.replace('.','')}*-manylinux*.*whl"
+                                            selector: "(${pythonVersion.replace('.','')}).*(manylinux).*(\\.whl)"
                                         ],
                                         test:[
                                             toxEnv: "py${pythonVersion}".replace('.',''),
