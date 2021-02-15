@@ -1252,7 +1252,7 @@ pipeline {
                                     devpi.testDevpiPackage(
                                         agent: [
                                             dockerfile: [
-                                                filename: 'ci/docker/python/windows/tox/Dockerfile',
+                                                filename: 'ci/docker/windows/tox_no_vs/Dockerfile',
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
                                                 label: 'windows && docker'
                                             ]
