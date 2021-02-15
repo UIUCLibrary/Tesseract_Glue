@@ -11,5 +11,6 @@ pylint
 pytest
 pytest-cov
 pytest-bdd<4.0
+pytest-runner
 sphinx
 tox

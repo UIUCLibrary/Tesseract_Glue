@@ -36,8 +36,6 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     }; `
     Write-Host "Finished install packages with Chocolatey"
 
-ADD ci/docker/shared/startup.bat c:\temp\startup.bat
-RUN Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Command Processor' -Name 'AutoRun' -Value "c:\temp\startup.bat"
 ARG PYTHON_36_VERSION=3.6.8
 ARG PYTHON_37_VERSION=3.7.9
 ARG PYTHON_38_VERSION=3.8.5
@@ -66,6 +64,65 @@ RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN python -m pip install pip --upgrade ; pip install tox
+# ==============================================================================
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY36
+SHELL ["cmd", "/S", "/C" ]
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+ENV PY_PYTHON=3.6
+ENV PIP_NO_CACHE_DIR=off
+RUN py -m pip install --upgrade pip && `
+    py -m pip install wheel && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
+# ==============================================================================
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY37
+SHELL ["cmd", "/S", "/C" ]
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+ENV PY_PYTHON=3.7
+ENV PIP_NO_CACHE_DIR=off
+RUN py -m pip install --upgrade pip && `
+    py -m pip install wheel && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
+# ==============================================================================
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
+SHELL ["cmd", "/S", "/C" ]
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+ENV PY_PYTHON=3.8
+ENV PIP_NO_CACHE_DIR=off
+RUN py -m pip install --upgrade pip && `
+    py -m pip install wheel && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
+# ==============================================================================
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
+SHELL ["cmd", "/S", "/C" ]
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+ENV PY_PYTHON=3.9
+ENV PIP_NO_CACHE_DIR=off
+RUN py -m pip install --upgrade pip && `
+    py -m pip install wheel && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
+# ==============================================================================
+FROM CHOCOLATEY_BASE
+COPY --from=WHEEL_BUILDER_PY36 C:/wheels/ c:/wheels/
+COPY --from=WHEEL_BUILDER_PY37 C:/wheels/ c:/wheels/
+COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
+COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
+RUN python -m pip install pip --upgrade ; pip install tox devpi_client
+ENV PIP_FIND_LINKS=c:\wheels
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
