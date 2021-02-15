@@ -65,6 +65,32 @@ RUN certutil -addstore -f root roots.sst ; `
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 # ==============================================================================
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY36
+SHELL ["cmd", "/S", "/C" ]
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+ENV PY_PYTHON=3.6
+ENV PIP_NO_CACHE_DIR=off
+RUN py -m pip install --upgrade pip && `
+    py -m pip install wheel && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
+# ==============================================================================
+FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY37
+SHELL ["cmd", "/S", "/C" ]
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+ENV PY_PYTHON=3.7
+ENV PIP_NO_CACHE_DIR=off
+RUN py -m pip install --upgrade pip && `
+    py -m pip install wheel && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
+    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
+# ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
 SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
@@ -76,6 +102,7 @@ RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
 SHELL ["cmd", "/S", "/C" ]
@@ -88,9 +115,11 @@ RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
-# ==============================================================================
 
+# ==============================================================================
 FROM CHOCOLATEY_BASE
+COPY --from=WHEEL_BUILDER_PY36 C:/wheels/ c:/wheels/
+COPY --from=WHEEL_BUILDER_PY37 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
 RUN python -m pip install pip --upgrade ; pip install tox devpi_client
