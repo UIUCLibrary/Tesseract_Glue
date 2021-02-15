@@ -66,6 +66,6 @@ RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN python -m pip install pip --upgrade ; pip install tox
+RUN python -m pip install pip --upgrade ; pip install tox devpi_client
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
