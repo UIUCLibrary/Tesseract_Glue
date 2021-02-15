@@ -217,12 +217,12 @@ def runDevpiTest(devpiExec, devpiIndex, pkgName, pkgVersion, pkgSelector, client
     if(isUnix()){
         sh(
             label: "Running tests on Packages on DevPi",
-            script: "${devpiExec} test --index ${devpiIndex} ${pkgName}==${pkgVersion} -s ${pkgSelector} --clientdir ${clientDir} -e ${toxEnv} -v"
+            script: "${devpiExec} test --index ${devpiIndex} ${pkgName}==${pkgVersion} -s \"${pkgSelector}\" --clientdir ${clientDir} -e ${toxEnv} -v"
         )
     } else{
         bat(
             label: "Running tests on Packages on DevPi",
-            script: "${devpiExec} test --index ${devpiIndex} ${pkgName}==${pkgVersion} -s ${pkgSelector}  --clientdir ${clientDir} -e ${toxEnv} -v"
+            script: "${devpiExec} test --index ${devpiIndex} ${pkgName}==${pkgVersion} -s \"${pkgSelector}\"  --clientdir ${clientDir} -e ${toxEnv} -v"
         )
     }
 }
