@@ -63,9 +63,23 @@ RUN $PYTHON -m pip install pip --upgrade pip && \
     $PYTHON -m pip install wheel && \
     $PYTHON -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
     $PYTHON -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt
-RUN $PYTHON -m pip wheel -w /wheels --no-cache-dir -v 'MarkupSafe>=0.9.2'
 
 # ==============================================================================
+FROM wheel_builder_base as wheel_builder_py39
+RUN apt install -y python3.9-dev python3.9-venv
+
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
+ENV PYTHON=python3.9
+RUN $PYTHON -m pip install pip --upgrade pip && \
+    $PYTHON -m pip install wheel && \
+    $PYTHON -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
+    $PYTHON -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt
+
+# ==============================================================================
+
 FROM wheel_builder_base as conan_builder
 RUN pip3 install conan cmake
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
@@ -79,6 +93,7 @@ RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan remove --locks
 
 # ==============================================================================
+
 FROM wheel_builder_base
 
 ARG PIP_EXTRA_INDEX_URL
@@ -87,6 +102,7 @@ ARG PIP_INDEX_URL
 COPY --from=wheel_builder_py36 /wheels/* /wheels/
 COPY --from=wheel_builder_py37 /wheels/* /wheels/
 COPY --from=wheel_builder_py38 /wheels/* /wheels/
+COPY --from=wheel_builder_py39 /wheels/* /wheels/
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
 RUN pip3 install tox conan cmake devpi_client pep517 && \
