@@ -63,6 +63,7 @@ RUN $PYTHON -m pip install pip --upgrade pip && \
     $PYTHON -m pip install wheel && \
     $PYTHON -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
     $PYTHON -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt
+RUN $PYTHON -m pip wheel -w /wheels --no-cache-dir -v 'MarkupSafe>=0.9.2'
 
 # ==============================================================================
 FROM wheel_builder_base as conan_builder
