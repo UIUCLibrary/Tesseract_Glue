@@ -1096,8 +1096,7 @@ pipeline {
             }
             when {
                 allOf{
-                    equals expected: true, actual: true
-//                     equals expected: true, actual: params.DEPLOY_DEVPI
+                    equals expected: true, actual: params.DEPLOY_DEVPI
                     anyOf {
                         equals expected: "master", actual: env.BRANCH_NAME
                         equals expected: "dev", actual: env.BRANCH_NAME
