@@ -81,5 +81,6 @@ RUN py -m pip install --upgrade pip && `
 FROM CHOCOLATEY_BASE
 COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
 RUN python -m pip install pip --upgrade ; pip install tox devpi_client
+ENV PIP_FIND_LINKS=c:\wheels
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
