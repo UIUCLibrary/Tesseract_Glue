@@ -74,7 +74,13 @@ RUN Invoke-WebRequest $Env:PYTHON_INSTALLER_URL -OutFile c:\python-installer.exe
 
 RUN python -m pip install --upgrade pip ; `
     pip install --upgrade setuptools ; `
-    pip install wheel
+    pip install wheel conan
+ENV CONAN_USER_HOME=C:/Users/ContainerAdministrator
+COPY conanfile.py c:/temp/conanfile.py
+RUN conan config home
+RUN conan install c:/temp/ --build missing --no-import  ; `
+    conan remove "*" -b --src -f ; `
+    conan remove --locks
 
 ADD ci/docker/shared/python/requirements-ci.txt c:/requirements/
 
