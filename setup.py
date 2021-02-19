@@ -478,7 +478,7 @@ setuptools.setup(
     test_suite='tests',
     tests_require=[
         'pytest',
-        'pytest-bdd < 4.0'
+        'pytest-bdd'
     ],
     namespace_packages=["uiucprescon"],
     ext_modules=[

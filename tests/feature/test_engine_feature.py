@@ -6,11 +6,11 @@ import re
 
 
 @scenario("engine.feature", 'Uses an engine to read the data')
-def test_engine_feature(tess_path):
+def test_engine_feature():
     pass
 
 
-@given("a directory contains the english tesseract data")
+@given("a directory contains the english tesseract data", target_fixture='tess_path')
 def tess_path(tessdata_eng):
     assert os.path.exists(tessdata_eng)
     tessdata_eng_file = os.path.join(tessdata_eng, "eng.traineddata")
@@ -18,7 +18,7 @@ def tess_path(tessdata_eng):
     return tessdata_eng
 
 
-@given("a directory contains an image containing english text")
+@given("a directory contains an image containing english text", target_fixture='image_path')
 def image_path(sample_images):
     test_image = os.path.join(
         sample_images, "IlliniLore_1944_00000011.tif")
@@ -27,7 +27,7 @@ def image_path(sample_images):
     return test_image
 
 
-@given("an engine is created")
+@given("an engine is created", target_fixture='ocr_engine')
 def ocr_engine(tess_path):
     tess_engine = ocr.Engine(tess_path)
     return tess_engine
