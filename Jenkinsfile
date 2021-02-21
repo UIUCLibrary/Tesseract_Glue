@@ -286,7 +286,7 @@ pipeline {
                 dockerfile {
                     filename 'ci/docker/linux/build/Dockerfile'
                     label 'linux && docker'
-                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                    additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                 }
             }
             stages{
@@ -356,7 +356,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
                             label 'linux && docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                             args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                         }
                     }
@@ -1298,7 +1298,6 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
                             label 'linux && docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                         }
                     }
                     steps{

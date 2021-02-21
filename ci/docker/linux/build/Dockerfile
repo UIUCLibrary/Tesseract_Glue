@@ -1,6 +1,7 @@
 ARG PYTHON_VERSION=3.8
 FROM python:${PYTHON_VERSION} as base_python
-
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
 ARG USER_ID=1000
 ARG GROUP_ID=1000
 
@@ -41,28 +42,41 @@ RUN python -m pip install --upgrade pip &&  \
 
 ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
 FROM base_python as wheel_builder
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
 RUN pip wheel -r /requirements/requirements-ci.txt --no-cache --wheel-dir /wheels/ && \
     pip wheel -r /requirements/requirements-extras.txt --no-cache --wheel-dir /wheels/
 
 FROM base_python as conan_builder
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
 RUN pip install conan
-COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
-COPY --chown=user:user ci/docker/linux/build/conan/profile.ini  /home/user/.conan/profiles/default
-USER user
-WORKDIR /home/user
-ADD conanfile.py /tmp/conanfile.py
-ENV CONAN_USER_HOME=/home/user/
+COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
+COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+ENV CONAN_USER_HOME=/conan
+COPY conanfile.py /tmp/conanfile.py
 RUN conan config home
-RUN conan install /tmp --build  missing --no-import  && \
+RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
 # ==============================================================================
 FROM base_python
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
 COPY --from=wheel_builder /wheels/* /wheels/
-COPY --from=conan_builder --chown=user:user /home/user/.conan/ /home/user/.conan/
-COPY --chown=user:user ci/docker/linux/build/conan/profile.ini  /home/user/.conan/profiles/default
-ENV CONAN_USER_HOME=/home/user/
+RUN pip install --no-index --find-links=/wheels/ conan
+COPY --from=conan_builder /conan/.conan/ /conan/.conan/
+COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
+COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+ADD conanfile.py /tmp/conanfile.py
+ENV CONAN_USER_HOME=/conan
+RUN conan config home
+RUN conan install /tmp --build  missing --no-import  && \
+    conan remove "*" -b --src -f && \
+    conan remove --locks && \
+    chmod -R 777 /conan
+
 USER root
 RUN pip install --no-index --find-links=/wheels/ \
          -r /requirements/requirements-ci.txt
