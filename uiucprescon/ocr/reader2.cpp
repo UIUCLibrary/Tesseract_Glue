@@ -2,6 +2,7 @@
 #include <string>
 #include <iostream>
 #include <leptonica/allheaders.h>
+#include "fileLoader.h"
 
 using std::endl;
 using std::cerr;
@@ -32,7 +33,7 @@ std::string Reader2::get_ocr(const std::string &image_filename){
         return "";
     }
 
-    Pix *image = pixRead(image_filename.c_str());
+    Pix *image = ImageLoader::loadImage(image_filename);
 
     tess->SetImage(image);
     tess->Recognize(0);
