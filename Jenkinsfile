@@ -40,7 +40,8 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
 //                        build/tests/publicAPI/test-visvid -r sonarqube -o reports/unit/test-visvid.xml
 //                        build/tests/internal/test-visvid-internal -r sonarqube -o reports/unit/test-visvid-internal.xml
 //                        (mkdir -p build/coverage &&  cd build/coverage && find ../.. -name '*.gcno' -exec gcov {} \\; )
-                       '''
+                       ''',
+           returnStatus: true
         )
 
         if (env.CHANGE_ID){
