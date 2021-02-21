@@ -448,13 +448,13 @@ pipeline {
                                             sh(label: "Running pylint",
                                                 script: '''mkdir -p logs
                                                            mkdir -p reports
-                                                           pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
+                                                           pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
                                                            '''
 
                                             )
                                         }
                                         sh(
-                                            script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
+                                            script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
                                             label: "Running pylint for sonarqube",
                                             returnStatus: true
                                         )
