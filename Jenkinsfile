@@ -506,8 +506,11 @@ pipeline {
                                 sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
                             }
                             post {
-                              always{
+                                always{
                                    recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
+                                }
+                                failure{
+                                    sh "ls -R"
                                 }
                             }
                         }
