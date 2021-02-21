@@ -8,7 +8,7 @@ class Exiv2BindConan(ConanFile):
     ]
     settings = "os", "arch", "compiler", "build_type"
 
-    generators = ["json"]
+    generators = ["json", "cmake_paths"]
     default_options = {}
 
     def configure(self):
