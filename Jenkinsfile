@@ -31,6 +31,18 @@ def get_sonarqube_unresolved_issues(report_task_file){
 def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
     def props = readProperties interpolate: true, file: metadataFile
     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: sonarCredentials) {
+        sh(
+            label:" Running Build wrapper",
+            script: '''conan install . -if build/
+                       cmake -B ./build -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_TOOLCHAIN_FILE="build/conan_paths.cmake"
+                       (cd build && /home/user/.sonar/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
+//                        mkdir -p reports/unit
+//                        build/tests/publicAPI/test-visvid -r sonarqube -o reports/unit/test-visvid.xml
+//                        build/tests/internal/test-visvid-internal -r sonarqube -o reports/unit/test-visvid-internal.xml
+//                        (mkdir -p build/coverage &&  cd build/coverage && find ../.. -name '*.gcno' -exec gcov {} \\; )
+                       '''
+        )
+
         if (env.CHANGE_ID){
             sh(
                 label: "Running Sonar Scanner",
