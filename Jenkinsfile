@@ -452,27 +452,60 @@ pipeline {
                                     }
                                 }
                             }
+                            post{
+                                always{
+                                    sh(script:'''coverage combine
+                                                 coverage xml -o ./reports/coverage-python.xml
+                                                 gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage_cpp.xml
+                                                 '''
+                                        )
+                                    stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
+                                    publishCoverage(
+                                        adapters: [
+                                            coberturaAdapter(mergeToOneReport: true, path: 'reports/coverage*.xml')
+                                        ],
+                                        sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
+                                    )
+                                }
+                                cleanup{
+                                    deleteDir()
+                                }
+                            }
+                        }
+                        stage("Sonarcloud Analysis"){
+        //                     agent {
+        //                       dockerfile {
+        //                         filename 'ci/docker/linux/build/Dockerfile'
+        //                         label 'linux && docker'
+        //                         additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+        //                         args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
+        //                       }
+        //                     }
+                            options{
+                                lock("uiucprescon.ocr-sonarcloud")
+                            }
+                            when{
+                                equals expected: true, actual: params.USE_SONARQUBE
+                                beforeAgent true
+                                beforeOptions true
+                            }
+                            steps{
+                                unstash "COVERAGE_REPORT"
+                                unstash "PYTEST_REPORT"
+                // //                 unstash "BANDIT_REPORT"
+                                unstash "PYLINT_REPORT"
+                                unstash "FLAKE8_REPORT"
+                                unstash "DIST-INFO"
+                                sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
+                            }
+                            post {
+                              always{
+                                   recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
+                                }
+                            }
                         }
                     }
-                    post{
-                        always{
-                            sh(script:'''coverage combine
-                                         coverage xml -o ./reports/coverage-python.xml
-                                         gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage_cpp.xml
-                                         '''
-                                )
-                            stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
-                            publishCoverage(
-                                adapters: [
-                                    coberturaAdapter(mergeToOneReport: true, path: 'reports/coverage*.xml')
-                                ],
-                                sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
-                            )
-                        }
-                        cleanup{
-                            deleteDir()
-                        }
-                    }
+
                 }
                 stage("Run Tox test") {
                     when {
@@ -512,38 +545,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Sonarcloud Analysis"){
-                    agent {
-                      dockerfile {
-                        filename 'ci/docker/linux/build/Dockerfile'
-                        label 'linux && docker'
-                        additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
-                        args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
-                      }
-                    }
-                    options{
-                        lock("uiucprescon.ocr-sonarcloud")
-                    }
-                    when{
-                        equals expected: true, actual: params.USE_SONARQUBE
-                        beforeAgent true
-                        beforeOptions true
-                    }
-                    steps{
-                        unstash "COVERAGE_REPORT"
-                        unstash "PYTEST_REPORT"
-        // //                 unstash "BANDIT_REPORT"
-                        unstash "PYLINT_REPORT"
-                        unstash "FLAKE8_REPORT"
-                        unstash "DIST-INFO"
-                        sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
-                    }
-                    post {
-                      always{
-                           recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
-                        }
-                    }
-                }
+
             }
         }
         stage("Python Packaging"){
