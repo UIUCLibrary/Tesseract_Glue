@@ -361,31 +361,60 @@ pipeline {
                     }
                     stages{
                         stage("Setting up Tests"){
-                            steps{
-                                script{
-                                    sh(
-                                        label: "Running conan",
-                                        script: 'conan install . -if build/cpp -g cmake_find_package'
-                                    )
-                                    sh(
-                                        label: "Running Build wrapper",
-                                        script: '''cmake -B ./build/cpp -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
-                                                   (cd build/cpp && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean tester)
-                                                   '''
-                                    )
+                            parallel{
+                                stage('Setting Up C++ Tests'){
+                                    steps{
+                                        sh(
+                                            label: "Running conan",
+                                            script: 'conan install . -if build/cpp -g cmake_find_package'
+                                        )
+                                        sh(
+                                            label: "Running Build wrapper",
+                                            script: '''cmake -B ./build/cpp -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                                       (cd build/cpp && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean tester)
+                                                       '''
+                                        )
+                                    }
                                 }
-                                timeout(3){
-//                                     unstash "COMPILED_BINARIES"
-                                    sh(
-                                        label: "Build python package",
-                                        script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug'
-                                    )
-                                    unstash "DOCS_ARCHIVE"
-                                    sh '''mkdir -p logs
-                                          mkdir -p reports
-                                          '''
+                                stage('Setting Up Python Tests'){
+                                    steps{
+                                        timeout(3){
+                                            sh(
+                                                label: "Build python package",
+                                                script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug'
+                                            )
+                                            unstash "DOCS_ARCHIVE"
+                                            sh '''mkdir -p logs
+                                                  mkdir -p reports
+                                                  '''
+                                        }
+                                    }
                                 }
                             }
+//                             steps{
+//                                 script{
+//                                     sh(
+//                                         label: "Running conan",
+//                                         script: 'conan install . -if build/cpp -g cmake_find_package'
+//                                     )
+//                                     sh(
+//                                         label: "Running Build wrapper",
+//                                         script: '''cmake -B ./build/cpp -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+//                                                    (cd build/cpp && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean tester)
+//                                                    '''
+//                                     )
+//                                 }
+//                                 timeout(3){
+//                                     sh(
+//                                         label: "Build python package",
+//                                         script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug'
+//                                     )
+//                                     unstash "DOCS_ARCHIVE"
+//                                     sh '''mkdir -p logs
+//                                           mkdir -p reports
+//                                           '''
+//                                 }
+//                             }
                         }
                         stage("Running Tests"){
                             parallel {
