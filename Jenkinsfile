@@ -429,7 +429,7 @@ pipeline {
                                     }
                                     post{
                                         always{
-                                            sh "mkdir -p build/coverage &&  cd build/coverage && find ../.. -name '*.gcno' -exec gcov {} \\;"
+                                            sh "mkdir -p build/coverage &&  (cd build/coverage && find ../../cpp -name '*.gcno' -exec gcov {} \\;)"
                                             xunit(
                                                 testTimeMargin: '3000',
                                                 thresholdMode: 1,
