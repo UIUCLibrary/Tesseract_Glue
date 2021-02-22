@@ -379,7 +379,8 @@ pipeline {
                                     sh(
                                         label: "Running Build wrapper",
                                         script: '''cmake -B ./build -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build
-                                                   (cd build && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
+                                                   (cd build && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean tester)
+//                                                   (cd build && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
                                                    '''
                                     )
 
