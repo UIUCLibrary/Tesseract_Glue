@@ -8,8 +8,8 @@ using std::endl;
 using std::cerr;
 
 Reader2::Reader2(const std::string &tessdata, const std::string &lang):
-    language(lang),
     tess(tesseract::TessBaseAPI()),
+    language(lang),
     tessdata(tessdata)
 {
     if (tess.Init(tessdata.c_str(), lang.c_str())){
