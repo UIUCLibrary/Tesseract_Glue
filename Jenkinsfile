@@ -31,19 +31,6 @@ def get_sonarqube_unresolved_issues(report_task_file){
 def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
     def props = readProperties interpolate: true, file: metadataFile
     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: sonarCredentials) {
-
-//        sh(
-//            label:" Running Build wrapper",
-//            script: '''
-//                       cmake -B ./build -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build
-//                       (cd build && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
-//                        mkdir -p reports/unit
-//                        build/tests/publicAPI/test-visvid -r sonarqube -o reports/unit/test-visvid.xml
-//                        build/tests/internal/test-visvid-internal -r sonarqube -o reports/unit/test-visvid-internal.xml
-//                        (mkdir -p build/coverage &&  cd build/coverage && find ../.. -name '*.gcno' -exec gcov {} \\; )
-//                        ''',
-//        )
-
         if (env.CHANGE_ID){
             sh(
                 label: "Running Sonar Scanner",
@@ -391,30 +378,6 @@ pipeline {
                                     }
                                 }
                             }
-//                             steps{
-//                                 script{
-//                                     sh(
-//                                         label: "Running conan",
-//                                         script: 'conan install . -if build/cpp -g cmake_find_package'
-//                                     )
-//                                     sh(
-//                                         label: "Running Build wrapper",
-//                                         script: '''cmake -B ./build/cpp -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
-//                                                    (cd build/cpp && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean tester)
-//                                                    '''
-//                                     )
-//                                 }
-//                                 timeout(3){
-//                                     sh(
-//                                         label: "Build python package",
-//                                         script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug'
-//                                     )
-//                                     unstash "DOCS_ARCHIVE"
-//                                     sh '''mkdir -p logs
-//                                           mkdir -p reports
-//                                           '''
-//                                 }
-//                             }
                         }
                         stage("Running Tests"){
                             parallel {
@@ -558,9 +521,6 @@ pipeline {
                                         sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
                                     )
                                 }
-//                                 cleanup{
-//                                     deleteDir()
-//                                 }
                             }
                         }
                         stage("Sonarcloud Analysis"){
