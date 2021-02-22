@@ -10,24 +10,24 @@ set(CMAKE_INSTALL_OPENMP_LIBRARIES TRUE)
 set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION uiucprescon/ocr/tesseract/bin)
 include(InstallRequiredSystemLibraries)
 find_package(Tesseract REQUIRED)
-
+set(CMAKE_CXX_STANDARD 14)
 # If google isn't going to make importable targets, then I am
-if(NOT TARGET tesseract::tesseract)
-    add_library(tesseract::tesseract INTERFACE IMPORTED )
-    set_target_properties(tesseract::tesseract PROPERTIES
+if(NOT TARGET Tesseract::Tesseract)
+    add_library(Tesseract::Tesseract INTERFACE IMPORTED )
+    set_target_properties(Tesseract::Tesseract PROPERTIES
         INTERFACE_INCLUDE_DIRECTORIES "${tesseract_INCLUDE_DIRS}"
         INTERFACE_LINK_LIBRARIES "${Tesseract_LIBRARIES}"
          INTERFACE_COMPILE_DEFINITIONS "${tesseract_COMPILE_DEFINITIONS}"
         )
 #    Tesseract_LIBRARIES
-endif(NOT TARGET tesseract::tesseract)
+endif(NOT TARGET Tesseract::Tesseract)
 
 find_package(Leptonica REQUIRED)
 include(FetchContent)
 
 FetchContent_Declare(libpybind11
-        URL https://github.com/pybind/pybind11/archive/v2.4.3.tar.gz
-        URL_HASH SHA1=75d0184c1720bad96bbcbef0e25ccee92f21523b
+        URL https://github.com/pybind/pybind11/archive/v2.6.2.tar.gz
+        URL_HASH SHA1=e340be2d61439deaf7bdd4bd273bb8c51b713f26
         )
 
 FetchContent_GetProperties(libpybind11)
