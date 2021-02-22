@@ -377,6 +377,7 @@ pipeline {
                                         label: "Running conan",
                                         script: 'conan install . -if build/ --g cmake_find_package'
                                     )
+                                    sh "which build-wrapper-linux-x86-64"
 //                                     def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
 // //                                     echo "conanbuildinfo = ${conanbuildinfo}"
 //                                     conanbuildinfo['dependencies'].each{ dependency->
