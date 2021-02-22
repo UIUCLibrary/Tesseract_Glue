@@ -49,7 +49,7 @@ std::string Reader2::get_ocr(const std::string &image_filename){
         } while(ri->Next(level));
 
     }
-    std::string result = std::string(tess.GetUTF8Text());
+    auto result = std::string(tess.GetUTF8Text());
     pixDestroy(&image);
     return result;
 }
