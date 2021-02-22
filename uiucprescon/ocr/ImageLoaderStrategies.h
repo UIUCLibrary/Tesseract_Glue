@@ -13,6 +13,7 @@
 class abcImageLoaderStrategy {
 
 public:
+    virtual ~abcImageLoaderStrategy() = default;
     virtual Pix * load(const std::string &filename) = 0;
 };
 
