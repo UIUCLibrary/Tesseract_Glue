@@ -35,17 +35,17 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
             label: "Running conan",
             script: 'conan install . -if build/'
         )
-        def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
-        echo "conanbuildinfo = ${conanbuildinfo}"
-        conanbuildinfo['dependencies'].each{ dependency->
-            echo "dependency = ${dependency}"
-
-        }
+//         def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
+//         echo "conanbuildinfo = ${conanbuildinfo}"
+//         conanbuildinfo['dependencies'].each{ dependency->
+//             echo "dependency = ${dependency}"
+//
+//         }
         sh(
             label:" Running Build wrapper",
             script: '''
-//                        cmake -B ./build -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON
-//                        (cd build && /home/user/.sonar/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
+                       cmake -B ./build -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON
+                       (cd build && /home/user/.sonar/build-wrapper-linux-x86/build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
 //                        mkdir -p reports/unit
 //                        build/tests/publicAPI/test-visvid -r sonarqube -o reports/unit/test-visvid.xml
 //                        build/tests/internal/test-visvid-internal -r sonarqube -o reports/unit/test-visvid-internal.xml
