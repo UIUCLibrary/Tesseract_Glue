@@ -31,6 +31,9 @@ std::string Reader2::get_ocr(const std::string &image_filename){
     }
 
     Pix *image = ImageLoader::loadImage(image_filename);
+    if (image == nullptr){
+        throw std::runtime_error("Unable to load " + image_filename);
+    }
 
     tess.SetImage(image);
     tess.Recognize(nullptr);
