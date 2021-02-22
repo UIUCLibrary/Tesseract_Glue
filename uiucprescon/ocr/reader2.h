@@ -6,7 +6,7 @@
 class Reader2
 {
 private:
-   tesseract::TessBaseAPI tess;
+   tesseract::TessBaseAPI tess = tesseract::TessBaseAPI();
    std::string language;
    std::string tessdata;
    bool good;

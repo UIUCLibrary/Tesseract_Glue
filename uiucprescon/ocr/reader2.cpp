@@ -8,7 +8,6 @@ using std::endl;
 using std::cerr;
 
 Reader2::Reader2(const std::string &tessdata, const std::string &lang):
-    tess(tesseract::TessBaseAPI()),
     language(lang),
     tessdata(tessdata)
 {
