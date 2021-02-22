@@ -21,10 +21,6 @@ Reader2::Reader2(const std::string &tessdata, const std::string &lang):
     this->good = true;
 }
 
-Reader2::~Reader2()
-{
-    tess.End();
-}
 
 bool Reader2::isGood(){
     return this->good;

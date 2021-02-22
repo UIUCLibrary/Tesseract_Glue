@@ -12,7 +12,6 @@ private:
    bool good;
 public:
     Reader2(const std::string &tessdata, const std::string &lang);
-    ~Reader2();
     std::string get_ocr(const std::string &image_filename);
     bool isGood();
 };
