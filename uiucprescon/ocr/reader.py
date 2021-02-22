@@ -49,6 +49,8 @@ class Reader(AbsReader):
         constructed using the Engine class's :meth:`Engine.get_reader` method.
 
     """
+    def read_image(self, image: tesseractwrap.Pix):
+        return self._reader.get_ocr2(image)
 
     def read(self, file: str):
         """Generate text from an image.
@@ -60,4 +62,7 @@ class Reader(AbsReader):
             Text extracted from an image
 
         """
-        return self._reader.get_ocr(file)
+        image = tesseractwrap.load_image(file)
+        if image is None:
+            raise ValueError("Unable to load {}".format(file))
+        return self._reader.get_ocr(image)

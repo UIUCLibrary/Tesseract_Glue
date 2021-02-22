@@ -5,22 +5,22 @@
 #ifndef OCR_IMAGELOADERSTRATEGIES_H
 #define OCR_IMAGELOADERSTRATEGIES_H
 
+#include <leptonica/allheaders.h>
 
-#include <leptonica/environ.h>
-#include <leptonica/pix.h>
 #include <string>
-
+#include "Image.h"
 class abcImageLoaderStrategy {
 
 public:
     virtual ~abcImageLoaderStrategy() = default;
-    virtual Pix * load(const std::string &filename) = 0;
+    virtual std::shared_ptr<Image> load(const std::string &filename) = 0;
 };
 
 class ImageLoaderStrategyStandard : public abcImageLoaderStrategy {
-
+private:
+    static void freePix(Pix *src);
 public:
-    Pix *load(const std::string &filename) override;
+    std::shared_ptr<Image> load(const std::string &filename) override;
 };
 
 #endif //OCR_IMAGELOADERSTRATEGIES_H

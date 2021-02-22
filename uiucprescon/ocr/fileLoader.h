@@ -5,16 +5,14 @@
 #ifndef OCR_FILELOADER_H
 #define OCR_FILELOADER_H
 
-#include <leptonica/environ.h>
-#include <leptonica/pix.h>
 #include <string>
 #include "ImageLoaderStrategies.h"
-
+#include "Image.h"
 
 class ImageLoader{
 public:
-    static Pix* loadImage(const std::string &filename, abcImageLoaderStrategy &strategy);
-    static Pix* loadImage(const std::string &filename);
+    static std::shared_ptr<Image> loadImage2(const std::string &filename);
+    static std::shared_ptr<Image> loadImage2(const std::string &filename, abcImageLoaderStrategy &strategy);
 
 };
 #endif //OCR_FILELOADER_H

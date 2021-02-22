@@ -20,7 +20,7 @@ from . import tesseractwrap             # noqa: E402
 from .engine import Engine              # noqa: E402
 from .reader import Reader              # noqa: E402
 from .languages import LANGUAGE_CODES   # noqa: E402
-
+from .tesseractwrap import load_image
 
 __all__ = [
     "Reader",

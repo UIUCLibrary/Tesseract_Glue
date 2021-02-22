@@ -2,6 +2,7 @@
 
 #include <tesseract/baseapi.h>
 #include <string>
+#include "Image.h"
 
 class Reader2
 {
@@ -13,6 +14,7 @@ private:
 public:
     Reader2(const std::string &tessdata, const std::string &lang);
     std::string get_ocr(const std::string &image_filename);
+    std::string get_ocr_from_image(const std::shared_ptr<Image> &image);
     bool isGood();
 };
 

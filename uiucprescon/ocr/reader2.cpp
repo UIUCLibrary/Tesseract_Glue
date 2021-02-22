@@ -1,7 +1,6 @@
 #include "reader2.h"
 #include <string>
 #include <iostream>
-#include <leptonica/allheaders.h>
 #include "fileLoader.h"
 
 using std::endl;
@@ -26,16 +25,22 @@ bool Reader2::isGood(){
 }
 
 std::string Reader2::get_ocr(const std::string &image_filename){
+    const std::shared_ptr<Image> image1 = ImageLoader::loadImage2(image_filename);
+    if (!image1){
+        throw std::runtime_error("Unable to load " + image_filename);
+    }
+    return get_ocr_from_image(image1);
+}
+
+std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
     if(!this->good){
         return "";
     }
-
-    Pix *image = ImageLoader::loadImage(image_filename);
-    if (image == nullptr){
-        throw std::runtime_error("Unable to load " + image_filename);
+    if (!image){
+        throw std::runtime_error("empty image");
     }
 
-    tess.SetImage(image);
+    tess.SetImage(image->getPix().get());
     tess.Recognize(nullptr);
     tesseract::ResultIterator* ri = tess.GetIterator();
     tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
@@ -48,6 +53,5 @@ std::string Reader2::get_ocr(const std::string &image_filename){
 
     }
     auto result = std::string(tess.GetUTF8Text());
-    pixDestroy(&image);
     return result;
 }

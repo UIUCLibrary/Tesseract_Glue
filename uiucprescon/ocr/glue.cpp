@@ -5,9 +5,9 @@
 // For example: tesseract/baseapi.h and leptonica/allheaders.h
 #include <tesseract/baseapi.h>
 #include <leptonica/allheaders.h>
-
+#include "Image.h"
 #include "glue.h"
-
+#include "fileLoader.h"
 using namespace std;
 
 string tessdata;
@@ -46,4 +46,8 @@ std::string read_image(const string &source){
     api.End();
     pixDestroy(&image);
     return result;
+}
+
+std::shared_ptr<Image> load_image(const string &source) {
+    return ImageLoader::loadImage2(source);
 }
