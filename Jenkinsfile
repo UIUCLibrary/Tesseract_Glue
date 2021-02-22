@@ -51,7 +51,6 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
 //                        build/tests/internal/test-visvid-internal -r sonarqube -o reports/unit/test-visvid-internal.xml
 //                        (mkdir -p build/coverage &&  cd build/coverage && find ../.. -name '*.gcno' -exec gcov {} \\; )
                        ''',
-           returnStatus: true
         )
 
         if (env.CHANGE_ID){
@@ -377,7 +376,13 @@ pipeline {
                                         label: "Running conan",
                                         script: 'conan install . -if build/ --g cmake_find_package'
                                     )
-                                    sh "which build-wrapper-linux-x86-64"
+                                    sh(
+                                        label: "Running Build wrapper",
+                                        script: '''cmake -B ./build -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build
+                                                   (cd build && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
+                                                   '''
+                                    )
+
 //                                     def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
 // //                                     echo "conanbuildinfo = ${conanbuildinfo}"
 //                                     conanbuildinfo['dependencies'].each{ dependency->
