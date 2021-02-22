@@ -442,7 +442,31 @@ pipeline {
                                 }
                                 stage("CTest") {
                                     steps{
-                                        sh(label:"Running ctest", script:"cd build && ctest")
+                                        sh(
+                                            label: "Running ctest",
+                                            script: "cd build && ctest --output-on-failure --no-compress-output -T Test"
+                                        )
+                                    }
+                                    post{
+                                        always{
+                                            xunit(
+                                                testTimeMargin: '3000',
+                                                thresholdMode: 1,
+                                                thresholds: [
+                                                    failed(),
+                                                    skipped()
+                                                ],
+                                                tools: [
+                                                    CTest(
+                                                        deleteOutputFiles: true,
+                                                        failIfNotNew: true,
+                                                        pattern: "build/Testing/**/*.xml",
+                                                        skipNoTestFiles: true,
+                                                        stopProcessingIfError: true
+                                                    )
+                                                ]
+                                            )
+                                        }
                                     }
                                 }
                                 stage("Run Flake8 Static Analysis") {
