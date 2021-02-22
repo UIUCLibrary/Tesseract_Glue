@@ -36,10 +36,10 @@ std::string Reader2::get_ocr(const std::string &image_filename){
     Pix *image = ImageLoader::loadImage(image_filename);
 
     tess->SetImage(image);
-    tess->Recognize(0);
+    tess->Recognize(nullptr);
     tesseract::ResultIterator* ri = tess->GetIterator();
     tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
-    if(ri != 0){
+    if(ri != nullptr){
         do {
 
             const char* word = ri->GetUTF8Text(tesseract::RIL_WORD);
