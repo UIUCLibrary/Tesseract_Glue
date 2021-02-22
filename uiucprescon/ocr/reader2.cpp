@@ -7,9 +7,11 @@
 using std::endl;
 using std::cerr;
 
-Reader2::Reader2(const std::string &tessdata, const std::string &lang):language(lang), tessdata(tessdata)
+Reader2::Reader2(const std::string &tessdata, const std::string &lang):
+    language(lang),
+    tessdata(tessdata),
+    tess(tesseract::TessBaseAPI())
 {
-    tess = tesseract::TessBaseAPI();
     if (tess.Init(tessdata.c_str(), lang.c_str())){
         cerr << "OCRTesseract: Could not initialize tesseract." << endl;
         this->good = false;
