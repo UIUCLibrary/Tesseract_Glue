@@ -37,6 +37,10 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
         )
         def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
         echo "conanbuildinfo = ${conanbuildinfo}"
+        conanbuildinfo['dependencies'].each{ dependency->
+            echo "dependency = ${dependency}"
+
+        }
         sh(
             label:" Running Build wrapper",
             script: '''
