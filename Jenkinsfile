@@ -420,7 +420,7 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage("CPP tests") {
+                                stage("C++ Tests") {
                                     steps{
                                         sh(
                                             label: "Running cpp tests",
