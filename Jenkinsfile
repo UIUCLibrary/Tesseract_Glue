@@ -395,7 +395,11 @@ pipeline {
 //                                     }
                                 }
                                 timeout(3){
-                                    unstash "COMPILED_BINARIES"
+//                                     unstash "COMPILED_BINARIES"
+                                    sh(
+                                        label: "Build python package",
+                                        script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug'
+                                    )
                                     unstash "DOCS_ARCHIVE"
                                     sh '''mkdir -p logs
                                           mkdir -p reports
