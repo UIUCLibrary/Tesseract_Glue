@@ -44,7 +44,6 @@ std::string Reader2::get_ocr(const std::string &image_filename){
 
             const char* word = ri->GetUTF8Text(tesseract::RIL_WORD);
             float conf = ri->Confidence(level);
-//            std::cout << conf << std::endl;
         } while(ri->Next(level));
 
     }
