@@ -420,16 +420,16 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage("CTest") {
+                                stage("CPP tests") {
                                     steps{
                                         sh(
-                                            label: "Running ctest",
+                                            label: "Running cpp tests",
                                             script: "build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml"
-
                                         )
                                     }
                                     post{
                                         always{
+                                            sh "mkdir -p build/coverage &&  cd build/coverage && find ../.. -name '*.gcno' -exec gcov {} \\;"
                                             xunit(
                                                 testTimeMargin: '3000',
                                                 thresholdMode: 1,
