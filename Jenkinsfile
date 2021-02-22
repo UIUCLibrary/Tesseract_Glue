@@ -424,7 +424,8 @@ pipeline {
                                     steps{
                                         sh(
                                             label: "Running ctest",
-                                            script: "cd build/cpp && ctest --output-on-failure --no-compress-output -T Test"
+                                            script: "build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml"
+
                                         )
                                     }
                                     post{
@@ -440,7 +441,7 @@ pipeline {
                                                     CTest(
                                                         deleteOutputFiles: true,
                                                         failIfNotNew: true,
-                                                        pattern: "build/cpp/Testing/**/*.xml",
+                                                        pattern: "reports/test-cpp.xml",
                                                         skipNoTestFiles: true,
                                                         stopProcessingIfError: true
                                                     )
