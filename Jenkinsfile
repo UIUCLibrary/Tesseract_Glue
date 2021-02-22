@@ -372,6 +372,20 @@ pipeline {
                     stages{
                         stage("Setting up Tests"){
                             steps{
+                                script{
+                                    sh(
+                                        label: "Running conan",
+                                        script: 'conan install . -if build/ --g cmake_find_package'
+                                    )
+//                                     def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
+// //                                     echo "conanbuildinfo = ${conanbuildinfo}"
+//                                     conanbuildinfo['dependencies'].each{ dependency->
+// //                                         echo "dependency = ${dependency}"
+//                                         def buildPath = dependency['build_paths'][0]
+//                                         echo "dependency build_paths: = ${buildPath}"
+//                                         sh "find ${buildPath}../.. -name \"*.cmake\""
+//                                     }
+                                }
                                 timeout(3){
                                     unstash "COMPILED_BINARIES"
                                     unstash "DOCS_ARCHIVE"
