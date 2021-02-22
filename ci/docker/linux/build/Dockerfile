@@ -61,12 +61,10 @@ ENV CONAN_USER_HOME=/conan
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config home
 RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
+    conan install /tmp --build outdated --build=openjpeg --no-import  -s build_type=Debug && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
-RUN conan install /tmp --build outdated --build=openjpeg --no-import  -s build_type=Debug && \
-    conan remove "*" -b --src -f && \
-    conan remove --locks
 
 # ==============================================================================
 FROM base_python
