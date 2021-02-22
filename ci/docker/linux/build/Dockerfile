@@ -35,6 +35,10 @@ RUN curl --create-dirs -sSLo /tmp/sonar-scanner.zip \
     ln -s /opt/sonar/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner && \
     sonar-scanner --version
 
+RUN curl --create-dirs -sSLo /tmp/build-wrapper-linux-x86.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip && \
+    unzip -o /tmp/build-wrapper-linux-x86.zip -d /opt/ &&\
+    ln -s /opt/build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/build-wrapper-linux-x86-64 && \
+    which build-wrapper-linux-x86-64
 
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
