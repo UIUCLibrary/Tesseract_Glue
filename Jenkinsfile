@@ -436,6 +436,11 @@ pipeline {
                                         }
                                     }
                                 }
+                                stage("CTest") {
+                                    steps{
+                                        sh(label:"Running ctest", script:"cd build && ctest")
+                                    }
+                                }
                                 stage("Run Flake8 Static Analysis") {
                                     steps{
                                         timeout(2){
