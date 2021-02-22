@@ -375,12 +375,12 @@ pipeline {
                                 script{
                                     sh(
                                         label: "Running conan",
-                                        script: 'conan install . -if build/ -g cmake_find_package'
+                                        script: 'conan install . -if build/cpp -g cmake_find_package'
                                     )
                                     sh(
                                         label: "Running Build wrapper",
-                                        script: '''cmake -B ./build -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build
-                                                   (cd build && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean tester)
+                                        script: '''cmake -B ./build/cpp -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                                   (cd build/cpp && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean tester)
                                                    '''
                                     )
 //                                                   (cd build && build-wrapper-linux-x86-64 --out-dir build_wrapper_output_directory make clean all)
@@ -444,7 +444,7 @@ pipeline {
                                     steps{
                                         sh(
                                             label: "Running ctest",
-                                            script: "cd build && ctest --output-on-failure --no-compress-output -T Test"
+                                            script: "cd build/cpp && ctest --output-on-failure --no-compress-output -T Test"
                                         )
                                     }
                                     post{
@@ -460,7 +460,7 @@ pipeline {
                                                     CTest(
                                                         deleteOutputFiles: true,
                                                         failIfNotNew: true,
-                                                        pattern: "build/Testing/**/*.xml",
+                                                        pattern: "build/cpp/Testing/**/*.xml",
                                                         skipNoTestFiles: true,
                                                         stopProcessingIfError: true
                                                     )
