@@ -35,6 +35,7 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
             label: "Running conan",
             script: 'conan install . -if build/'
         )
+
 //         def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
 //         echo "conanbuildinfo = ${conanbuildinfo}"
 //         conanbuildinfo['dependencies'].each{ dependency->
@@ -50,7 +51,7 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
 //                        build/tests/publicAPI/test-visvid -r sonarqube -o reports/unit/test-visvid.xml
 //                        build/tests/internal/test-visvid-internal -r sonarqube -o reports/unit/test-visvid-internal.xml
 //                        (mkdir -p build/coverage &&  cd build/coverage && find ../.. -name '*.gcno' -exec gcov {} \\; )
-                       ''',
+//                        ''',
 //        )
 
         if (env.CHANGE_ID){
