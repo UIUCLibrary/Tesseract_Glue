@@ -374,7 +374,7 @@ pipeline {
                                 script{
                                     sh(
                                         label: "Running conan",
-                                        script: 'conan install . -if build/ --g cmake_find_package'
+                                        script: 'conan install . -if build/ -g cmake_find_package'
                                     )
                                     sh(
                                         label: "Running Build wrapper",
