@@ -64,6 +64,10 @@ RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
+RUN conan install /tmp --build outdated --build=openjpeg --no-import  -s build_type=Debug && \
+    conan remove "*" -b --src -f && \
+    conan remove --locks
+
 # ==============================================================================
 FROM base_python
 ARG PIP_EXTRA_INDEX_URL
