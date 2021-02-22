@@ -31,17 +31,7 @@ def get_sonarqube_unresolved_issues(report_task_file){
 def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
     def props = readProperties interpolate: true, file: metadataFile
     withSonarQubeEnv(installationName:"sonarcloud", credentialsId: sonarCredentials) {
-        sh(
-            label: "Running conan",
-            script: 'conan install . -if build/'
-        )
 
-//         def conanbuildinfo = readJSON( file: 'build/conanbuildinfo.json')
-//         echo "conanbuildinfo = ${conanbuildinfo}"
-//         conanbuildinfo['dependencies'].each{ dependency->
-//             echo "dependency = ${dependency}"
-//
-//         }
 //        sh(
 //            label:" Running Build wrapper",
 //            script: '''
