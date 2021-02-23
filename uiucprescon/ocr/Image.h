@@ -11,10 +11,10 @@ private:
     std::shared_ptr<Pix> image;
 public:
     Image(std::shared_ptr<Pix> image);
-    std::shared_ptr<Pix> getPix();
+    std::shared_ptr<Pix> getPix() const;
 
-    int get_w();
-    int get_h();
+    int get_w() const;
+    int get_h() const;
 };
 
 

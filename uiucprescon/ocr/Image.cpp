@@ -8,14 +8,14 @@
 
 Image::Image(std::shared_ptr <Pix> image) : image(std::move(image)) {}
 
-std::shared_ptr<Pix> Image::getPix() {
+std::shared_ptr<Pix> Image::getPix() const{
     return this->image;
 }
 
-int Image::get_w() {
+int Image::get_w() const{
     return image->w;
 }
 
-int Image::get_h() {
+int Image::get_h() const{
     return image->h;
 }
