@@ -387,7 +387,7 @@ pipeline {
                                             sh(
                                                 label: "Running pytest",
                                                 script: '''mkdir -p reports/pytestcoverage
-                                                           coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --integration
+                                                           coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml
                                                            '''
                                             )
                                         }
