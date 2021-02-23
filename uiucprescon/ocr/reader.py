@@ -49,7 +49,7 @@ class Reader(AbsReader):
         constructed using the Engine class's :meth:`Engine.get_reader` method.
 
     """
-    def read_image(self, image: tesseractwrap.Pix):
+    def read_image(self, image: tesseractwrap.Image):
         return self._reader.get_ocr(image)
 
     def read(self, file: str):
