@@ -10,7 +10,7 @@ class Image {
 private:
     std::shared_ptr<Pix> image;
 public:
-    Image(std::shared_ptr<Pix> image);
+    explicit Image(std::shared_ptr<Pix> image);
     std::shared_ptr<Pix> getPix() const;
 
     int get_w() const;
