@@ -511,12 +511,14 @@ pipeline {
                             }
                             post{
                                 always{
+
+
                                     dir('build/coverage'){
                                         sh "find ${WORKSPACE}/build -name '*.gcno' -exec gcov {} \\;"
                                     }
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
-                                                 gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage_cpp.xml
+                                                 gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
                                                  '''
                                         )
                                     stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
