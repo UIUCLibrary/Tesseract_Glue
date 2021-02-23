@@ -2,6 +2,7 @@
 #include "glue.h"
 #include "reader2.h"
 #include "utils.h"
+#include "glueExceptions.h"
 #include <leptonica/allheaders.h>
 
 PYBIND11_MODULE(tesseractwrap, m){
@@ -20,6 +21,7 @@ PYBIND11_MODULE(tesseractwrap, m){
             ;
 
     m.def("load_image", &load_image, "Load image file");
+    pybind11::register_exception<TesseractGlueException>(m, "TesseractGlueException", PyExc_RuntimeError);
 
     pybind11::class_<Reader2>(m, "Reader")
 	        .def(pybind11::init<const std::string &, const std::string &>())

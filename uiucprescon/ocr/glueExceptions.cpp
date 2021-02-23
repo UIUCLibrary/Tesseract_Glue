@@ -7,7 +7,3 @@
 
 
 TesseractGlueException::TesseractGlueException(std::basic_string<char> message): message(std::move(message)) {}
-
-const char *TesseractGlueException::what() const noexcept {
-     return exception::what();
-}
