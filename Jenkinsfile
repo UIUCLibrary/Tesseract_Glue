@@ -427,9 +427,6 @@ pipeline {
                                     }
                                     post{
                                         always{
-                                            dir('build/coverage'){
-                                                sh "find ${WORKSPACE}/build -name '*.gcno' -exec gcov {} \\;"
-                                            }
                                             xunit(
                                                 testTimeMargin: '3000',
                                                 thresholdMode: 1,
@@ -514,6 +511,9 @@ pipeline {
                             }
                             post{
                                 always{
+                                    dir('build/coverage'){
+                                        sh "find ${WORKSPACE}/build -name '*.gcno' -exec gcov {} \\;"
+                                    }
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
                                                  gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage_cpp.xml
