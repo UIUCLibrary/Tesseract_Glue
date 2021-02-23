@@ -360,7 +360,6 @@ pipeline {
                                             script: '''cmake -B ./build/cpp -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
                                                        make -C build/cpp clean tester
                                                        '''
-//                                                        build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory make -C build/cpp clean tester
                                         )
                                     }
                                 }
@@ -519,10 +518,10 @@ pipeline {
                                     sh "mv *.gcov build/coverage/"
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
+                                                 gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
                                                  gcovr --filter uiucprescon/ocr --print-summary --keep
                                                  '''
                                         )
-//                                                  gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
                                     archiveArtifacts artifacts: '**/*.gcov'
                                     stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
                                     publishCoverage(
