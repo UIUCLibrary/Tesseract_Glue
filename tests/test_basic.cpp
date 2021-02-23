@@ -24,6 +24,6 @@ TEST_CASE("dummy2 blank page"){
 TEST_CASE("Reader2"){
     Reader2 reader(TESS_DATA, "eng");
     SECTION("invalid file throws an exception"){
-        REQUIRE_THROWS_WITH(reader.get_ocr("invalid_file.tif"), Catch::Contains("Unable to load"));
+        REQUIRE_THROWS_AS(reader.get_ocr("invalid_file.tif"), TesseractGlueException);
     }
 }

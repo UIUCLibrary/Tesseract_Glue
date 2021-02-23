@@ -4,12 +4,12 @@
 
 #include <leptonica/allheaders.h>
 #include "ImageLoaderStrategies.h"
-
+#include "glueExceptions.h"
 
 std::shared_ptr<Image> ImageLoaderStrategyStandard::load(const std::string &filename){
     std::shared_ptr<Pix> imageData(pixRead(filename.c_str()), freePix);
     if(!imageData){
-        throw std::runtime_error("Unable to load " + filename);
+        throw TesseractGlueException("Unable to load " + filename);
     }
     return std::make_shared<Image>(imageData);
 }

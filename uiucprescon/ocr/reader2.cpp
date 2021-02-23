@@ -28,11 +28,8 @@ bool Reader2::isGood(){
 }
 
 std::string Reader2::get_ocr(const std::string &image_filename){
-    const std::shared_ptr<Image> image1 = ImageLoader::loadImage(image_filename);
-    if (!image1){
-           throw TesseractGlueException("Unable to load " + image_filename);
-    }
-    return get_ocr_from_image(image1);
+    const std::shared_ptr<Image> image = ImageLoader::loadImage(image_filename);
+    return get_ocr_from_image(image);
 }
 
 std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
