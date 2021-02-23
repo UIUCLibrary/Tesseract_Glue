@@ -11,7 +11,7 @@ class TesseractGlueException: public std::exception{
 public:
     explicit TesseractGlueException(std::basic_string<char> message);
 
-    const char *what() const _NOEXCEPT override;
+    [[nodiscard]] const char *what() const noexcept override;
 };
 
 
