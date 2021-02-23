@@ -34,6 +34,10 @@ TEST_CASE("Reader2"){
             THEN("reader is not good"){
                 REQUIRE(reader.isGood() == false);
             }
+            THEN("get_ocr_from_image returns empty string"){
+                std::shared_ptr<Image> i = load_image(TEST_IMAGE_PATH "/" "blankpage.tif");
+                REQUIRE(reader.get_ocr_from_image(i).empty());
+            }
         }
     }
 }
