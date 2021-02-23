@@ -63,6 +63,4 @@ class Reader(AbsReader):
 
         """
         image = tesseractwrap.load_image(file)
-        if image is None:
-            raise ValueError("Unable to load {}".format(file))
         return self._reader.get_ocr(image)

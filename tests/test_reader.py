@@ -23,3 +23,14 @@ def test_read_image(tessdata_eng, sample_images):
     image = ocr.load_image(sample_image)
     data = reader.read_image(image)
     assert isinstance(data, str)
+
+
+def test_read_image_invalid_raises(tessdata_eng):
+    reader = ocr.Reader(
+        language_code="eng",
+        tesseract_data_path=tessdata_eng
+    )
+
+    with pytest.raises(Exception):
+        reader.read("invalid_file.tif")
+
