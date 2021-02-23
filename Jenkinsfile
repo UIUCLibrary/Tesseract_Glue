@@ -513,12 +513,9 @@ pipeline {
                             }
                             post{
                                 always{
-
-
-                                    dir('build/coverage'){
-                                        sh "find ${WORKSPACE}/build -name '*.gcno' -exec gcov {} \\;"
-                                    }
-                                    archiveArtifacts artifacts: '**/*.gcno'
+                                    sh "mkdir -p build/coverage"
+                                    sh "find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=${WORKSPACE}/ \\;"
+                                    sh "mv *.gcov build/coverage/"
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
                                                  gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
