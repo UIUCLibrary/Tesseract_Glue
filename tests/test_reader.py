@@ -14,6 +14,15 @@ def test_invalid_tesseract_data_path():
         )
 
 
+def test_invalid_tesseract_language(tessdata_eng):
+    with pytest.raises(FileNotFoundError):
+        reader = ocr.Reader(
+            language_code="spam",
+            tesseract_data_path=tessdata_eng
+        )
+
+
+
 def test_read_image(tessdata_eng, sample_images):
     reader = ocr.Reader(
         language_code="eng",

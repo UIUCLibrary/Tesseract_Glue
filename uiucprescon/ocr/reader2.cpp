@@ -16,6 +16,7 @@ Reader2::Reader2(const std::string &tessdata, const std::string &lang):
     if (tess.Init(tessdata.c_str(), lang.c_str())){
         cerr << "OCRTesseract: Could not initialize tesseract." << endl;
         this->good = false;
+        return;
     }
     tess.SetPageSegMode(tesseract::PSM_AUTO_OSD);
 
