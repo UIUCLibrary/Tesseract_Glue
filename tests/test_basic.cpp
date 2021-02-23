@@ -28,6 +28,22 @@ TEST_CASE("Reader2"){
     }
 }
 
+TEST_CASE("Image"){
+    GIVEN("An Empty Image"){
+        std::shared_ptr<Pix> d;
+        Image s(d);
+        WHEN("Dimensions are checked"){
+            THEN("Empty image has 0 for h"){
+                REQUIRE(s.get_h() == 0);
+            }
+            THEN("Empty image has 0 for w"){
+                REQUIRE(s.get_w() == 0);
+            }
+        }
+
+    }
+
+}
 TEST_CASE("ImageLoader"){
     SECTION("Load a dummyStrategy"){
         class dummyStrategy: public abcImageLoaderStrategy{
