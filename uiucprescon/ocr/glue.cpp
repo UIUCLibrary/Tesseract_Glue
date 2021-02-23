@@ -1,4 +1,4 @@
-
+#include <memory>
 #include <iostream>
 // FIXME: These headers should not be root path.
 // They should be located in the header directory of their package.
