@@ -428,7 +428,7 @@ pipeline {
                                     post{
                                         always{
                                             dir('build/coverage'){
-                                                sh "find ${WORKSPACE}/build/cpp -name '*.gcno' -exec gcov {} \\;"
+                                                sh "find ${WORKSPACE}/build -name '*.gcno' -exec gcov {} \\;"
                                             }
                                             xunit(
                                                 testTimeMargin: '3000',
