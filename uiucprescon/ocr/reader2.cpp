@@ -24,7 +24,7 @@ Reader2::Reader2(const std::string &tessdata, const std::string &lang):
 }
 
 
-bool Reader2::isGood(){
+bool Reader2::isGood() const{
     return this->good;
 }
 
