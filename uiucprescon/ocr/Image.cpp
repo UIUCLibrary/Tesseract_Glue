@@ -13,9 +13,15 @@ std::shared_ptr<Pix> Image::getPix() const{
 }
 
 int Image::get_w() const{
+    if(image == nullptr){
+        return 0;
+    }
     return image->w;
 }
 
 int Image::get_h() const{
+    if(image == nullptr){
+        return 0;
+    }
     return image->h;
 }
