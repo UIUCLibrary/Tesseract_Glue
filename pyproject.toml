@@ -1,3 +1,19 @@
 [build-system]
 requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", "wheel", "cmake", "conan"]
 build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = [
+    "tests"
+ ]
+addopts = "--verbose -s"
+markers =[
+    "integration"
+#    "integration: more expensive tests that touch files"
+]
+norecursedirs = [
+    "features",
+    "build"
+]
+junit_family="xunit1"

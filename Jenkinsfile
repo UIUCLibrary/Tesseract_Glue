@@ -34,12 +34,12 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
         if (env.CHANGE_ID){
             sh(
                 label: "Running Sonar Scanner",
-                script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET}"
+                script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
                 )
         } else {
             sh(
                 label: "Running Sonar Scanner",
-                script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME}"
+                script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
                 )
         }
     }
@@ -272,7 +272,7 @@ pipeline {
                 dockerfile {
                     filename 'ci/docker/linux/build/Dockerfile'
                     label 'linux && docker'
-                    additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                    additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                 }
             }
             stages{
@@ -342,18 +342,42 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
                             label 'linux && docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                         }
                     }
                     stages{
                         stage("Setting up Tests"){
-                            steps{
-                                timeout(3){
-                                    unstash "COMPILED_BINARIES"
-                                    unstash "DOCS_ARCHIVE"
-                                    sh '''mkdir -p logs
-                                          mkdir -p reports
-                                          '''
+                            parallel{
+                                stage('Setting Up C++ Tests'){
+                                    steps{
+                                        sh(
+                                            label: "Running conan",
+                                            script: 'conan install . -if build/cpp -g cmake_find_package'
+                                        )
+                                        sh(
+                                            label: "Running Build wrapper",
+                                            script: '''cmake -B ./build/cpp -S ./ -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                                       make -C build/cpp clean tester
+                                                       '''
+                                        )
+                                    }
+                                }
+                                stage('Setting Up Python Tests'){
+                                    steps{
+                                        timeout(3){
+                                            sh(
+                                                label: "Build python package",
+                                                script: '''mkdir -p build/python
+                                                           CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory  python setup.py build -b build/python --build-lib build/python/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug
+                                                           '''
+                                            )
+                                            unstash "DOCS_ARCHIVE"
+                                            sh '''mkdir -p logs
+                                                  mkdir -p reports
+                                                  '''
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -365,7 +389,7 @@ pipeline {
                                             sh(
                                                 label: "Running pytest",
                                                 script: '''mkdir -p reports/pytestcoverage
-                                                           coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml
+                                                           coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                            '''
                                             )
                                         }
@@ -387,6 +411,41 @@ pipeline {
                                     post{
                                         always {
                                             recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
+                                        }
+                                    }
+                                }
+                                stage("C++ Tests") {
+                                    steps{
+                                        sh(
+                                            label: "Running CTest",
+                                            script: "cd build/cpp && ctest --output-on-failure --no-compress-output -T Test",
+                                            returnStatus: true
+                                        )
+
+                                        sh(
+                                            label: "Running cpp tests",
+                                            script: "build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml"
+                                        )
+                                    }
+                                    post{
+                                        always{
+                                            xunit(
+                                                testTimeMargin: '3000',
+                                                thresholdMode: 1,
+                                                thresholds: [
+                                                    failed(),
+                                                    skipped()
+                                                ],
+                                                tools: [
+                                                    CTest(
+                                                        deleteOutputFiles: true,
+                                                        failIfNotNew: true,
+                                                        pattern: "build/cpp/Testing/**/*.xml",
+                                                        skipNoTestFiles: true,
+                                                        stopProcessingIfError: true
+                                                    )
+                                                ]
+                                            )
                                         }
                                     }
                                 }
@@ -433,13 +492,13 @@ pipeline {
                                             sh(label: "Running pylint",
                                                 script: '''mkdir -p logs
                                                            mkdir -p reports
-                                                           pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint.txt
+                                                           pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
                                                            '''
 
                                             )
                                         }
                                         sh(
-                                            script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" > reports/pylint_issues.txt',
+                                            script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
                                             label: "Running pylint for sonarqube",
                                             returnStatus: true
                                         )
@@ -452,27 +511,57 @@ pipeline {
                                     }
                                 }
                             }
+                            post{
+                                always{
+                                    sh "mkdir -p build/coverage"
+                                    sh "find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=${WORKSPACE}/ \\;"
+                                    sh "mv *.gcov build/coverage/"
+                                    sh(script:'''coverage combine
+                                                 coverage xml -o ./reports/coverage-python.xml
+                                                 gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
+                                                 gcovr --filter uiucprescon/ocr --print-summary --keep
+                                                 '''
+                                        )
+                                    archiveArtifacts artifacts: '**/*.gcov'
+                                    stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
+                                    publishCoverage(
+                                        adapters: [
+                                            coberturaAdapter(mergeToOneReport: true, path: 'reports/coverage*.xml')
+                                        ],
+                                        sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
+                                    )
+                                }
+                            }
+                        }
+                        stage("Sonarcloud Analysis"){
+                            options{
+                                lock("uiucprescon.ocr-sonarcloud")
+                            }
+                            when{
+                                equals expected: true, actual: params.USE_SONARQUBE
+                                beforeAgent true
+                                beforeOptions true
+                            }
+                            steps{
+                                unstash "COVERAGE_REPORT"
+                                unstash "PYTEST_REPORT"
+                // //                 unstash "BANDIT_REPORT"
+                                unstash "PYLINT_REPORT"
+                                unstash "FLAKE8_REPORT"
+                                unstash "DIST-INFO"
+                                sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
+                            }
+                            post {
+                                always{
+                                   recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
+                                }
+                                failure{
+                                    sh "ls -R"
+                                }
+                            }
                         }
                     }
-                    post{
-                        always{
-                            sh(script:'''coverage combine
-                                         coverage xml -o ./reports/coverage-python.xml
-                                         gcovr --filter uiucprescon/ocr --print-summary --xml -o reports/coverage_cpp.xml
-                                         '''
-                                )
-                            stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
-                            publishCoverage(
-                                adapters: [
-                                    coberturaAdapter(mergeToOneReport: true, path: 'reports/coverage*.xml')
-                                ],
-                                sourceFileResolver: sourceFiles('STORE_ALL_BUILD')
-                            )
-                        }
-                        cleanup{
-                            deleteDir()
-                        }
-                    }
+
                 }
                 stage("Run Tox test") {
                     when {
@@ -512,38 +601,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Sonarcloud Analysis"){
-                    agent {
-                      dockerfile {
-                        filename 'ci/docker/linux/build/Dockerfile'
-                        label 'linux && docker'
-                        additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g) --build-arg PYTHON_VERSION=3.8'
-                        args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
-                      }
-                    }
-                    options{
-                        lock("uiucprescon.ocr-sonarcloud")
-                    }
-                    when{
-                        equals expected: true, actual: params.USE_SONARQUBE
-                        beforeAgent true
-                        beforeOptions true
-                    }
-                    steps{
-                        unstash "COVERAGE_REPORT"
-                        unstash "PYTEST_REPORT"
-        // //                 unstash "BANDIT_REPORT"
-                        unstash "PYLINT_REPORT"
-                        unstash "FLAKE8_REPORT"
-                        unstash "DIST-INFO"
-                        sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
-                    }
-                    post {
-                      always{
-                           recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
-                        }
-                    }
-                }
+
             }
         }
         stage("Python Packaging"){
@@ -1286,7 +1344,6 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
                             label 'linux && docker'
-                            additionalBuildArgs '--build-arg USER_ID=$(id -u) --build-arg GROUP_ID=$(id -g)'
                         }
                     }
                     steps{

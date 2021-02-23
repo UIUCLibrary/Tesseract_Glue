@@ -162,6 +162,10 @@ tesseract_extension = setuptools.Extension(
         'uiucprescon/ocr/reader.cpp',
         'uiucprescon/ocr/reader2.cpp',
         'uiucprescon/ocr/tesseractwrap.cpp',
+        'uiucprescon/ocr/Image.cpp',
+        'uiucprescon/ocr/ImageLoaderStrategies.cpp',
+        'uiucprescon/ocr/fileLoader.cpp',
+        'uiucprescon/ocr/glueExceptions.cpp',
         'uiucprescon/ocr/utils.cpp',
     ],
     libraries=[
