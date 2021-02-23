@@ -519,6 +519,7 @@ pipeline {
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
                                                  gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
+                                                 gcovr --filter uiucprescon/ocr --print-summary --keep
                                                  '''
                                         )
                                     stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
