@@ -38,9 +38,6 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
     if(!this->good){
         return "";
     }
-    if (!image){
-        throw std::runtime_error("empty image");
-    }
 
     tess.SetImage(image->getPix().get());
     tess.Recognize(nullptr);
