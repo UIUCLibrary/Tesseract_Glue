@@ -516,6 +516,7 @@ pipeline {
                                     dir('build/coverage'){
                                         sh "find ${WORKSPACE}/build -name '*.gcno' -exec gcov {} \\;"
                                     }
+                                    archiveArtifacts artifacts: '**/*.gcno'
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
                                                  gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
