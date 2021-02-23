@@ -50,7 +50,7 @@ class Reader(AbsReader):
 
     """
     def read_image(self, image: tesseractwrap.Pix):
-        return self._reader.get_ocr2(image)
+        return self._reader.get_ocr(image)
 
     def read(self, file: str):
         """Generate text from an image.
