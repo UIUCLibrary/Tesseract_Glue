@@ -6,4 +6,4 @@
 #include "glueExceptions.h"
 
 
-TesseractGlueException::TesseractGlueException(std::basic_string<char> message): message(std::move(message)) {}
+TesseractGlueException::TesseractGlueException(std::basic_string<char> message) noexcept: message(std::move(message)) {}
