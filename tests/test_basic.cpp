@@ -4,7 +4,7 @@
 #include "reader2.h"
 #include "glueExceptions.h"
 #include <iostream>
-
+#include "fileLoader.h"
 
 TEST_CASE("dummy"){
     Reader2 reader(TESS_DATA, "eng");
@@ -26,4 +26,19 @@ TEST_CASE("Reader2"){
     SECTION("invalid file throws an exception"){
         REQUIRE_THROWS_AS(reader.get_ocr("invalid_file.tif"), TesseractGlueException);
     }
+}
+
+TEST_CASE("ImageLoader"){
+    SECTION("Load a dummyStrategy"){
+        class dummyStrategy: public abcImageLoaderStrategy{
+        public:
+            std::shared_ptr<Image> load(const std::string &filename) override {
+                return std::shared_ptr<Image>();
+            }
+        };
+
+        dummyStrategy d;
+        std::shared_ptr<Image> s = ImageLoader::loadImage("invalid_file", d);
+    }
+
 }
