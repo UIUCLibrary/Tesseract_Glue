@@ -165,6 +165,7 @@ tesseract_extension = setuptools.Extension(
         'uiucprescon/ocr/Image.cpp',
         'uiucprescon/ocr/ImageLoaderStrategies.cpp',
         'uiucprescon/ocr/fileLoader.cpp',
+        'uiucprescon/ocr/glueExceptions.cpp',
         'uiucprescon/ocr/utils.cpp',
     ],
     libraries=[

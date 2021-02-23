@@ -4,6 +4,7 @@
 #include <iostream>
 #include <memory>
 #include "fileLoader.h"
+#include "glueExceptions.h"
 
 using std::endl;
 using std::cerr;
@@ -29,7 +30,7 @@ bool Reader2::isGood(){
 std::string Reader2::get_ocr(const std::string &image_filename){
     const std::shared_ptr<Image> image1 = ImageLoader::loadImage(image_filename);
     if (!image1){
-        throw std::runtime_error("Unable to load " + image_filename);
+           throw TesseractGlueException("Unable to load " + image_filename);
     }
     return get_ocr_from_image(image1);
 }
