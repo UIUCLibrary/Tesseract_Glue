@@ -523,6 +523,7 @@ pipeline {
                                                  gcovr --filter uiucprescon/ocr --print-summary --keep
                                                  '''
                                         )
+                                    archiveArtifacts artifacts: '**/*.gcov'
                                     stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
                                     publishCoverage(
                                         adapters: [
