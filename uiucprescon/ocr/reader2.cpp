@@ -50,7 +50,7 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
         } while(ri->Next(level));
 
     }
-    std::unique_ptr<char> data(tess.GetUTF8Text());
+    std::unique_ptr<char[]> data(tess.GetUTF8Text());
     auto result = std::string(data.get());
     return result;
 }
