@@ -47,9 +47,13 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
 
             const char* word = ri->GetUTF8Text(tesseract::RIL_WORD);
             float conf = ri->Confidence(level);
+            delete[] word;
         } while(ri->Next(level));
 
     }
-    auto result = std::string(tess.GetUTF8Text());
+    delete ri;
+    const char* data = tess.GetUTF8Text();
+    auto result = std::string(data);
+    delete[] data;
     return result;
 }
