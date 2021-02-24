@@ -40,16 +40,20 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
 
     tess.SetImage(image->getPix().get());
     tess.Recognize(nullptr);
-    tesseract::ResultIterator* ri = tess.GetIterator();
+    std::unique_ptr<tesseract::ResultIterator> ri(tess.GetIterator());
     tesseract::PageIteratorLevel level = tesseract::RIL_WORD;
+
+    auto deleter = [](char *p){
+        delete[] p;
+    };
     if(ri != nullptr){
         do {
-
-            const char* word = ri->GetUTF8Text(tesseract::RIL_WORD);
+            const std::unique_ptr<char, decltype(deleter)> word(ri->GetUTF8Text(tesseract::RIL_WORD), deleter);
             float conf = ri->Confidence(level);
         } while(ri->Next(level));
 
     }
-    auto result = std::string(tess.GetUTF8Text());
+    std::unique_ptr<char, decltype(deleter)> data(tess.GetUTF8Text(), deleter);
+    auto result = std::string(data.get());
     return result;
 }
