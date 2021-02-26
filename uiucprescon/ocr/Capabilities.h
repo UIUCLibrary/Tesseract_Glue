@@ -11,7 +11,6 @@
 class Capabilities {
 public:
     static std::string ImagelibVersions();
-    static std::map<const std::string, std::string> ImagelibVersions2();
 };
 
 
