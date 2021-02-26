@@ -16,3 +16,8 @@ def test_version():
     print(version)
     assert version_regex.match(version)
 
+
+def test_get_image_lib_versions():
+    data = ocr.tesseractwrap.get_image_lib_versions()
+    assert isinstance(data, str)
+

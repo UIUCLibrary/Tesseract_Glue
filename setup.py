@@ -158,6 +158,7 @@ class BuildTesseractExt(BuildPybind11Extension):
 tesseract_extension = setuptools.Extension(
     "uiucprescon.ocr.tesseractwrap",
     sources=[
+        'uiucprescon/ocr/Capabilities.cpp',
         'uiucprescon/ocr/glue.cpp',
         'uiucprescon/ocr/reader.cpp',
         'uiucprescon/ocr/reader2.cpp',
