@@ -17,3 +17,6 @@ norecursedirs = [
     "build"
 ]
 junit_family="xunit1"
+
+[tool.pylint.MASTER]
+init-hook="sys.path.append('.')"
