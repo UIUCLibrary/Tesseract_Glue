@@ -8,24 +8,22 @@ def test_import_module():
     assert isinstance(ocr, types.ModuleType)
 
 
-def test_version(record_property):
+def test_version():
 
     e = ocr.Engine("")
     version = e.get_version()
     version_regex = re.compile("[0-9][.][0-9]{1,2}[.][0-9]{1,2}")
-    record_property("version", version)
     assert version_regex.match(version)
 
 
-def test_get_image_lib_versions(record_property):
+def test_get_image_lib_versions():
     data = ocr.tesseractwrap.get_image_lib_versions()
-    record_property("lib_versions", data)
     assert isinstance(data, str)
 
 
 
-def test_get_tesseract_version(record_property):
+def test_get_tesseract_version():
     data = ocr.tesseractwrap.tesseract_version()
-    record_property("tesseract_version", data)
+    print(data)
     assert isinstance(data, str)
 
