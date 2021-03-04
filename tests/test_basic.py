@@ -21,3 +21,8 @@ def test_get_image_lib_versions():
     data = ocr.tesseractwrap.get_image_lib_versions()
     assert isinstance(data, str)
 
+
+def test_get_tesseract_version():
+    data = ocr.tesseractwrap.tesseract_version()
+    assert isinstance(data, str)
+
