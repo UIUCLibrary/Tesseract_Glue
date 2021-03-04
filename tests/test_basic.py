@@ -13,11 +13,13 @@ def test_version():
     e = ocr.Engine("")
     version = e.get_version()
     version_regex = re.compile("[0-9][.][0-9]{1,2}[.][0-9]{1,2}")
+    print(version)
     assert version_regex.match(version)
 
 
 def test_get_image_lib_versions():
     data = ocr.tesseractwrap.get_image_lib_versions()
+    print(data)
     assert isinstance(data, str)
 
 
