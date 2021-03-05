@@ -1,7 +1,14 @@
+"""Info about what is possible with the current build."""
+
 from uiucprescon.ocr import tesseractwrap
 
 
 def image_lib_versions():
+    """Get the libraries Leptonica linked to .
+
+    Returns:
+
+    """
     data = tesseractwrap.get_image_lib_versions()
 
     def spliter(item: str):
