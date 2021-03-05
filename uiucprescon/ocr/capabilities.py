@@ -1,5 +1,3 @@
-from typing import Tuple
-
 from uiucprescon.ocr import tesseractwrap
 
 
