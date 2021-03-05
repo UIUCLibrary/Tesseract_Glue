@@ -14,6 +14,4 @@ def image_lib_versions():
     def spliter(item: str):
         return tuple(item.strip().split(" "))
 
-    return {
-        key: value for key, value in map(spliter, data.split(":"))
-            }
+    return {key: value for key, value in map(spliter, data.split(":"))}
