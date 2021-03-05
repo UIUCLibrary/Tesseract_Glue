@@ -7,7 +7,7 @@ minversion = "6.0"
 testpaths = [
     "tests"
  ]
-addopts = "--verbose -s"
+addopts = "--verbose --capture=tee-sys"
 markers =[
     "integration"
 #    "integration: more expensive tests that touch files"
@@ -16,4 +16,9 @@ norecursedirs = [
     "features",
     "build"
 ]
-junit_family="xunit1"
+junit_logging = "all"
+junit_log_passing_tests = true
+junit_family="xunit2"
+
+[tool.pylint.MASTER]
+init-hook="sys.path.append('.')"

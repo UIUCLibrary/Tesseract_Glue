@@ -1,8 +1,11 @@
+#include <map>
 #include<pybind11/pybind11.h>
+#include<pybind11/stl.h>
 #include "glue.h"
 #include "reader2.h"
 #include "utils.h"
 #include "glueExceptions.h"
+#include "Capabilities.h"
 #include <leptonica/allheaders.h>
 
 PYBIND11_MODULE(tesseractwrap, m){
@@ -11,6 +14,9 @@ PYBIND11_MODULE(tesseractwrap, m){
     m.doc() = R"pbdoc(Wrapper to Tesseract's C++ API)pbdoc";
 
     m.def("tesseract_version", &tesseract_version, "Get the version of tesseract being used");
+    m.def("get_image_lib_versions", [](){
+        return Capabilities::ImagelibVersions();
+        }, "Get the version of image libraries being used");
 
     pybind11::class_<Pix, std::shared_ptr<Pix>>(m, "Pix")
             .def(pybind11::init<>());
