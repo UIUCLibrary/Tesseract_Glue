@@ -21,10 +21,11 @@ from .tesseractwrap import load_image   # noqa: E402
 from .engine import Engine              # noqa: E402
 from .reader import Reader              # noqa: E402
 from .languages import LANGUAGE_CODES   # noqa: E402
-
+from .capabilities import image_lib_versions
 __all__ = [
     "Reader",
     "Engine",
+    "image_lib_versions",
     "tesseractwrap",
     "LANGUAGE_CODES",
     "load_image"
