@@ -165,16 +165,18 @@ def getToxTestsParallel(args = [:]){
                                     summary: 'Use Tox to test installed package',
                                     title: 'Running Tox'
                                 )
-                                if(isUnix()){
-                                    sh(
-                                        label: "Running Tox with ${tox_env} environment",
-                                        script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env"
-                                    )
-                                } else {
-                                    bat(
-                                        label: "Running Tox with ${tox_env} environment",
-                                        script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP% -e $tox_env "
-                                    )
+                                withEnv(['PY_COLORS=0']){
+                                    if(isUnix()){
+                                        sh(
+                                            label: "Running Tox with ${tox_env} environment",
+                                            script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env"
+                                        )
+                                    } else {
+                                        bat(
+                                            label: "Running Tox with ${tox_env} environment",
+                                            script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP% -e $tox_env "
+                                        )
+                                    }
                                 }
                             } catch (e){
                                 def text
