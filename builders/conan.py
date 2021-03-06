@@ -4,7 +4,8 @@ import shutil
 from typing import Iterable, Any, Dict, List
 
 import setuptools
-
+from conans.client import conan_api, conf
+from conans.model.profile import Profile
 
 class ConanBuildInfoParser:
     def __init__(self, fp):
@@ -30,6 +31,7 @@ class ConanBuildInfoParser:
             buffer.append(line)
         yield buffer
         buffer.clear()
+
 
 class BuildConan(setuptools.Command):
     user_options = [
@@ -101,18 +103,18 @@ class BuildConan(setuptools.Command):
         self.mkpath(conan_cache)
         self.mkpath(build_dir_full_path)
         self.mkpath(os.path.join(build_dir_full_path, "lib"))
-        from conans.client import conan_api, conf
-        from conans.model.profile import Profile
+
         logger = logging.Logger(__name__)
         conan_profile_cache = os.path.join(build_dir, "profiles")
         settings = []
-        for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
-            settings.append(f"{name}={value}")
+        # for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
+        #     settings.append(f"{name}={value}")
         # s = conan_api.cmd_profile_get(profile_name="projectbuild", key="settings.os", cache_profiles_path=conan_profile_cache)
         self.announce(f"Using {conan_cache} for conan cache", 5)
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
+        # conan_options = ['openjpeg:shared=True']
         conan_options = []
-        build = ['missing']
+        build = []
 
         build_ext_cmd = self.get_finalized_command("build_ext")
         if build_ext_cmd.debug is not None:
@@ -125,11 +127,15 @@ class BuildConan(setuptools.Command):
             options=conan_options,
             cwd=build_dir,
             settings=settings,
-            build=build,
+            build=build if len(build) > 0 else None,
             path=conanfile_path,
             install_folder=build_dir_full_path,
             # profile_build=profile
         )
+        conaninfotext = os.path.join(build_dir, "conaninfo.txt")
+        if os.path.exists(conaninfotext):
+            with open(conaninfotext) as r:
+                self.announce(r.read(), 5)
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
