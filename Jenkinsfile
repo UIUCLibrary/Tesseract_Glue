@@ -282,7 +282,7 @@ pipeline {
                             tee("logs/python_build.log"){
                                 sh(
                                     label: "Build python package",
-                                    script: 'python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
+                                    script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
                                 )
                             }
                         }

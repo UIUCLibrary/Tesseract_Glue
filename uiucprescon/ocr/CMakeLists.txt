@@ -1,5 +1,5 @@
 add_library(glue OBJECT glue.cpp reader.cpp reader2.cpp utils.cpp fileLoader.cpp fileLoader
-        ImageLoaderStrategies.cpp Image.cpp glueExceptions.cpp)
+        ImageLoaderStrategies.cpp Image.cpp glueExceptions.cpp Capabilities.cpp Capabilities.h)
 target_include_directories(glue PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(glue PUBLIC
