@@ -6,7 +6,7 @@ import shutil
 from distutils.version import StrictVersion
 
 sys.path.insert(0, os.path.dirname(__file__))
-from builders.deps import parse_dumpbin_deps, remove_system_dlls
+from builders.deps import get_win_deps
 
 cmd_class = {}
 try:
@@ -47,16 +47,7 @@ try:
                 if self.compiler.compiler_type != "unix":
                     if not self.compiler.initialized:
                         self.compiler.initialize()
-                    self.compiler.spawn(
-                        [
-                            'dumpbin',
-                            '/dependents',
-                            dll_name,
-                            f'/out:{output_file}'
-                        ]
-                    )
-                    deps = parse_dumpbin_deps(file=output_file)
-                    deps = remove_system_dlls(deps)
+                    deps = get_win_deps(dll_name, output_file, compiler=self.compiler)
                     dest = os.path.dirname(dll_name)
 
                     for dep in deps:

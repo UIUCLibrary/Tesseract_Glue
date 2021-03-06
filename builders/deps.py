@@ -33,3 +33,17 @@ def remove_system_dlls(dlls):
             continue
         non_system_dlls.append(dll)
     return non_system_dlls
+
+
+def get_win_deps(dll_name, output_file, compiler):
+    compiler.spawn(
+        [
+            'dumpbin',
+            '/dependents',
+            dll_name,
+            f'/out:{output_file}'
+        ]
+    )
+    deps = parse_dumpbin_deps(file=output_file)
+    deps = remove_system_dlls(deps)
+    return deps
