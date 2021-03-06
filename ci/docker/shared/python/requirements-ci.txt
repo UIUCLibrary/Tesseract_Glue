@@ -7,6 +7,7 @@ lxml
 mypy
 ninja
 pep517
+pybind11
 pylint
 pytest
 pytest-cov
