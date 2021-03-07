@@ -174,9 +174,10 @@ def getToxTestsParallel(args = [:]){
                                     } else {
                                         bat "pip list"
                                         bat "tox --version"
+                                        bat "python -m build --sdist"
                                         bat(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  -vvvv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env "
+                                            script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env "
                                         )
                                     }
                                 }
