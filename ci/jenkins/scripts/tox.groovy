@@ -179,7 +179,7 @@ def getToxTestsParallel(args = [:]){
 
                                         powershell(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=$ENV:TEMP% -e $tox_env "
+                                            script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=\$ENV:TEMP% -e $tox_env "
                                         )
 //                                         bat(
 //                                             label: "Running Tox with ${tox_env} environment",
