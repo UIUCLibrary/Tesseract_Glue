@@ -103,7 +103,8 @@ tesseract_extension.cmake_source_dir = \
 setuptools.setup(
     packages=['uiucprescon.ocr'],
     setup_requires=[
-        'pytest-runner'
+        'pytest-runner',
+        'pybind11>=2.5'
     ],
     install_requires=[],
     test_suite='tests',
