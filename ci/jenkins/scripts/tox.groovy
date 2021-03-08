@@ -172,10 +172,19 @@ def getToxTestsParallel(args = [:]){
                                             script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env"
                                         )
                                     } else {
-                                        bat(
+                                        bat "pip list"
+                                        bat "tox --version"
+                                        bat "python -m build --sdist"
+                                        powershell("python -m build --sdist")
+
+                                        powershell(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  -vvv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env "
+                                            script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=$ENV:TEMP% -e $tox_env "
                                         )
+//                                         bat(
+//                                             label: "Running Tox with ${tox_env} environment",
+//                                             script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env "
+//                                         )
                                     }
                                 }
                             } catch (e){
@@ -199,7 +208,7 @@ def getToxTestsParallel(args = [:]){
                             publishChecks(
                                     name: githubChecksName,
                                     summary: 'Use Tox to test installed package',
-                                    text: "${checksReportText}",
+                                    text: "${checFksReportText}",
                                     title: 'Passed'
                                 )
                         }
