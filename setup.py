@@ -16,7 +16,7 @@ except ImportError:
     pass
 
 try:
-    from builders.pybind11 import BuildPybind11Extension
+    from builders.pybind11_builder import BuildPybind11Extension
 
     class BuildTesseractExt(BuildPybind11Extension):
 
