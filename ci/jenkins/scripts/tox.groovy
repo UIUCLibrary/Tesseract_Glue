@@ -208,7 +208,7 @@ def getToxTestsParallel(args = [:]){
                             publishChecks(
                                     name: githubChecksName,
                                     summary: 'Use Tox to test installed package',
-                                    text: "${checFksReportText}",
+                                    text: "${checksReportText}",
                                     title: 'Passed'
                                 )
                         }
