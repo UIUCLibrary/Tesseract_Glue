@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", "pybind11", "wheel", "cmake", "conan"]
+requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11>=2.5', "wheel", "cmake", "conan"]
 build-backend = "local_backend"
 backend-path = ["builders"]
 
