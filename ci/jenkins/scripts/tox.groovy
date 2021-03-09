@@ -175,6 +175,7 @@ def getToxTestsParallel(args = [:]){
                                             returnStatus: true
                                         )
                                     } else {
+                                        bat(script: "pip wheel --no-deps .")
                                         bat(script: "tox --notest -vv --workdir=%TEMP%\\tox -e ${tox_env}")
                                         toxReturnCode = bat(
                                             label: "Running Tox with ${tox_env} environment",
