@@ -71,6 +71,7 @@ def getErrorToxMetadataReport(tox_env, toxResultFile){
     def tox_result = readJSON(file: toxResultFile)
     def testEnv = tox_result['testenvs'][tox_env]
     def errorMessages = []
+    def tests = testEnv["test"] ? testEnv["test"] : []
     testEnv["test"].each{
         if (it['retcode'] != 0){
             echo "Found error ${it}"
@@ -170,13 +171,13 @@ def getToxTestsParallel(args = [:]){
                                     if(isUnix()){
                                         toxReturnCode = sh(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env",
+                                            script: "tox -vv --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env",
                                             returnStatus: true
                                         )
                                     } else {
                                         toxReturnCode = bat(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env ",
+                                            script: "tox  -vv --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%\\tox -e $tox_env ",
                                             returnStatus: true
                                         )
                                     }
@@ -200,7 +201,6 @@ def getToxTestsParallel(args = [:]){
                                         conclusion: 'FAILURE',
                                         title: 'Failed'
                                     )
-
                                 } else {
                                     def checksReportText = generateToxReport(tox_env, TOX_RESULT_FILE_NAME)
                                     publishChecks(
@@ -210,6 +210,14 @@ def getToxTestsParallel(args = [:]){
                                             title: 'Passed'
                                         )
                                 }
+                                cleanWs(
+                                    patterns: [
+                                            [pattern: '*.egg-info/', type: 'INCLUDE'],
+                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                            [pattern: TOX_RESULT_FILE_NAME, type: 'INCLUDE'],
+                                        ],
+                                    deleteDirs: true
+                                )
                             }
                         }
                     }
