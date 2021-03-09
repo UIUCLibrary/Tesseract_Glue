@@ -180,6 +180,9 @@ def getToxTestsParallel(args = [:]){
                                     }
                                 }
                             } catch (e){
+                                if(!isUnix()){
+                                    bat 'tree /A /F'
+                                }
                                 def text
                                 try{
                                     text = generateToxReport(tox_env, 'tox_result.json')
