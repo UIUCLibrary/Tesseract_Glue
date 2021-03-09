@@ -180,6 +180,9 @@ def getToxTestsParallel(args = [:]){
                                             returnStatus: true
                                         )
                                     }
+                                    if(toxReturnCode == 1){
+                                        error("Tox failed with return code ${toxReturnCode}")
+                                    }
                                 }
                             } finally {
                                 if(toxReturnCode == 1){
@@ -197,7 +200,7 @@ def getToxTestsParallel(args = [:]){
                                         conclusion: 'FAILURE',
                                         title: 'Failed'
                                     )
-                                    error("Tox failed with return code ${toxReturnCode}")
+
                                 } else {
                                     def checksReportText = generateToxReport(tox_env, TOX_RESULT_FILE_NAME)
                                     publishChecks(
