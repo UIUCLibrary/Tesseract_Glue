@@ -171,7 +171,7 @@ def getToxTestsParallel(args = [:]){
                                     if(isUnix()){
                                         toxReturnCode = sh(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox -vv --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env",
+                                            script: "tox -vv --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp/tox -e $tox_env",
                                             returnStatus: true
                                         )
                                     } else {
@@ -187,6 +187,20 @@ def getToxTestsParallel(args = [:]){
                                 }
                             } finally {
                                 if(toxReturnCode == 1){
+                                    if(isUnix()){
+                                        sh(
+                                            label: "Running Tox with showconfig",
+                                            script: "tox --showconfig --workdir=/tmp/tox",
+
+                                            returnStatus: true
+                                        )
+                                    } else {
+                                        bat(
+                                            label: "Running Tox with showconfig",
+                                            script: "tox --showconfig --workdir=%TEMP%\\tox",
+                                            returnStatus: true
+                                        )
+                                    }
                                     def text
                                     try{
                                         text = generateToxReport(tox_env, 'tox_result.json')
