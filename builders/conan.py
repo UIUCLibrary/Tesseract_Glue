@@ -114,7 +114,7 @@ class BuildConan(setuptools.Command):
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
         # conan_options = ['openjpeg:shared=True']
         conan_options = []
-        build = []
+        build = ['missing']
 
         build_ext_cmd = self.get_finalized_command("build_ext")
         if build_ext_cmd.debug is not None:
