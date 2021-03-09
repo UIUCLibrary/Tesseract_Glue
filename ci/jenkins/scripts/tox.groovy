@@ -165,7 +165,7 @@ def getToxTestsParallel(args = [:]){
                                     summary: 'Use Tox to test installed package',
                                     title: 'Running Tox'
                                 )
-                                withEnv(['PY_COLORS=0']){
+                                withEnv(['PY_COLORS=0', 'TOX_PARALLEL_NO_SPINNER=1']){
                                     if(isUnix()){
                                         sh(
                                             label: "Running Tox with ${tox_env} environment",
