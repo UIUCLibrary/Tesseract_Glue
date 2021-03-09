@@ -174,20 +174,11 @@ def getToxTestsParallel(args = [:]){
                                             returnStatus: true
                                         )
                                     } else {
-                                        if(tox_env == '3.6'){
                                         toxReturnCode = bat(
-                                                label: "Running Tox with ${tox_env} environment",
-                                                script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --alwayscopy --workdir=%TEMP%/tox -e $tox_env ",
-                                                returnStatus: true
-                                            )
-                                        }
-                                        else{
-                                            toxReturnCode = bat(
-                                                label: "Running Tox with ${tox_env} environment",
-                                                script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env ",
-                                                returnStatus: true
-                                            )
-                                        }
+                                            label: "Running Tox with ${tox_env} environment",
+                                            script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env ",
+                                            returnStatus: true
+                                        )
                                     }
                                 }
                             } finally {
