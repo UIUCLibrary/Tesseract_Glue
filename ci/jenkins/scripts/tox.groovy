@@ -177,7 +177,7 @@ def getToxTestsParallel(args = [:]){
                                     } else {
                                         toxReturnCode = bat(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  -vv --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%\\tox -e $tox_env ",
+                                            script: "tox  -vv --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%\\tox -e ${tox_env}",
                                             returnStatus: true
                                         )
                                     }
@@ -190,14 +190,14 @@ def getToxTestsParallel(args = [:]){
                                     if(isUnix()){
                                         sh(
                                             label: "Running Tox with showconfig",
-                                            script: "tox --showconfig --workdir=/tmp/tox",
+                                            script: "tox --showconfig --workdir=/tmp/tox -e ${tox_env}",
 
                                             returnStatus: true
                                         )
                                     } else {
                                         bat(
                                             label: "Running Tox with showconfig",
-                                            script: "tox --showconfig --workdir=%TEMP%\\tox",
+                                            script: "tox --showconfig --workdir=%TEMP%\\tox -e ${tox_env}",
                                             returnStatus: true
                                         )
                                     }
