@@ -196,7 +196,7 @@ def getToxTestsParallel(args = [:]){
                                 )
                                 throw e
                             } finally {
-                                archiveArtifacts artifacts: "**/*.log"
+                                archiveArtifacts artifacts: "**/*.log", allowEmptyArchive: true
                             }
                             def checksReportText = generateToxReport(tox_env, TOX_RESULT_FILE_NAME)
                             publishChecks(
