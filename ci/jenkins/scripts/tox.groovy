@@ -157,6 +157,7 @@ def getToxTestsParallel(args = [:]){
                     ws{
                         checkout scm
                         dockerImageForTesting.inside{
+                            def toxReturnCode
                             try{
                                 publishChecks(
                                     conclusion: 'NONE',
@@ -167,47 +168,55 @@ def getToxTestsParallel(args = [:]){
                                 )
                                 withEnv(['PY_COLORS=0', 'TOX_PARALLEL_NO_SPINNER=1']){
                                     if(isUnix()){
-                                        sh(
+                                        toxReturnCode = sh(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  -vv --parallel--safe-build --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env"
+                                            script: "tox --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp -e $tox_env",
+                                            returnStatus: true
                                         )
                                     } else {
-                                        bat(
-                                            label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --workdir=./tox -e $tox_env "
-//                                             script: "tox  -vvv --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env "
-                                        )
+                                        if(tox_env == '3.6'){
+                                        toxReturnCode = bat(
+                                                label: "Running Tox with ${tox_env} environment",
+                                                script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --alwayscopy --workdir=%TEMP%/tox -e $tox_env ",
+                                                returnStatus: true
+                                            )
+                                        }
+                                        else{
+                                            toxReturnCode = bat(
+                                                label: "Running Tox with ${tox_env} environment",
+                                                script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env ",
+                                                returnStatus: true
+                                            )
+                                        }
                                     }
                                 }
-                            } catch (e){
-                                if(!isUnix()){
-                                    bat 'tree /A /F'
-                                }
-                                def text
-                                try{
-                                    text = generateToxReport(tox_env, 'tox_result.json')
-                                }
-                                catch (ex){
-                                    text = "No details given. Unable to read tox_result.json"
-                                }
-                                publishChecks(
-                                    name: githubChecksName,
-                                    summary: 'Use Tox to test installed package',
-                                    text: text,
-                                    conclusion: 'FAILURE',
-                                    title: 'Failed'
-                                )
-                                throw e
                             } finally {
-                                archiveArtifacts artifacts: "**/*.log", allowEmptyArchive: true
+                                if(toxReturnCode == 1){
+                                    def text
+                                    try{
+                                        text = generateToxReport(tox_env, 'tox_result.json')
+                                    }
+                                    catch (ex){
+                                        text = "No details given. Unable to read tox_result.json"
+                                    }
+                                    publishChecks(
+                                        name: githubChecksName,
+                                        summary: 'Use Tox to test installed package',
+                                        text: text,
+                                        conclusion: 'FAILURE',
+                                        title: 'Failed'
+                                    )
+                                    error("Tox failed with return code ${toxReturnCode}")
+                                } else {
+                                    def checksReportText = generateToxReport(tox_env, TOX_RESULT_FILE_NAME)
+                                    publishChecks(
+                                            name: githubChecksName,
+                                            summary: 'Use Tox to test installed package',
+                                            text: "${checksReportText}",
+                                            title: 'Passed'
+                                        )
+                                }
                             }
-                            def checksReportText = generateToxReport(tox_env, TOX_RESULT_FILE_NAME)
-                            publishChecks(
-                                    name: githubChecksName,
-                                    summary: 'Use Tox to test installed package',
-                                    text: "${checksReportText}",
-                                    title: 'Passed'
-                                )
                         }
                     }
                 }
