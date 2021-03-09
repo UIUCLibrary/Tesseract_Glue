@@ -11,3 +11,7 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
 def get_requires_for_build_sdist(config_settings=None):
     return []
+
+
+def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
+    return setuptools.build_meta.prepare_metadata_for_build_wheel(metadata_directory, config_settings)
