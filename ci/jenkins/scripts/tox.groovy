@@ -174,7 +174,7 @@ def getToxTestsParallel(args = [:]){
                                     } else {
                                         bat(
                                             label: "Running Tox with ${tox_env} environment",
-                                            script: "tox  -vvv --result-json=${TOX_RESULT_FILE_NAME} --workdir=./tox -e $tox_env "
+                                            script: "tox  --result-json=${TOX_RESULT_FILE_NAME} --workdir=./tox -e $tox_env "
 //                                             script: "tox  -vvv --result-json=${TOX_RESULT_FILE_NAME} --workdir=%TEMP%/tox -e $tox_env "
                                         )
                                     }
