@@ -32,9 +32,10 @@ try:
         def run(self):
             pybind11_include_path = self.get_pybind11_include_path()
 
-            if pybind11_include_path is not None:
-                self.include_dirs.append(pybind11_include_path)
+            if pybind11_include_path is None:
+                raise FileNotFoundError("Missing pybind11 include path")
 
+            self.include_dirs.append(pybind11_include_path)
             super().run()
 
             for e in self.extensions:
