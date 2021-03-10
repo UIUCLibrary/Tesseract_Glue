@@ -4,7 +4,7 @@ import shutil
 from typing import Iterable, Any, Dict, List
 
 import setuptools
-# import conans.client
+import conans.client
 
 class ConanBuildInfoParser:
     def __init__(self, fp):
@@ -97,7 +97,7 @@ class BuildConan(setuptools.Command):
         self.mkpath(build_dir_full_path)
         self.mkpath(os.path.join(build_dir_full_path, "lib"))
         from conans.client import conan_api, conf
-        from conans.model.profile import Profile
+        # from conans.model.profile import Profile
         logger = logging.Logger(__name__)
         conan_profile_cache = os.path.join(build_dir, "profiles")
         settings = []
