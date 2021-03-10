@@ -1,11 +1,12 @@
 import logging
 import os
 import shutil
-from typing import Iterable, Any, Dict, List
+import abc
+from typing import Iterable, Any, Dict, List, Union
 
 import setuptools
-from conans.client import conan_api, conf
-from conans.model.profile import Profile
+
+# from conans.model.profile import Profile
 
 class ConanBuildInfoParser:
     def __init__(self, fp):
@@ -33,23 +34,45 @@ class ConanBuildInfoParser:
         buffer.clear()
 
 
+class AbsConanBuildInfo(abc.ABC):
+    @abc.abstractmethod
+    def parse(self, filename: str) -> Dict[str, str]:
+        pass
+
+
+class ConanBuildInfoTXT(AbsConanBuildInfo):
+
+    def parse(self, filename: str) -> Dict[str, Union[str, List[str]]]:
+        with open(filename, "r") as f:
+            parser = ConanBuildInfoParser(f)
+            data = parser.parse()
+            definitions = data['defines']
+            include_paths = data['includedirs']
+            lib_paths = data['libdirs']
+            bin_paths = data['bindirs']
+            libs = data['libs']
+
+        return {
+            "definitions": definitions,
+            "include_paths": list(include_paths),
+            "lib_paths": list(lib_paths),
+            "bin_paths": list(bin_paths),
+            "libs": list(libs),
+
+        }
+
+
 class BuildConan(setuptools.Command):
     user_options = [
-        ('conan-exec=', "c", 'conan executable'),
         ('conan-cache=', None, 'conan cache directory')
     ]
 
     description = "Get the required dependencies from a Conan package manager"
 
     def initialize_options(self):
-        self.conan_exec = None
         self.conan_cache = None
 
     def finalize_options(self):
-        if self.conan_exec is None:
-            self.conan_exec = shutil.which("conan")
-            if self.conan_exec is None:
-                raise Exception("missing conan_exec")
         if self.conan_cache is None:
             build_ext_cmd = self.get_finalized_command("build_ext")
             build_dir = build_ext_cmd.build_temp
@@ -67,30 +90,30 @@ class BuildConan(setuptools.Command):
                     return os.path.join(root, f)
         return None
 
-    def get_from_txt(self, conanbuildinfo_file):
-        definitions = []
-        include_paths = []
-        lib_paths = []
-        bin_paths = []
-        libs = []
-
-        with open(conanbuildinfo_file, "r") as f:
-            parser = ConanBuildInfoParser(f)
-            data = parser.parse()
-            definitions = data['defines']
-            include_paths = data['includedirs']
-            lib_paths = data['libdirs']
-            bin_paths = data['bindirs']
-            libs = data['libs']
-
-        return {
-            "definitions": definitions,
-            "include_paths": list(include_paths),
-            "lib_paths": list(lib_paths),
-            "bin_paths": list(bin_paths),
-            "libs": list(libs),
-
-        }
+    # def get_from_txt(self, conanbuildinfo_file):
+    #     definitions = []
+    #     include_paths = []
+    #     lib_paths = []
+    #     bin_paths = []
+    #     libs = []
+    #
+    #     with open(conanbuildinfo_file, "r") as f:
+    #         parser = ConanBuildInfoParser(f)
+    #         data = parser.parse()
+    #         definitions = data['defines']
+    #         include_paths = data['includedirs']
+    #         lib_paths = data['libdirs']
+    #         bin_paths = data['bindirs']
+    #         libs = data['libs']
+    #
+    #     return {
+    #         "definitions": definitions,
+    #         "include_paths": list(include_paths),
+    #         "lib_paths": list(lib_paths),
+    #         "bin_paths": list(bin_paths),
+    #         "libs": list(libs),
+    #
+    #     }
 
     def run(self):
         # self.reinitialize_command("build_ext")
@@ -111,6 +134,7 @@ class BuildConan(setuptools.Command):
         #     settings.append(f"{name}={value}")
         # s = conan_api.cmd_profile_get(profile_name="projectbuild", key="settings.os", cache_profiles_path=conan_profile_cache)
         self.announce(f"Using {conan_cache} for conan cache", 5)
+        from conans.client import conan_api
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
         # conan_options = ['openjpeg:shared=True']
         conan_options = []
@@ -139,7 +163,9 @@ class BuildConan(setuptools.Command):
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
-        text_md = self.get_from_txt(conanbuildinfotext)
+        metadata_strategy = ConanBuildInfoTXT()
+        text_md = metadata_strategy.parse(conanbuildinfotext)
+
         for path in text_md['include_paths']:
             if build_ext_cmd.compiler is None:
                 if path not in build_ext_cmd.include_dirs:
