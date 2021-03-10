@@ -130,6 +130,7 @@ class BuildConan(setuptools.Command):
                     build_ext_cmd.include_dirs.insert(0, path)
             else:
                 build_ext_cmd.compiler.include_dirs.insert(0, path)
+        self.announce(f"Added the following paths to include path {', '.join(metadata['include_paths'])} ", 5)
 
         for path in metadata['lib_paths']:
             assert os.path.exists(path)
@@ -138,6 +139,10 @@ class BuildConan(setuptools.Command):
                     build_ext_cmd.library_dirs.insert(0, path)
             else:
                 build_ext_cmd.compiler.library_dirs.insert(0, path)
+        self.announce(
+            f"Added the following paths to library path {', '.join(metadata['lib_paths'])} ",
+            5)
+
         extension_deps = set()
         for lib in metadata['libs']:
             if lib == self.output_library_name:
@@ -164,6 +169,7 @@ class BuildConan(setuptools.Command):
                     continue
                 extension.libraries.append(lib)
             extension.define_macros += [(d,) for d in metadata['definitions']]
+
 
     def run(self):
         # self.reinitialize_command("build_ext")
