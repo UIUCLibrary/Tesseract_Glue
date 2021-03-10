@@ -130,6 +130,10 @@ class BuildConan(setuptools.Command):
             install_folder=build_dir_full_path,
             # profile_build=profile
         )
+        conaninfotext = os.path.join(build_dir, "conaninfo.txt")
+        if os.path.exists(conaninfotext):
+            with open(conaninfotext) as r:
+                self.announce(r.read(), 5)
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
