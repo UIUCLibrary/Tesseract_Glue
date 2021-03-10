@@ -20,21 +20,17 @@ if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
           file=sys.stderr
           )
 
-    sys.exit(1)
+cmd_class = {}
+try:
+    from builders.conan import BuildConan
+    cmd_class["build_conan"] = BuildConan
+except ImportError:
+    pass
+try:
+    from builders.pybind11_builder import BuildPybind11Extension as e2
+except ImportError as e:
+    pass
 
-def remove_system_dlls(dlls):
-    non_system_dlls = []
-    for dll in dlls:
-        if dll.startswith("api-ms-win-crt"):
-            continue
-
-        if dll.startswith("python"):
-            continue
-
-        if dll == "KERNEL32.dll":
-            continue
-        non_system_dlls.append(dll)
-    return non_system_dlls
 
 class BuildPybind11Extension(build_ext):
     user_options = build_ext.user_options + [
