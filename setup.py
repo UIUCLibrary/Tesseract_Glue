@@ -46,14 +46,13 @@ try:
                 if self.compiler.compiler_type != "unix":
                     if not self.compiler.initialized:
                         self.compiler.initialize()
-                    deps = get_win_deps(dll_name, output_file,
-                                        compiler=self.compiler)
+                    deps = get_win_deps(dll_name, output_file, compiler=self.compiler)
                     dest = os.path.dirname(dll_name)
 
                     for dep in deps:
                         dll = self.find_deps(dep)
                         if dll is None:
-                            raise FileNotFoundError("Mising for {}".format(dep))
+                            raise FileNotFoundError("Missing for {}".format(dep))
                         shutil.copy(dll, dest)
 
     cmd_class["build_ext"] = BuildTesseractExt
