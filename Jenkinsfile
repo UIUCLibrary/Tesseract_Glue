@@ -292,7 +292,6 @@ pipeline {
                     }
                     post{
                         always{
-                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so,build/**', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*'), excludeFile('conan/*'), ], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
                     }
@@ -326,8 +325,11 @@ pipeline {
                 cleanup{
                     cleanWs(
                         patterns: [
+                                [pattern: 'dist/', type: 'INCLUDE'],
                                 [pattern: 'build/', type: 'INCLUDE'],
                                 [pattern: 'logs/', type: 'INCLUDE'],
+                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
                             ],
                         notFailBuild: true,
                         deleteDirs: true
