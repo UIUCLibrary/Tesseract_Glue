@@ -162,8 +162,8 @@ class BuildConan(setuptools.Command):
                 build_ext_cmd.macros = [(d, ) for d in metadata['definitions']]
 
         for extension in build_ext_cmd.extensions:
-            if self.output_library_name in extension.libraries:
-                extension.libraries.remove(self.output_library_name)
+            # if self.output_library_name in extension.libraries:
+            #     extension.libraries.remove(self.output_library_name)
             for lib in metadata['libs']:
                 if lib == self.output_library_name:
                     continue
