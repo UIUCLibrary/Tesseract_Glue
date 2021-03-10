@@ -1,14 +1,12 @@
 import os
 import sys
 
-sys.path.insert(0, os.path.dirname(__file__))
 import setuptools
-from setuptools.command.build_ext import build_ext
 import shutil
 from distutils.version import StrictVersion
-import tarfile
-from urllib import request
 
+sys.path.insert(0, os.path.dirname(__file__))
+from builders.deps import get_win_deps
 
 cmd_class = {}
 try:
@@ -21,7 +19,7 @@ try:
 except ImportError as e:
     pass
 
-
+from setuptools.command.build_ext import build_ext
 class BuildPybind11Extension(build_ext):
     user_options = build_ext.user_options + [
         ('pybind11-url=', None,
@@ -74,6 +72,8 @@ class BuildPybind11Extension(build_ext):
         super().build_extension(ext)
 
     def get_pybind11_include_path(self):
+        import tarfile
+        from urllib import request
         pybind11_archive_filename = os.path.split(self.pybind11_url)[1]
 
         pybind11_archive_downloaded = os.path.join(self.build_temp,
@@ -108,7 +108,6 @@ class BuildTesseractExt(BuildPybind11Extension):
         super().build_extension(ext)
 
     def run(self):
-        from builders.deps import get_win_deps
         pybind11_include_path = self.get_pybind11_include_path()
 
         if pybind11_include_path is not None:
