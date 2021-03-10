@@ -2,9 +2,6 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(__file__))
-from builders.conan import BuildConan
-from builders.pybind11 import PYBIND11_DEFAULT_URL
-from builders.deps import get_win_deps
 import setuptools
 from setuptools.command.build_ext import build_ext
 import shutil
@@ -12,13 +9,6 @@ from distutils.version import StrictVersion
 import tarfile
 from urllib import request
 
-PACKAGE_NAME = "uiucprescon.ocr"
-
-if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
-    print('your setuptools version does not support using setup.cfg. '
-          'Upgrade setuptools and repeat the installation.',
-          file=sys.stderr
-          )
 
 cmd_class = {}
 try:
@@ -43,6 +33,7 @@ class BuildPybind11Extension(build_ext):
         self.pybind11_url = None
 
     def finalize_options(self):
+        from builders.pybind11 import PYBIND11_DEFAULT_URL
         self.pybind11_url = self.pybind11_url or PYBIND11_DEFAULT_URL
         super().finalize_options()
 
@@ -117,6 +108,7 @@ class BuildTesseractExt(BuildPybind11Extension):
         super().build_extension(ext)
 
     def run(self):
+        from builders.deps import get_win_deps
         pybind11_include_path = self.get_pybind11_include_path()
 
         if pybind11_include_path is not None:
@@ -142,6 +134,15 @@ class BuildTesseractExt(BuildPybind11Extension):
                     shutil.copy(dll, dest)
 
 cmd_class["build_ext"] = BuildTesseractExt
+PACKAGE_NAME = "uiucprescon.ocr"
+
+if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
+    print('your setuptools version does not support using setup.cfg. '
+          'Upgrade setuptools and repeat the installation.',
+          file=sys.stderr
+          )
+
+    sys.exit(1)
 
 tesseract_extension = setuptools.Extension(
     "uiucprescon.ocr.tesseractwrap",
