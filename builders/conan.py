@@ -31,6 +31,7 @@ class ConanBuildInfoParser:
         yield buffer
         buffer.clear()
 
+
 class BuildConan(setuptools.Command):
     user_options = [
         ('conan-exec=', "c", 'conan executable'),
@@ -125,7 +126,7 @@ class BuildConan(setuptools.Command):
             options=conan_options,
             cwd=build_dir,
             settings=settings,
-            build=build,
+            build=build if len(build) > 0 else None,
             path=conanfile_path,
             install_folder=build_dir_full_path,
             # profile_build=profile
