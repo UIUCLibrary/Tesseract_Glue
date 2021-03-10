@@ -141,7 +141,7 @@ class BuildTesseractExt(BuildPybind11Extension):
                         raise FileNotFoundError("Mising for {}".format(dep))
                     shutil.copy(dll, dest)
 
-
+cmd_class["build_ext"] = BuildTesseractExt
 
 tesseract_extension = setuptools.Extension(
     "uiucprescon.ocr.tesseractwrap",
@@ -172,7 +172,7 @@ tesseract_extension = setuptools.Extension(
 
 tesseract_extension.cmake_source_dir = \
     os.path.abspath(os.path.dirname(__file__))
-cmd_class["build_ext"] = BuildTesseractExt
+
 setuptools.setup(
     packages=['uiucprescon.ocr'],
     setup_requires=[
