@@ -29,7 +29,8 @@ try:
             self.pybind11_url = None
 
         def finalize_options(self):
-            from builders.pybind11 import PYBIND11_DEFAULT_URL
+            PYBIND11_DEFAULT_URL = \
+                "https://github.com/pybind/pybind11/archive/v2.5.0.tar.gz"
             self.pybind11_url = self.pybind11_url or PYBIND11_DEFAULT_URL
             super().finalize_options()
 
