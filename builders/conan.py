@@ -34,7 +34,6 @@ class ConanBuildInfoParser:
 
 class BuildConan(setuptools.Command):
     user_options = [
-        ('conan-exec=', "c", 'conan executable'),
         ('conan-cache=', None, 'conan cache directory')
     ]
 
