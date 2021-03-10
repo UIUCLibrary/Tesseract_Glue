@@ -1,7 +1,8 @@
 import logging
 import os
 import shutil
-from typing import Iterable, Any, Dict, List
+import abc
+from typing import Iterable, Any, Dict, List, Union
 
 import setuptools
 
@@ -33,6 +34,34 @@ class ConanBuildInfoParser:
         buffer.clear()
 
 
+class AbsConanBuildInfo(abc.ABC):
+    @abc.abstractmethod
+    def parse(self, filename: str) -> Dict[str, str]:
+        pass
+
+
+class ConanBuildInfoTXT(AbsConanBuildInfo):
+
+    def parse(self, filename: str) -> Dict[str, Union[str, List[str]]]:
+        with open(filename, "r") as f:
+            parser = ConanBuildInfoParser(f)
+            data = parser.parse()
+            definitions = data['defines']
+            include_paths = data['includedirs']
+            lib_paths = data['libdirs']
+            bin_paths = data['bindirs']
+            libs = data['libs']
+
+        return {
+            "definitions": definitions,
+            "include_paths": list(include_paths),
+            "lib_paths": list(lib_paths),
+            "bin_paths": list(bin_paths),
+            "libs": list(libs),
+
+        }
+
+
 class BuildConan(setuptools.Command):
     user_options = [
         ('conan-cache=', None, 'conan cache directory')
@@ -61,30 +90,30 @@ class BuildConan(setuptools.Command):
                     return os.path.join(root, f)
         return None
 
-    def get_from_txt(self, conanbuildinfo_file):
-        definitions = []
-        include_paths = []
-        lib_paths = []
-        bin_paths = []
-        libs = []
-
-        with open(conanbuildinfo_file, "r") as f:
-            parser = ConanBuildInfoParser(f)
-            data = parser.parse()
-            definitions = data['defines']
-            include_paths = data['includedirs']
-            lib_paths = data['libdirs']
-            bin_paths = data['bindirs']
-            libs = data['libs']
-
-        return {
-            "definitions": definitions,
-            "include_paths": list(include_paths),
-            "lib_paths": list(lib_paths),
-            "bin_paths": list(bin_paths),
-            "libs": list(libs),
-
-        }
+    # def get_from_txt(self, conanbuildinfo_file):
+    #     definitions = []
+    #     include_paths = []
+    #     lib_paths = []
+    #     bin_paths = []
+    #     libs = []
+    #
+    #     with open(conanbuildinfo_file, "r") as f:
+    #         parser = ConanBuildInfoParser(f)
+    #         data = parser.parse()
+    #         definitions = data['defines']
+    #         include_paths = data['includedirs']
+    #         lib_paths = data['libdirs']
+    #         bin_paths = data['bindirs']
+    #         libs = data['libs']
+    #
+    #     return {
+    #         "definitions": definitions,
+    #         "include_paths": list(include_paths),
+    #         "lib_paths": list(lib_paths),
+    #         "bin_paths": list(bin_paths),
+    #         "libs": list(libs),
+    #
+    #     }
 
     def run(self):
         # self.reinitialize_command("build_ext")
@@ -134,7 +163,9 @@ class BuildConan(setuptools.Command):
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
-        text_md = self.get_from_txt(conanbuildinfotext)
+        metadata_strategy = ConanBuildInfoTXT()
+        text_md = metadata_strategy.parse(conanbuildinfotext)
+
         for path in text_md['include_paths']:
             if build_ext_cmd.compiler is None:
                 if path not in build_ext_cmd.include_dirs:
