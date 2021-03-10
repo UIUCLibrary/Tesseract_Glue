@@ -4,7 +4,7 @@ import shutil
 from typing import Iterable, Any, Dict, List
 
 import setuptools
-
+import conans.client
 
 class ConanBuildInfoParser:
     def __init__(self, fp):
