@@ -4,8 +4,8 @@ import shutil
 from typing import Iterable, Any, Dict, List
 
 import setuptools
-from conans.client import conan_api, conf
-from conans.model.profile import Profile
+
+# from conans.model.profile import Profile
 
 class ConanBuildInfoParser:
     def __init__(self, fp):
@@ -111,6 +111,7 @@ class BuildConan(setuptools.Command):
         #     settings.append(f"{name}={value}")
         # s = conan_api.cmd_profile_get(profile_name="projectbuild", key="settings.os", cache_profiles_path=conan_profile_cache)
         self.announce(f"Using {conan_cache} for conan cache", 5)
+        from conans.client import conan_api
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
         # conan_options = ['openjpeg:shared=True']
         conan_options = []
