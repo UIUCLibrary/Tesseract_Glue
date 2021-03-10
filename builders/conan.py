@@ -35,21 +35,15 @@ class ConanBuildInfoParser:
 
 class BuildConan(setuptools.Command):
     user_options = [
-        ('conan-exec=', "c", 'conan executable'),
         ('conan-cache=', None, 'conan cache directory')
     ]
 
     description = "Get the required dependencies from a Conan package manager"
 
     def initialize_options(self):
-        self.conan_exec = None
         self.conan_cache = None
 
     def finalize_options(self):
-        if self.conan_exec is None:
-            self.conan_exec = shutil.which("conan")
-            if self.conan_exec is None:
-                raise Exception("missing conan_exec")
         if self.conan_cache is None:
             build_ext_cmd = self.get_finalized_command("build_ext")
             build_dir = build_ext_cmd.build_temp
