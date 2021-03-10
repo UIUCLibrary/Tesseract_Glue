@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import shutil
 import abc
 from typing import Iterable, Any, Dict, List, Union
@@ -60,6 +61,38 @@ class ConanBuildInfoTXT(AbsConanBuildInfo):
             "libs": list(libs),
 
         }
+
+
+class CompilerInfoAdder:
+
+    def __init__(self, build_ext_cmd) -> None:
+        super().__init__()
+        self._build_ext_cmd = build_ext_cmd
+        if build_ext_cmd.compiler is None:
+            self._place_to_add = build_ext_cmd
+        else:
+            self._place_to_add = build_ext_cmd.compiler
+
+    def add_libs(self, libs: List[str]):
+        extension_deps = set()
+        for lib in reversed(libs):
+            # if lib == self.output_library_name:
+            #     continue
+            if lib not in self._place_to_add.libraries and lib not in extension_deps:
+                self._place_to_add.libraries.insert(0, lib)
+
+    def add_lib_dirs(self, lib_dirs: List[str]):
+        for path in reversed(lib_dirs):
+            assert os.path.exists(path)
+            if path not in self._place_to_add.library_dirs:
+                self._place_to_add.library_dirs.insert(0, path)
+
+    def add_include_dirs(self, include_dirs: List[str]):
+        for path in reversed(include_dirs):
+            if path not in self._place_to_add.include_dirs:
+                self._place_to_add.include_dirs.insert(0, path)
+            else:
+                self._place_to_add.compiler.include_dirs.insert(0, path)
 
 
 class BuildConan(setuptools.Command):
@@ -124,34 +157,25 @@ class BuildConan(setuptools.Command):
 
     def add_deps_to_compiler(self, metadata) -> None:
         build_ext_cmd = self.get_finalized_command("build_ext")
-        for path in metadata['include_paths']:
-            if build_ext_cmd.compiler is None:
-                if path not in build_ext_cmd.include_dirs:
-                    build_ext_cmd.include_dirs.insert(0, path)
-            else:
-                build_ext_cmd.compiler.include_dirs.insert(0, path)
-        self.announce(f"Added the following paths to include path {', '.join(metadata['include_paths'])} ", 5)
+        compiler_adder = CompilerInfoAdder(build_ext_cmd)
 
-        for path in metadata['lib_paths']:
-            assert os.path.exists(path)
-            if build_ext_cmd.compiler is None:
-                if path not in build_ext_cmd.library_dirs:
-                    build_ext_cmd.library_dirs.insert(0, path)
-            else:
-                build_ext_cmd.compiler.library_dirs.insert(0, path)
+        include_dirs = metadata['include_paths']
+        compiler_adder.add_include_dirs(include_dirs)
+        self.announce(
+            f"Added the following paths to include path {', '.join(include_dirs)} ",
+            5)
+
+        lib_paths = metadata['lib_paths']
+        compiler_adder.add_lib_dirs(lib_paths)
         self.announce(
             f"Added the following paths to library path {', '.join(metadata['lib_paths'])} ",
             5)
 
-        extension_deps = set()
-        for lib in metadata['libs']:
-            if lib == self.output_library_name:
-                continue
-            if lib not in build_ext_cmd.libraries and lib not in extension_deps:
-                if build_ext_cmd.compiler is None:
-                    build_ext_cmd.libraries.insert(0, lib)
-                else:
-                    build_ext_cmd.compiler.libraries.insert(0, lib)
+        libs = metadata['libs']
+        if self.output_library_name in libs:
+            libs.remove(self.output_library_name)
+
+        compiler_adder.add_libs(libs)
 
         if build_ext_cmd.compiler is not None:
             build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions']]
@@ -162,8 +186,11 @@ class BuildConan(setuptools.Command):
                 build_ext_cmd.macros = [(d, ) for d in metadata['definitions']]
 
         for extension in build_ext_cmd.extensions:
-            # if self.output_library_name in extension.libraries:
-            #     extension.libraries.remove(self.output_library_name)
+            # fixme
+            if sys.platform == "windows":
+                if self.output_library_name in extension.libraries:
+                    extension.libraries.remove(self.output_library_name)
+
             for lib in metadata['libs']:
                 if lib == self.output_library_name:
                     continue
