@@ -11,7 +11,6 @@ testpaths = [
 addopts = "--verbose --capture=tee-sys"
 markers =[
     "integration"
-#    "integration: more expensive tests that touch files"
 ]
 norecursedirs = [
     "features",
