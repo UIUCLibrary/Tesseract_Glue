@@ -187,4 +187,4 @@ RUN conan install c:/temp/ --build missing --no-import  ; `
     conan remove --locks
 
 WORKDIR C:/src
-CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
+CMD tox --workdir %TEMP%\tox\ -vv  --recreate
