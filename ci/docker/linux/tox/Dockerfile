@@ -1,10 +1,10 @@
 FROM ubuntu:20.04 as wheel_builder_base
+COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 RUN apt update && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:deadsnakes/ppa && \
-    apt update
-COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
-RUN cat /tmp/apt-packages.txt | xargs apt install -y python3-pip
+    apt update && \
+    cat /tmp/apt-packages.txt | xargs apt install -y python3-pip
 
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
