@@ -129,7 +129,7 @@ class BuildConan(setuptools.Command):
 
     def _get_deps(self, build_dir=None, conan_cache=None):
         build_dir = build_dir or self.get_finalized_command("build_clib").build_temp
-        from conans.client import conan_api
+        from conans.client import conan_api, conf
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
         if sys.platform == "nt":
             conan_options = ['tesseract:shared=True']
@@ -139,6 +139,11 @@ class BuildConan(setuptools.Command):
 
         build_ext_cmd = self.get_finalized_command("build_ext")
         settings = []
+        logger = logging.Logger(__name__)
+        conan_profile_cache = os.path.join(build_dir, "profiles")
+        for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
+            settings.append(f"{name}={value}")
+
         if build_ext_cmd.debug is not None:
             settings.append("build_type=Debug")
         #     FIXME: This should be the setup.py file dir
