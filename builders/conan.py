@@ -4,7 +4,7 @@ import sys
 import shutil
 import abc
 from typing import Iterable, Any, Dict, List, Union
-
+import subprocess
 import setuptools
 
 # from conans.model.profile import Profile
@@ -190,7 +190,7 @@ class BuildConan(setuptools.Command):
         if self.output_library_name in libs:
             libs.remove(self.output_library_name)
 
-        compiler_adder.add_libs(libs)
+        # compiler_adder.add_libs(libs)
 
         if build_ext_cmd.compiler is not None:
             build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
@@ -213,6 +213,13 @@ class BuildConan(setuptools.Command):
             # extension.define_macros += [
             #     (d,) for d in metadata['definitions'] if d not in extension.define_macros
             # ]
+    def test_tesseract(self, build_file):
+        with open(build_file, "r") as f:
+            parser = ConanBuildInfoParser(f)
+            data = parser.parse()
+            path = data['bindirs_tesseract']
+            tesseract = shutil.which("tesseract", path=path[0])
+            subprocess.check_call([tesseract, '--version'])
 
 
     def run(self):
@@ -240,6 +247,7 @@ class BuildConan(setuptools.Command):
                 self.announce(r.read(), 5)
 
         assert os.path.exists(conanbuildinfotext)
+        self.test_tesseract(build_file=conanbuildinfotext)
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         self.add_deps_to_compiler(metadata=text_md)
