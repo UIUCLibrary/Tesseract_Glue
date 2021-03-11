@@ -198,9 +198,9 @@ class BuildConan(setuptools.Command):
                     continue
                 if lib not in extension.libraries:
                     extension.libraries.append(lib)
-            extension.define_macros += [
-                (d,) for d in metadata['definitions'] if d not in extension.define_macros
-            ]
+            # extension.define_macros += [
+            #     (d,) for d in metadata['definitions'] if d not in extension.define_macros
+            # ]
 
 
     def run(self):
