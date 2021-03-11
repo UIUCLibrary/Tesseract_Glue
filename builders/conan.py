@@ -187,7 +187,7 @@ class BuildConan(setuptools.Command):
 
         for extension in build_ext_cmd.extensions:
             # fixme
-            if sys.platform == "windows":
+            if sys.platform == "nt":
                 if self.output_library_name in extension.libraries:
                     extension.libraries.remove(self.output_library_name)
 
