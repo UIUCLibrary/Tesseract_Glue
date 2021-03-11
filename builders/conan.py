@@ -131,7 +131,7 @@ class BuildConan(setuptools.Command):
         build_dir = build_dir or self.get_finalized_command("build_clib").build_temp
         from conans.client import conan_api, conf
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-        if sys.platform == "nt":
+        if sys.platform == "win32":
             conan_options = ['tesseract:shared=True']
         else:
             conan_options = []
