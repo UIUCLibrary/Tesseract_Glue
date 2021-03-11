@@ -4,10 +4,11 @@ import sys
 import shutil
 import abc
 from typing import Iterable, Any, Dict, List, Union
-
 import setuptools
+from distutils import ccompiler
+from distutils.sysconfig import customize_compiler
+from pathlib import Path
 
-# from conans.model.profile import Profile
 
 class ConanBuildInfoParser:
     def __init__(self, fp):
@@ -61,6 +62,41 @@ class ConanBuildInfoTXT(AbsConanBuildInfo):
             "libs": list(libs),
 
         }
+
+
+class AbsResultTester(abc.ABC):
+    def __init__(self, compiler=None) -> None:
+        self.compiler = compiler or ccompiler.new_compiler()
+
+    def test_shared_libs(self, libs_dir):
+        """Make sure all shared libraries in directory are linked"""
+        for lib in os.scandir(libs_dir):
+            if not lib.name.endswith(self.compiler.shared_lib_extension):
+                continue
+            self.test_binary_dependents(lib.path)
+
+    @abc.abstractmethod
+    def test_binary_dependents(self, file_path: Path):
+        """Make sure shared library is linked"""
+
+
+class MacResultTester(AbsResultTester):
+    def test_binary_dependents(self, file_path: Path):
+        otool = shutil.which("otool")
+        self.compiler.spawn([otool, '-L', str(file_path.resolve())])
+
+
+class WindowsResultTester(AbsResultTester):
+    def test_binary_dependents(self, file_path: Path):
+        self.compiler.initialize()
+        customize_compiler(self.compiler)
+        self.compiler.spawn(['dumpbin', '/DEPENDENTS', str(file_path.resolve())])
+
+
+class LinuxResultTester(AbsResultTester):
+    def test_binary_dependents(self, file_path: Path):
+        ldd = shutil.which("ldd")
+        self.compiler.spawn([ldd, str(file_path.resolve())])
 
 
 class CompilerInfoAdder:
@@ -135,7 +171,7 @@ class BuildConan(setuptools.Command):
             conan_options = ['tesseract:shared=True']
         else:
             conan_options = []
-        build = ['missing']
+        build = ['outdated']
 
         build_ext_cmd = self.get_finalized_command("build_ext")
         settings = []
@@ -146,6 +182,8 @@ class BuildConan(setuptools.Command):
 
         if build_ext_cmd.debug is not None:
             settings.append("build_type=Debug")
+        else:
+            settings.append("build_type=Release")
         #     FIXME: This should be the setup.py file dir
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
@@ -190,7 +228,7 @@ class BuildConan(setuptools.Command):
         if self.output_library_name in libs:
             libs.remove(self.output_library_name)
 
-        compiler_adder.add_libs(libs)
+        # compiler_adder.add_libs(libs)
 
         if build_ext_cmd.compiler is not None:
             build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
@@ -213,7 +251,29 @@ class BuildConan(setuptools.Command):
             # extension.define_macros += [
             #     (d,) for d in metadata['definitions'] if d not in extension.define_macros
             # ]
+    def test_tesseract(self, build_file):
+        with open(build_file, "r") as f:
+            parser = ConanBuildInfoParser(f)
+            data = parser.parse()
+            path = data['bindirs_tesseract']
+            tesseract = shutil.which("tesseract", path=path[0])
 
+            tester = {
+                'darwin': MacResultTester,
+                'linux': LinuxResultTester,
+                'win32': WindowsResultTester
+            }.get(sys.platform)
+
+            if tester is None:
+                self.announce(f"unable to test for platform {sys.platform}", 5)
+                return
+
+            tester = tester(ccompiler.new_compiler())
+            libs_dirs = data['libdirs']
+            for libs_dir in libs_dirs:
+                tester.test_shared_libs(libs_dir)
+            tester.test_binary_dependents(Path(tesseract))
+            self.spawn([tesseract, '--version'])
 
     def run(self):
         # self.reinitialize_command("build_ext")
@@ -240,6 +300,7 @@ class BuildConan(setuptools.Command):
                 self.announce(r.read(), 5)
 
         assert os.path.exists(conanbuildinfotext)
+        self.test_tesseract(build_file=conanbuildinfotext)
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         self.add_deps_to_compiler(metadata=text_md)
