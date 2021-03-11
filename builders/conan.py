@@ -175,7 +175,7 @@ class BuildConan(setuptools.Command):
         if self.output_library_name in libs:
             libs.remove(self.output_library_name)
 
-        compiler_adder.add_libs(libs)
+        # compiler_adder.add_libs(libs)
 
         if build_ext_cmd.compiler is not None:
             build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions']]
@@ -194,8 +194,11 @@ class BuildConan(setuptools.Command):
             for lib in metadata['libs']:
                 if lib == self.output_library_name:
                     continue
-                extension.libraries.append(lib)
-            extension.define_macros += [(d,) for d in metadata['definitions']]
+                if lib not in extension.libraries:
+                    extension.libraries.append(lib)
+            extension.define_macros += [
+                (d,) for d in metadata['definitions'] if d not in extension.define_macros
+            ]
 
 
     def run(self):
