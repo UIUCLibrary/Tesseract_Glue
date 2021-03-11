@@ -218,6 +218,10 @@ class BuildConan(setuptools.Command):
                 self.announce(r.read(), 5)
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
+        if os.path.exists(conanbuildinfotext):
+            with open(conanbuildinfotext) as r:
+                self.announce(r.read(), 5)
+
         assert os.path.exists(conanbuildinfotext)
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
