@@ -131,8 +131,10 @@ class BuildConan(setuptools.Command):
         build_dir = build_dir or self.get_finalized_command("build_clib").build_temp
         from conans.client import conan_api
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-        # conan_options = ['openjpeg:shared=True']
-        conan_options = []
+        if sys.platform == "nt":
+            conan_options = ['tesseract:shared=True']
+        else:
+            conan_options = []
         build = ['missing']
 
         build_ext_cmd = self.get_finalized_command("build_ext")
