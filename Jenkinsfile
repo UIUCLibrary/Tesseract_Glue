@@ -220,13 +220,15 @@ def startup(){
                         ws{
                             checkout scm
                             try{
-                                docker.image('python:3.8').inside {
-                                    sh(
-                                       label: "Running setup.py with dist_info",
-                                       script: """python --version
-                                                  python setup.py dist_info
-                                               """
-                                    )
+                                docker.image('python').inside {
+                                    withEnv(['PIP_NO_CACHE_DIR=off']) {
+                                        sh(
+                                           label: "Running setup.py with dist_info",
+                                           script: """python --version
+                                                      python setup.py dist_info
+                                                   """
+                                        )
+                                    }
                                     stash includes: "*.dist-info/**", name: 'DIST-INFO'
                                     archiveArtifacts artifacts: "*.dist-info/**"
                                 }
@@ -289,7 +291,6 @@ pipeline {
                     }
                     post{
                         always{
-                            stash includes: 'uiucprescon/**/*.dll,uiucprescon/**/*.pyd,uiucprescon/**/*.exe,uiucprescon/**/*.so,build/**', name: "COMPILED_BINARIES"
                             recordIssues(filters: [excludeFile('build/*'), excludeFile('conan/*'), ], tools: [gcc(pattern: 'logs/python_build.log')])
                         }
                     }
@@ -323,8 +324,11 @@ pipeline {
                 cleanup{
                     cleanWs(
                         patterns: [
+                                [pattern: 'dist/', type: 'INCLUDE'],
                                 [pattern: 'build/', type: 'INCLUDE'],
                                 [pattern: 'logs/', type: 'INCLUDE'],
+                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
                             ],
                         notFailBuild: true,
                         deleteDirs: true
@@ -694,7 +698,8 @@ pipeline {
                                             ]
                                         ],
                                         buildCmd: {
-                                            sh "python3 -m pep517.build --source --out-dir dist/ ."
+                                            sh "python3 -m build --sdist"
+//                                            sh "python3 -m pep517.build --source --out-dir dist/ ."
                                         },
                                         post:[
                                             success: {
