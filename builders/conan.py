@@ -88,6 +88,7 @@ class MacResultTester(AbsResultTester):
 
 class WindowsResultTester(AbsResultTester):
     def test_binary_dependents(self, file_path: Path):
+        self.compiler.initialize()
         customize_compiler(self.compiler)
         self.compiler.spawn(['dumpbin', '/DEPENDENTS', str(file_path.resolve())])
 
