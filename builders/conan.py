@@ -6,6 +6,7 @@ import abc
 from typing import Iterable, Any, Dict, List, Union
 import setuptools
 from distutils import ccompiler
+from distutils.sysconfig import customize_compiler
 from pathlib import Path
 
 
@@ -87,6 +88,7 @@ class MacResultTester(AbsResultTester):
 
 class WindowsResultTester(AbsResultTester):
     def test_binary_dependents(self, file_path: Path):
+        customize_compiler(self.compiler)
         self.compiler.spawn(['dumpbin', '/DEPENDENTS', str(file_path.resolve())])
 
 
@@ -264,6 +266,7 @@ class BuildConan(setuptools.Command):
             if tester is None:
                 self.announce(f"unable to test for platform {sys.platform}", 5)
                 return
+
             tester = tester(ccompiler.new_compiler())
             libs_dirs = data['libdirs']
             for libs_dir in libs_dirs:
