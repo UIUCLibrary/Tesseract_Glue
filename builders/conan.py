@@ -173,16 +173,24 @@ class BuildConan(setuptools.Command):
             5)
 
         lib_paths = metadata['lib_paths']
+
         compiler_adder.add_lib_dirs(lib_paths)
+        # for lib_dir in lib_paths:
+        #     print(list(os.scandir(lib_dir)))
         self.announce(
             f"Added the following paths to library path {', '.join(metadata['lib_paths'])} ",
             5)
 
         libs = metadata['libs']
+        # if 'tesseract' in libs:
+        #     libs.remove('tesseract')
+        #
+        # if 'tesseract.lib' in libs:
+        #     libs.remove('tesseract.lib')
         if self.output_library_name in libs:
             libs.remove(self.output_library_name)
 
-        # compiler_adder.add_libs(libs)
+        compiler_adder.add_libs(libs)
 
         if build_ext_cmd.compiler is not None:
             build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
@@ -194,10 +202,9 @@ class BuildConan(setuptools.Command):
 
         for extension in build_ext_cmd.extensions:
             # fixme
-            if sys.platform == "nt":
+            if sys.platform == "win32":
                 if self.output_library_name in extension.libraries:
                     extension.libraries.remove(self.output_library_name)
-
             for lib in metadata['libs']:
                 if lib == self.output_library_name:
                     continue
