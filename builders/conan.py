@@ -178,10 +178,10 @@ class BuildConan(setuptools.Command):
         # compiler_adder.add_libs(libs)
 
         if build_ext_cmd.compiler is not None:
-            build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions']]
+            build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
         else:
             if hasattr(build_ext_cmd, "macros"):
-                build_ext_cmd.macros += [(d, ) for d in metadata['definitions']]
+                build_ext_cmd.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.macros]
             else:
                 build_ext_cmd.macros = [(d, ) for d in metadata['definitions']]
 
