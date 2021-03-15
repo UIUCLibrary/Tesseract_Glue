@@ -161,7 +161,7 @@ RUN python -m pip install --upgrade pip ; `
 COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
 RUN conan config init
-RUN conan install c:/temp/ --no-import  ; `
+RUN conan install c:/temp/ --no-import --build=missing --build=openjpeg ; `
     conan remove "*" -b --src -f ; `
     conan remove --lock
 # ==============================================================================
@@ -181,8 +181,8 @@ RUN certutil -addstore -f root roots.sst ; `
 COPY --from=CONAN_BUILDER C:/Users/ContainerAdministrator/.conan/ C:/Users/ContainerAdministrator/.conan/
 ENV CONAN_USER_HOME=C:/Users/ContainerAdministrator
 COPY conanfile.py c:/temp/conanfile.py
-RUN conan config init
-RUN conan install c:/temp/ --build missing --no-import  ; `
+#RUN conan config init
+RUN conan install c:/temp/ --build outdated --no-import  ; `
     conan remove "*" -b --src -f ; `
     conan remove --locks
 
