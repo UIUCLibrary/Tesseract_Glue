@@ -162,6 +162,7 @@ COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
 RUN conan config init
 RUN conan install c:/temp/ --no-import --build=missing --build=openjpeg ; `
+    conan install c:/temp/ --no-import --build=missing -o tesseract:shared=True ; `
     conan remove "*" -b --src -f ; `
     conan remove --lock
 # ==============================================================================
