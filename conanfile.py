@@ -11,10 +11,5 @@ class Exiv2BindConan(ConanFile):
     generators = ["json", "cmake_paths"]
     default_options = {}
 
-    def configure(self):
-        if self.settings.os == "Windows":
-            self.options['libarchive'].shared = True
-        # super().configure()
-
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")  # From bin to bin

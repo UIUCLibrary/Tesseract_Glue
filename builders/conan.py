@@ -8,6 +8,7 @@ import setuptools
 from distutils import ccompiler
 from distutils.sysconfig import customize_compiler
 from pathlib import Path
+from .deps import get_win_deps
 
 
 class ConanBuildInfoParser:
@@ -89,9 +90,19 @@ class MacResultTester(AbsResultTester):
 class WindowsResultTester(AbsResultTester):
     def test_binary_dependents(self, file_path: Path):
         self.compiler.initialize()
-        customize_compiler(self.compiler)
-        self.compiler.spawn(['dumpbin', '/DEPENDENTS', str(file_path.resolve())])
-        self.compiler.spawn(['dumpbin', '/EXPORTS', str(file_path.resolve())])
+        deps = get_win_deps(str(file_path.resolve()), output_file="tesseract.depends", compiler=self.compiler)
+        path = os.getenv('PATH')
+        for dep in deps:
+            print(f"{file_path} requires {dep}")
+            # print(path)
+            locations = list(filter(os.path.exists, path.split(";")))
+            for l in locations:
+                dep_path = os.path.join(l, dep)
+                if os.path.exists():
+                    print("Found requirement: {}".format(dep_path))
+                    break
+            else:
+                print(f"Couldn't find {dep}")
 
 
 class LinuxResultTester(AbsResultTester):
@@ -168,10 +179,7 @@ class BuildConan(setuptools.Command):
         build_dir = build_dir or self.get_finalized_command("build_clib").build_temp
         from conans.client import conan_api, conf
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-        if sys.platform == "win32":
-            conan_options = ['tesseract:shared=True']
-        else:
-            conan_options = []
+        conan_options = []
         build = ['outdated']
 
         build_ext_cmd = self.get_finalized_command("build_ext")
@@ -269,12 +277,14 @@ class BuildConan(setuptools.Command):
                 self.announce(f"unable to test for platform {sys.platform}", 5)
                 return
 
-            tester = tester(ccompiler.new_compiler())
+            compiler = ccompiler.new_compiler()
+            tester = tester(compiler)
             libs_dirs = data['libdirs']
             for libs_dir in libs_dirs:
                 tester.test_shared_libs(libs_dir)
             tester.test_binary_dependents(Path(tesseract))
-            self.spawn([tesseract, '--version'])
+            compiler.spawn([tesseract, '--version'])
+            # self.spawn([tesseract, '--version'])
 
     def run(self):
         # self.reinitialize_command("build_ext")
