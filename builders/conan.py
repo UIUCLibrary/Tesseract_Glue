@@ -98,7 +98,7 @@ class WindowsResultTester(AbsResultTester):
             locations = list(filter(os.path.exists, path.split(";")))
             for l in locations:
                 dep_path = os.path.join(l, dep)
-                if os.path.exists():
+                if os.path.exists(dep_path):
                     print("Found requirement: {}".format(dep_path))
                     break
             else:
