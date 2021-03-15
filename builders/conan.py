@@ -91,6 +91,7 @@ class WindowsResultTester(AbsResultTester):
         self.compiler.initialize()
         customize_compiler(self.compiler)
         self.compiler.spawn(['dumpbin', '/DEPENDENTS', str(file_path.resolve())])
+        self.compiler.spawn(['dumpbin', '/EXPORTS', str(file_path.resolve())])
 
 
 class LinuxResultTester(AbsResultTester):
