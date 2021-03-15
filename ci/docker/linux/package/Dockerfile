@@ -9,7 +9,7 @@ COPY ci/docker/linux/package/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
-RUN conan config home
+RUN conan config init
 RUN conan install /tmp --build  missing --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \

@@ -87,7 +87,7 @@ COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/profiles/d
 USER user
 WORKDIR /home/user
 COPY conanfile.py /tmp/conanfile.py
-RUN conan config home
+RUN conan config init
 RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
