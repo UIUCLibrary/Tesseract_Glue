@@ -15,7 +15,7 @@ RUN if id $USER_ID ; then \
     fi
 
 
-RUN apt update && apt install -y ninja-build
+#RUN apt update && apt install -y ninja-build
 
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
@@ -59,7 +59,7 @@ COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ENV CONAN_USER_HOME=/conan
 COPY conanfile.py /tmp/conanfile.py
-RUN conan config home
+RUN conan config init
 RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan install /tmp --build outdated --build=openjpeg --no-import  -s build_type=Debug && \
     conan remove "*" -b --src -f && \
@@ -77,8 +77,8 @@ COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
-RUN conan config home
-RUN conan install /tmp --build  missing --no-import  && \
+RUN conan config init
+RUN conan install /tmp --build  missing --no-import && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 /conan
