@@ -160,6 +160,8 @@ RUN python -m pip install --upgrade pip ; `
     pip install conan cmake
 COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
+COPY ci/docker/windows/tox/conan/profile.ini  C:/Users/ContainerAdministrator/.conan/profiles/default
+ENV CONAN_USER_HOME=C:\Users\ContainerAdministrator\
 RUN conan config init
 RUN conan install c:/temp/ --no-import --build=missing --build=openjpeg ; `
     conan install c:/temp/ --no-import --build=missing -o tesseract:shared=True ; `
