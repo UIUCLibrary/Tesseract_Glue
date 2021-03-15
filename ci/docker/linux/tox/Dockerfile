@@ -81,7 +81,7 @@ RUN $PYTHON -m pip install pip --upgrade pip && \
 # ==============================================================================
 
 FROM wheel_builder_base as conan_builder
-RUN pip3 install conan cmake
+RUN pip3 install conan cmake ninja
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
 COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/profiles/default
 USER user
