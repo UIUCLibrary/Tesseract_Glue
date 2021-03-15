@@ -240,12 +240,12 @@ class BuildConan(setuptools.Command):
         # compiler_adder.add_libs(libs)
 
         if build_ext_cmd.compiler is not None:
-            build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
+            build_ext_cmd.compiler.macros += [(d, None) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
         else:
             if hasattr(build_ext_cmd, "macros"):
-                build_ext_cmd.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.macros]
+                build_ext_cmd.macros += [(d, None) for d in metadata['definitions'] if d not in build_ext_cmd.macros]
             else:
-                build_ext_cmd.macros = [(d, ) for d in metadata['definitions']]
+                build_ext_cmd.macros = [(d, None) for d in metadata['definitions']]
 
         for extension in build_ext_cmd.extensions:
             # fixme
@@ -258,7 +258,7 @@ class BuildConan(setuptools.Command):
                 if lib not in extension.libraries:
                     extension.libraries.append(lib)
             # extension.define_macros += [
-            #     (d,) for d in metadata['definitions'] if d not in extension.define_macros
+            #     (d, None) for d in metadata['definitions'] if d not in extension.define_macros
             # ]
     def test_tesseract(self, build_file):
         with open(build_file, "r") as f:
