@@ -163,8 +163,7 @@ COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan
 COPY ci/docker/windows/tox/conan/profile.ini  C:/Users/ContainerAdministrator/.conan/profiles/default
 ENV CONAN_USER_HOME=C:\Users\ContainerAdministrator\
 RUN conan config init
-RUN conan install c:/temp/ --no-import --build=missing --build=openjpeg ; `
-    conan install c:/temp/ --no-import --build=missing -o tesseract:shared=True ; `
+RUN conan install c:/temp/ --no-import --build=missing -b ; `
     conan remove "*" -b --src -f ; `
     conan remove --lock
 # ==============================================================================
@@ -182,9 +181,8 @@ COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
 COPY --from=CONAN_BUILDER C:/Users/ContainerAdministrator/.conan/ C:/Users/ContainerAdministrator/.conan/
-ENV CONAN_USER_HOME=C:/Users/ContainerAdministrator
+ENV CONAN_USER_HOME=C:\Users\ContainerAdministrator\
 COPY conanfile.py c:/temp/conanfile.py
-#RUN conan config init
 RUN conan install c:/temp/ --build outdated --no-import  ; `
     conan remove "*" -b --src -f ; `
     conan remove --locks
