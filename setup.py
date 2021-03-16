@@ -88,11 +88,6 @@ tesseract_extension = setuptools.Extension(
         'leptonica',
         "tesseract",
     ],
-    # define_macros=[
-    #     ("OPJ_STATIC",),
-    #     ("LZMA_API_STATIC",),
-    #     ("LIBJPEG_STATIC",)
-    # ],
     language='c++',
 
 
