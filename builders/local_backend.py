@@ -15,3 +15,7 @@ def get_requires_for_build_sdist(config_settings=None):
 
 def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
     return setuptools.build_meta.prepare_metadata_for_build_wheel(metadata_directory, config_settings)
+
+
+def get_requires_for_build_wheel(config_settings=None):
+    return ['pybind11>=2.5']
