@@ -85,6 +85,7 @@ tesseract_extension = setuptools.Extension(
         'uiucprescon/ocr/utils.cpp',
     ],
     libraries=[
+        'leptonica',
         "tesseract",
     ],
     # define_macros=[
