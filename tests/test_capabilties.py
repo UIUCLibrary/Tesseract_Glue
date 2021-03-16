@@ -10,4 +10,4 @@ def linked_image_libs():
 
 @pytest.mark.parametrize("library_name", ['libopenjp2', 'libtiff'])
 def test_expected_decoders(linked_image_libs, library_name):
-    assert library_name in linked_image_libs
+    assert library_name in linked_image_libs, f"{library_name} not in {', '.join(linked_image_libs.keys())}"
