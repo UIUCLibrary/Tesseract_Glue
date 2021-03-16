@@ -169,10 +169,6 @@ def getToxTestsParallel(args = [:]){
                                 )
                                 withEnv(['PY_COLORS=0', 'TOX_PARALLEL_NO_SPINNER=1']){
                                     if(isUnix()){
-                                        if(NODE_LABELS.contains('linux')){
-                                            sh 'ldd --version'
-                                            sh 'gcc --version'
-                                        }
                                         toxReturnCode = sh(
                                             label: "Running Tox with ${tox_env} environment",
                                             script: "tox -vvv --result-json=${TOX_RESULT_FILE_NAME} --workdir=/tmp/tox -e $tox_env",
