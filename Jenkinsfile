@@ -913,7 +913,7 @@ pipeline {
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.tar.gz').each{
-                                                bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}")
+                                                bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v")
                                             }
                                         },
                                         post:[
