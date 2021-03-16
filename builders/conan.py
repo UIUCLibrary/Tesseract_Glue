@@ -8,7 +8,8 @@ import setuptools
 from distutils import ccompiler
 from distutils.sysconfig import customize_compiler
 from pathlib import Path
-
+from .deps import get_win_deps
+import json
 
 class ConanBuildInfoParser:
     def __init__(self, fp):
@@ -89,8 +90,19 @@ class MacResultTester(AbsResultTester):
 class WindowsResultTester(AbsResultTester):
     def test_binary_dependents(self, file_path: Path):
         self.compiler.initialize()
-        customize_compiler(self.compiler)
-        self.compiler.spawn(['dumpbin', '/DEPENDENTS', str(file_path.resolve())])
+        deps = get_win_deps(str(file_path.resolve()), output_file="tesseract.depends", compiler=self.compiler)
+        path = os.getenv('PATH')
+        for dep in deps:
+            print(f"{file_path} requires {dep}")
+            # print(path)
+            locations = list(filter(os.path.exists, path.split(";")))
+            for l in locations:
+                dep_path = os.path.join(l, dep)
+                if os.path.exists(dep_path):
+                    print("Found requirement: {}".format(dep_path))
+                    break
+            else:
+                print(f"Couldn't find {dep}")
 
 
 class LinuxResultTester(AbsResultTester):
@@ -129,6 +141,36 @@ class CompilerInfoAdder:
                 self._place_to_add.include_dirs.insert(0, path)
             else:
                 self._place_to_add.compiler.include_dirs.insert(0, path)
+
+
+def update_extension(extension, metadata):
+    updated_libs = []
+    include_dirs = []
+    library_dirs = []
+    define_macros = []
+    for extension_lib in extension.libraries:
+        if extension_lib in metadata.deps():
+            dep_metadata = metadata.dep(extension_lib)
+            updated_libs += dep_metadata.get('libs', [])
+            include_dirs += dep_metadata.get('include_paths', [])
+            library_dirs += dep_metadata.get('lib_paths', [])
+            define_macros += [(d, None) for d in dep_metadata.get('definitions', [])]
+        else:
+            updated_libs.append(extension_lib)
+    extension.libraries = updated_libs
+    extension.include_dirs = include_dirs + extension.include_dirs
+    extension.library_dirs = library_dirs + extension.library_dirs
+    extension.define_macros = define_macros + extension.define_macros
+
+
+def update_extension2(extension, text_md):
+    include_dirs = text_md['include_paths']
+    library_dirs = text_md['lib_paths']
+    define_macros = [(d, None) for d in text_md.get('definitions', [])]
+    extension.libraries = text_md['libs']
+    extension.include_dirs = include_dirs + extension.include_dirs
+    extension.library_dirs = library_dirs + extension.library_dirs
+    extension.define_macros = define_macros + extension.define_macros
 
 
 class BuildConan(setuptools.Command):
@@ -219,7 +261,8 @@ class BuildConan(setuptools.Command):
             f"Added the following paths to library path {', '.join(metadata['lib_paths'])} ",
             5)
 
-        libs = metadata['libs']
+        libs = []
+        # libs = metadata['libs']
         # if 'tesseract' in libs:
         #     libs.remove('tesseract')
         #
@@ -229,14 +272,14 @@ class BuildConan(setuptools.Command):
             libs.remove(self.output_library_name)
 
         # compiler_adder.add_libs(libs)
-
-        if build_ext_cmd.compiler is not None:
-            build_ext_cmd.compiler.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
-        else:
-            if hasattr(build_ext_cmd, "macros"):
-                build_ext_cmd.macros += [(d, ) for d in metadata['definitions'] if d not in build_ext_cmd.macros]
-            else:
-                build_ext_cmd.macros = [(d, ) for d in metadata['definitions']]
+        #
+        # if build_ext_cmd.compiler is not None:
+        #     build_ext_cmd.compiler.macros += [(d, None) for d in metadata['definitions'] if d not in build_ext_cmd.compiler.macros]
+        # else:
+        #     if hasattr(build_ext_cmd, "macros"):
+        #         build_ext_cmd.macros += [(d, None) for d in metadata['definitions'] if d not in build_ext_cmd.macros]
+        #     else:
+        #         build_ext_cmd.macros = [(d, None) for d in metadata['definitions']]
 
         for extension in build_ext_cmd.extensions:
             # fixme
@@ -249,7 +292,7 @@ class BuildConan(setuptools.Command):
                 if lib not in extension.libraries:
                     extension.libraries.append(lib)
             # extension.define_macros += [
-            #     (d,) for d in metadata['definitions'] if d not in extension.define_macros
+            #     (d, None) for d in metadata['definitions'] if d not in extension.define_macros
             # ]
     def test_tesseract(self, build_file):
         with open(build_file, "r") as f:
@@ -268,12 +311,14 @@ class BuildConan(setuptools.Command):
                 self.announce(f"unable to test for platform {sys.platform}", 5)
                 return
 
-            tester = tester(ccompiler.new_compiler())
+            compiler = ccompiler.new_compiler()
+            tester = tester(compiler)
             libs_dirs = data['libdirs']
             for libs_dir in libs_dirs:
                 tester.test_shared_libs(libs_dir)
             tester.test_binary_dependents(Path(tesseract))
-            self.spawn([tesseract, '--version'])
+            compiler.spawn([tesseract, '--version'])
+            # self.spawn([tesseract, '--version'])
 
     def run(self):
         # self.reinitialize_command("build_ext")
@@ -298,9 +343,32 @@ class BuildConan(setuptools.Command):
         if os.path.exists(conanbuildinfotext):
             with open(conanbuildinfotext) as r:
                 self.announce(r.read(), 5)
-
         assert os.path.exists(conanbuildinfotext)
         self.test_tesseract(build_file=conanbuildinfotext)
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
-        self.add_deps_to_compiler(metadata=text_md)
+        build_ext_cmd = self.get_finalized_command("build_ext")
+        conanbuildinfojson = os.path.join(build_dir, 'conanbuildinfo.json')
+        conan_lib_metadata = ConanBuildMetadata(conanbuildinfojson)
+
+        # TODO: replace any library called by an extension with the libraries produced by conanbuildinfojson
+        #
+        for extension in build_ext_cmd.extensions:
+            if any(map(lambda s: s in conan_lib_metadata.deps(), extension.libraries)):
+                update_extension2(extension, text_md)
+                # update_extension(extension, conan_lib_metadata)
+
+
+class ConanBuildMetadata:
+    def __init__(self, filename) -> None:
+        super().__init__()
+        self.filename = filename
+        with open(self.filename) as f:
+            self._data = json.loads(f.read())
+
+    def deps(self):
+        return [a['name'] for a in self._data['dependencies']]
+
+    def dep(self, dep: str):
+        deps = self._data['dependencies']
+        return [d for d in deps if d['name'] == dep][0]

@@ -160,8 +160,11 @@ RUN python -m pip install --upgrade pip ; `
     pip install conan cmake
 COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
-RUN conan config home
-RUN conan install c:/temp/ --no-import  ; `
+COPY ci/docker/windows/tox/conan/profile.ini  C:/Users/ContainerAdministrator/.conan/profiles/default
+ENV CONAN_USER_HOME=C:\Users\ContainerAdministrator\
+RUN conan config init
+RUN conan install c:/temp/ --build --no-import; `
+    conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import  ; `
     conan remove "*" -b --src -f ; `
     conan remove --lock
 # ==============================================================================
@@ -179,10 +182,10 @@ COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
 COPY --from=CONAN_BUILDER C:/Users/ContainerAdministrator/.conan/ C:/Users/ContainerAdministrator/.conan/
-ENV CONAN_USER_HOME=C:/Users/ContainerAdministrator
+ENV CONAN_USER_HOME=C:\Users\ContainerAdministrator\
 COPY conanfile.py c:/temp/conanfile.py
-RUN conan config home
-RUN conan install c:/temp/ --build missing --no-import  ; `
+RUN conan install c:/temp/ --build outdated --no-import  ; `
+    conan install c:/temp/ --build outdated -o "tesseract:shared=True" --no-import  ; `
     conan remove "*" -b --src -f ; `
     conan remove --locks
 
