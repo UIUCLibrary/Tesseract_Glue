@@ -737,7 +737,7 @@ pipeline {
                                         buildCmd: {
                                             sh(label: "Building python wheel",
                                                script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
-                                                         auditwheel --verbose repair ./dist/*.whl -w ./dist
+                                                         auditwheel -v repair ./dist/*.whl -w ./dist
                                                          auditwheel show ./dist/*.whl
                                                          """
                                                )
