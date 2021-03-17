@@ -13,18 +13,21 @@ PYBIND11_MODULE(tesseractwrap, m){
     options.enable_function_signatures();
     m.doc() = R"pbdoc(Wrapper to Tesseract's C++ API)pbdoc";
 
+    pybind11::class_<Image, std::shared_ptr<Image>>(m, "Image")
+            .def_property_readonly("w", &Image::get_w)
+            .def_property_readonly("h", &Image::get_h);
+
+    pybind11::class_<Pix, std::shared_ptr<Pix>>(m, "Pix", pybind11::module_local())
+            .def(pybind11::init<>());
+
+
     m.def("tesseract_version", &tesseract_version, "Get the version of tesseract being used");
     m.def("get_image_lib_versions", [](){
         return Capabilities::ImagelibVersions();
         }, "Get the version of image libraries being used");
 
-    pybind11::class_<Pix, std::shared_ptr<Pix>>(m, "Pix")
-            .def(pybind11::init<>());
 
-    pybind11::class_<Image, std::shared_ptr<Image>>(m, "Image")
-            .def_property_readonly("w", &Image::get_w)
-            .def_property_readonly("h", &Image::get_h)
-            ;
+
 
     m.def("load_image", &load_image, "Load image file");
     pybind11::register_exception<TesseractGlueException>(m, "TesseractGlueException", PyExc_RuntimeError);
