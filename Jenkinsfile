@@ -420,7 +420,14 @@ pipeline {
                                 }
                                 stage("Clang Tidy Tests") {
                                     steps{
-                                        sh "run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/"
+                                        tee('logs/clang-tidy.log') {
+                                            sh "run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/"
+                                        }
+                                    }
+                                    post{
+                                        always {
+                                            recordIssues(tools: [clangTidy(pattern: 'logs/clang-tidy.log')])
+                                        }
                                     }
                                 }
                                 stage("C++ Tests") {
