@@ -19,6 +19,7 @@ norecursedirs = [
 junit_logging = "all"
 junit_log_passing_tests = true
 junit_family="xunit2"
+bdd_features_base_dir = "tests/features/"
 
 [tool.pylint.MASTER]
 init-hook="sys.path.append('.')"
