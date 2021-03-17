@@ -418,6 +418,11 @@ pipeline {
                                         }
                                     }
                                 }
+                                stage("Clang Tidy Tests") {
+                                    steps{
+                                        sh "run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/"
+                                    }
+                                }
                                 stage("C++ Tests") {
                                     steps{
                                         sh(

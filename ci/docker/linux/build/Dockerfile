@@ -14,9 +14,6 @@ RUN if id $USER_ID ; then \
         useradd  -u $USER_ID -s /bin/sh -m -d /home/user -g user user ;\
     fi
 
-
-#RUN apt update && apt install -y ninja-build
-
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
@@ -68,6 +65,7 @@ RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
 
 # ==============================================================================
 FROM base_python
+RUN apt update && apt install -y clang-tidy
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 COPY --from=wheel_builder /wheels/* /wheels/
