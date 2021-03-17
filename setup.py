@@ -100,7 +100,6 @@ setuptools.setup(
     packages=['uiucprescon.ocr'],
     setup_requires=[
         'pytest-runner',
-        'pybind11>=2.5'
     ],
     install_requires=[],
     test_suite='tests',
