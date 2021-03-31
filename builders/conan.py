@@ -7,7 +7,7 @@ from typing import Iterable, Any, Dict, List, Union
 import setuptools
 from distutils import ccompiler
 from pathlib import Path
-from .deps import get_win_deps
+from builders.deps import get_win_deps
 import json
 
 
