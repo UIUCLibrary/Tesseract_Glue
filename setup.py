@@ -10,7 +10,7 @@ from builders.deps import get_win_deps
 
 cmd_class = {}
 try:
-    from builders.conan import BuildConan
+    from builders.conan_libs import BuildConan
     cmd_class["build_conan"] = BuildConan
 except ImportError:
     pass
