@@ -21,7 +21,7 @@ def test_download_languague_downloads_file(monkeypatch, tmpdir):
 
     temp_path = str(tmpdir)
     monkeypatch.setattr(urllib.request, "urlopen", mocked_function)
-    ocr.languages._download_languague("www.fake.com/eng.tessdata", temp_path)
+    ocr.languages._download_language("www.fake.com/eng.tessdata", temp_path)
     assert os.path.exists(os.path.join(temp_path, 'eng.tessdata'))
 
 
@@ -49,6 +49,6 @@ def test_download_languague_downloads_file_hash(monkeypatch, tmpdir):
     temp_path = str(tmpdir)
     (tmpdir / "eng.tessdata").ensure()
     monkeypatch.setattr(urllib.request, "urlopen", mocked_function)
-    ocr.languages._download_languague("www.fake.com/eng.tessdata", temp_path, md5_hash=fake_md5)
+    ocr.languages._download_language("www.fake.com/eng.tessdata", temp_path, md5_hash=fake_md5)
 
     assert os.path.exists(os.path.join(temp_path, 'eng.tessdata'))

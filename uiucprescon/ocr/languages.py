@@ -6,6 +6,9 @@ import tempfile
 import hashlib
 import time
 
+__all__ = ["LANGUAGE_CODES", "download_language_pack"]
+
+
 LANGUAGE_CODES = {
     "afr": "Afrikaans",
     "amh": "Amharic",
@@ -127,77 +130,159 @@ LANGUAGE_CODES = {
 }  #: The codes used by Tesseract for a specific languages data set
 
 
-def _download_languague(url: str,
-                        destination: str,
-                        md5_hash: str = None) -> str:
+class LanguageDownloader:
+    """Helper class for downloading language files."""
 
     block_size = 16 * 1024
-    base_name = os.path.basename(url)
-    destination_file = os.path.join(destination, base_name)
 
-    if os.path.exists(destination_file):
-        if not md5_hash:
-            return destination_file
+    @staticmethod
+    def is_file_valid(path: str, expected_md5_hash: str) -> bool:
+        """Compare a local file to an expected hash value.
+
+        Args:
+            path: local path to file
+            expected_md5_hash: expected md5 has value
+
+        Returns:
+            Returns True if valid else returns False.
+
+        """
         hash_data = hashlib.md5()
-        with open(destination_file, "rb") as file_reader:
-            buffer = file_reader.read(block_size)
+        with open(path, "rb") as file_reader:
+            buffer = file_reader.read(LanguageDownloader.block_size)
             while len(buffer) > 0:
                 hash_data.update(buffer)
-                buffer = file_reader.read(block_size)
-        if hash_data.hexdigest() == md5_hash:
-            return destination_file
-    file_pointer, temp_file = tempfile.mkstemp(dir=destination)
-    try:
-        with os.fdopen(file_pointer, "wb") as file_writer:
-            response = request.urlopen(url)
-            i = 0
-            hash_data = hashlib.md5()
-            start_time = time.time()
-            last_printed = start_time
-            while True:
-                chunk = response.read(block_size)
-                if not chunk:
+                buffer = file_reader.read(LanguageDownloader.block_size)
+        return hash_data.hexdigest() == expected_md5_hash
 
-                    break
-                file_writer.write(chunk)
-                hash_data.update(chunk)
-                i += 1
-                update_time = time.time()
-                if update_time - last_printed > 0.5:
-                    last_printed = time.time()
-                    print("Download Tesseract language data"
-                          ": {:.2f} MB".format(file_writer.tell() / 1e+6))
+    def download(self,
+                 url: str,
+                 destination: str,
+                 md5_hash: str = None) -> str:
+        """Download a file.
 
-            if md5_hash is not None and hash_data.hexdigest() != md5_hash:
-                raise IOError("File does not match expected hash")
+        Args:
+            url: Url location of the language data
+            destination: Local storage path to store language data
+            md5_hash: Optional hash value to validate against.
 
-            print("Downloaded Tesseract language data. "
-                  "Total {:.2f} MB".format(file_writer.tell() / 1e+6))
+        Returns:
+            Returns a file path to downloaded file.
 
-        print("Renaming {} to {}".format(temp_file, destination_file))
-        os.rename(temp_file, destination_file)
-    finally:
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
-    return destination_file
+        """
+        destination_file = os.path.join(destination, os.path.basename(url))
+
+        if os.path.exists(destination_file):
+            if not md5_hash:
+                return destination_file
+            if self.is_file_valid(destination_file, md5_hash):
+                return destination_file
+        file_pointer, temp_file = tempfile.mkstemp(dir=destination)
+        try:
+            with os.fdopen(file_pointer, "wb") as file_writer:
+                response = request.urlopen(url)
+                i = 0
+                hash_data = hashlib.md5()
+                start_time = time.time()
+                last_printed = start_time
+                while True:
+                    chunk = response.read(LanguageDownloader.block_size)
+                    if not chunk:
+                        break
+                    file_writer.write(chunk)
+                    hash_data.update(chunk)
+                    i += 1
+                    update_time = time.time()
+                    if update_time - last_printed > 0.5:
+                        last_printed = time.time()
+                        print("Download Tesseract language data"
+                              ": {:.2f} MB".format(file_writer.tell() / 1e+6))
+
+                if md5_hash is not None and hash_data.hexdigest() != md5_hash:
+                    raise IOError("File does not match expected hash")
+
+                print("Downloaded Tesseract language data. "
+                      "Total {:.2f} MB".format(file_writer.tell() / 1e+6))
+
+            print("Renaming {} to {}".format(temp_file, destination_file))
+            os.rename(temp_file, destination_file)
+        finally:
+            if os.path.exists(temp_file):
+                os.remove(temp_file)
+        return destination_file
+
+
+def _download_language(url: str,
+                       destination: str,
+                       md5_hash: str = None) -> str:
+    downloader = LanguageDownloader()
+    return downloader.download(url, destination, md5_hash)
+    # block_size = 16 * 1024
+    # base_name = os.path.basename(url)
+    # destination_file = os.path.join(destination, base_name)
+    #
+    # if os.path.exists(destination_file):
+    #     if not md5_hash:
+    #         return destination_file
+    #     hash_data = hashlib.md5()
+    #     with open(destination_file, "rb") as file_reader:
+    #         buffer = file_reader.read(block_size)
+    #         while len(buffer) > 0:
+    #             hash_data.update(buffer)
+    #             buffer = file_reader.read(block_size)
+    #     if hash_data.hexdigest() == md5_hash:
+    #         return destination_file
+    # file_pointer, temp_file = tempfile.mkstemp(dir=destination)
+    # try:
+    #     with os.fdopen(file_pointer, "wb") as file_writer:
+    #         response = request.urlopen(url)
+    #         i = 0
+    #         hash_data = hashlib.md5()
+    #         start_time = time.time()
+    #         last_printed = start_time
+    #         while True:
+    #             chunk = response.read(block_size)
+    #             if not chunk:
+    #
+    #                 break
+    #             file_writer.write(chunk)
+    #             hash_data.update(chunk)
+    #             i += 1
+    #             update_time = time.time()
+    #             if update_time - last_printed > 0.5:
+    #                 last_printed = time.time()
+    #                 print("Download Tesseract language data"
+    #                       ": {:.2f} MB".format(file_writer.tell() / 1e+6))
+    #
+    #         if md5_hash is not None and hash_data.hexdigest() != md5_hash:
+    #             raise IOError("File does not match expected hash")
+    #
+    #         print("Downloaded Tesseract language data. "
+    #               "Total {:.2f} MB".format(file_writer.tell() / 1e+6))
+    #
+    #     print("Renaming {} to {}".format(temp_file, destination_file))
+    #     os.rename(temp_file, destination_file)
+    # finally:
+    #     if os.path.exists(temp_file):
+    #         os.remove(temp_file)
+    # return destination_file
 
 
 def download_language_pack(tesseract_version: str, destination: str,
                            md5_hash: str = None) -> None:
     """Download a specific version of Tesseract training data.
 
-        Args:
-            tesseract_version: Version of Tesseract used.
-            destination: Path to save the language data
-            md5_hash (optional): Expected md5 hash value of the
-                downloaded archive. If file is already downloaded, it
-                will not need to be downloaded again.
+    Args:
+        tesseract_version: Version of Tesseract used.
+        destination: Path to save the language data
+        md5_hash (optional): Expected md5 hash value of the downloaded archive.
+         If file is already downloaded, it will not need to be downloaded again.
 
     """
     base_url = "https://codeload.github.com/tesseract-ocr/tessdata/zip"
 
     url = "{}/{}".format(base_url, tesseract_version)
-    language_pack_archive = _download_languague(url, destination, md5_hash)
+    language_pack_archive = _download_language(url, destination, md5_hash)
     _extract_language_pack(language_pack_archive, destination)
 
 
