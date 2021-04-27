@@ -127,7 +127,10 @@ LANGUAGE_CODES = {
 }  #: The codes used by Tesseract for a specific languages data set
 
 
-def _download_languague(url: str, destination: str, md5_hash: str = None) -> str:
+def _download_languague(url: str,
+                        destination: str,
+                        md5_hash: str = None) -> str:
+
     block_size = 16 * 1024
     base_name = os.path.basename(url)
     destination_file = os.path.join(destination, base_name)
