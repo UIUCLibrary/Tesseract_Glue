@@ -7,7 +7,7 @@ from uiucprescon.ocr import tesseractwrap  # type: ignore
 class AbsReader(metaclass=abc.ABCMeta):
     """Baseclass used for implementing various reader types."""
 
-    def __init__(self, language_code, tesseract_data_path) -> None:
+    def __init__(self, language_code: str, tesseract_data_path: str) -> None:
         """Reader object for interacting with tesseract and the image.
 
         Args:
@@ -16,7 +16,7 @@ class AbsReader(metaclass=abc.ABCMeta):
         """
         super().__init__()
 
-        def is_lang_in_path(lang) -> bool:
+        def is_lang_in_path(lang: str) -> bool:
             data_file = "{}.traineddata".format(lang)
             return os.path.exists(os.path.join(tesseract_data_path, data_file))
 
@@ -36,7 +36,7 @@ class AbsReader(metaclass=abc.ABCMeta):
                                             self.language_code)
 
     @abc.abstractmethod
-    def read(self, file: str):
+    def read(self, file: str) -> str:
         """Read a image file for text information."""
         raise NotImplementedError
 

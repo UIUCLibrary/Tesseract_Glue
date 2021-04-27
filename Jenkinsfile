@@ -88,46 +88,6 @@ def deploy_docs(pkgName, prefix){
 }
 
 wheelStashes = []
-configurations = loadConfigs()
-def loadConfigs(){
-    node(){
-        echo "loading configurations"
-        checkout scm
-        return load("ci/jenkins/scripts/configs.groovy").getConfigurations()
-    }
-}
-
-
-def test_pkg(glob, timeout_time){
-
-    findFiles( glob: glob).each{
-        cleanWs(
-            deleteDirs: true,
-            disableDeferredWipeout: true,
-            patterns: [
-                [pattern: 'dist/', type: 'EXCLUDE'],
-                [pattern: 'tests/', type: 'EXCLUDE'],
-                [pattern: 'tox.ini', type: 'EXCLUDE'],
-                [pattern: 'setup.cfg', type: 'EXCLUDE'],
-            ]
-        )
-        timeout(timeout_time){
-            if(isUnix()){
-                sh(label: "Testing ${it}",
-                   script: """python --version
-                              tox --installpkg=${it.path} -e py -vv
-                              """
-                )
-            } else {
-                bat(label: "Testing ${it}",
-                    script: """python --version
-                               tox --installpkg=${it.path} -e py -vv
-                               """
-                )
-            }
-        }
-    }
-}
 
 def getMacDevpiName(pythonVersion, format){
     if(format == "wheel"){
@@ -138,29 +98,7 @@ def getMacDevpiName(pythonVersion, format){
         error "unknown format ${format}"
     }
 }
-def run_tox_envs(){
-    script {
-        def cmds
-        def envs
-        if(isUnix()){
-            envs = sh(returnStdout: true, script: "tox -l").trim().split('\n')
-            cmds = envs.collectEntries({ tox_env ->
-                [tox_env, {
-                    sh( label: "Running Tox with ${tox_env} environment", script: "tox  -vv -e $tox_env --parallel--safe-build")
-                }]
-            })
-        } else{
-            envs = bat(returnStdout: true, script: "@tox -l").trim().split('\n')
-            cmds = envs.collectEntries({ tox_env ->
-                [tox_env, {
-                    bat( label: "Running Tox with ${tox_env} environment", script: "tox  -vv -e $tox_env")
-                }]
-            })
-        }
-        echo "Setting up tox tests for ${envs.join(', ')}"
-        parallel(cmds)
-    }
-}
+
 defaultParameterValues = [
     USE_SONARQUBE: false
 ]
@@ -194,7 +132,6 @@ def startup(){
     def SONARQUBE_CREDENTIAL_ID = SONARQUBE_CREDENTIAL_ID
     node(){
         checkout scm
-//         tox = load("ci/jenkins/scripts/tox.groovy")
         mac = load("ci/jenkins/scripts/mac.groovy")
         devpi = load("ci/jenkins/scripts/devpi.groovy")
     }
