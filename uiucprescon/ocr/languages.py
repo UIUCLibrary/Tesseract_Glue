@@ -143,9 +143,9 @@ def _download_languague(url: str, destination: str, md5_hash: str = None) -> str
                 buffer = file_reader.read(block_size)
         if hash_data.hexdigest() == md5_hash:
             return destination_file
-    p, temp_file = tempfile.mkstemp(dir=destination)
+    file_pointer, temp_file = tempfile.mkstemp(dir=destination)
     try:
-        with os.fdopen(p, "wb") as file_writer:
+        with os.fdopen(file_pointer, "wb") as file_writer:
             response = request.urlopen(url)
             i = 0
             hash_data = hashlib.md5()
