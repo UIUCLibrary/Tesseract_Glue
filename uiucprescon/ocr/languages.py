@@ -276,7 +276,8 @@ def download_language_pack(tesseract_version: str, destination: str,
         tesseract_version: Version of Tesseract used.
         destination: Path to save the language data
         md5_hash (optional): Expected md5 hash value of the downloaded archive.
-         If file is already downloaded, it will not need to be downloaded again.
+         If file is already downloaded, it will not need to be downloaded
+         again.
 
     """
     base_url = "https://codeload.github.com/tesseract-ocr/tessdata/zip"
