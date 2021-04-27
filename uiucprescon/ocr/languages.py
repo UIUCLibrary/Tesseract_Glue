@@ -127,7 +127,7 @@ LANGUAGE_CODES = {
 }  #: The codes used by Tesseract for a specific languages data set
 
 
-def _download_languague(url, destination, md5_hash=None):
+def _download_languague(url: str, destination: str, md5_hash: str = None) -> str:
     block_size = 16 * 1024
     base_name = os.path.basename(url)
     destination_file = os.path.join(destination, base_name)
@@ -180,7 +180,7 @@ def _download_languague(url, destination, md5_hash=None):
 
 
 def download_language_pack(tesseract_version: str, destination: str,
-                           md5_hash: str = None):
+                           md5_hash: str = None) -> None:
     """Download a specific version of Tesseract training data.
 
         Args:
@@ -198,7 +198,7 @@ def download_language_pack(tesseract_version: str, destination: str,
     _extract_language_pack(language_pack_archive, destination)
 
 
-def _extract_language_pack(language_pack, destination):
+def _extract_language_pack(language_pack: str, destination: str) -> None:
     with zipfile.ZipFile(language_pack) as archive:
         for compressed_file in archive.namelist():
             print("Extracting {}".format(compressed_file))
