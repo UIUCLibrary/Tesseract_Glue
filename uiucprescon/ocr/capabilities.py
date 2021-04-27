@@ -1,7 +1,7 @@
 """Info about what is possible with the current build."""
 
-from uiucprescon.ocr import tesseractwrap
 from typing import Mapping, Tuple
+from uiucprescon.ocr import tesseractwrap
 
 
 def image_lib_versions() -> Mapping[str, str]:
