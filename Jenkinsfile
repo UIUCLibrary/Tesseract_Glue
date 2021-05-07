@@ -648,7 +648,6 @@ pipeline {
                                         ],
                                         buildCmd: {
                                             sh "python3 -m build --sdist"
-//                                            sh "python3 -m pep517.build --source --out-dir dist/ ."
                                         },
                                         post:[
                                             success: {
