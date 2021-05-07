@@ -716,7 +716,6 @@ pipeline {
                             }
                             parallel(buildStages)
                         }
-
                     }
                 }
                 stage("Testing"){
@@ -956,9 +955,7 @@ pipeline {
                                         ]
                                     )
                                 }
-
                             }
-
                             def testingStages = windowsTestStages + linuxTestStages
                             if(params.BUILD_MAC_PACKAGES == true){
                                 testingStages = testingStages + macTestStages
