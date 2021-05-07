@@ -540,12 +540,14 @@ pipeline {
                                             )
                                     },
                                     "Windows":{
-                                        windowsJobs = tox.getToxTestsParallel(
-                                                envNamePrefix: "Tox Windows",
-                                                label: "windows && docker",
-                                                dockerfile: 'ci/docker/windows/tox/Dockerfile',
-                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                                         )
+                                        timeout(240){
+                                            windowsJobs = tox.getToxTestsParallel(
+                                                    envNamePrefix: "Tox Windows",
+                                                    label: "windows && docker",
+                                                    dockerfile: 'ci/docker/windows/tox/Dockerfile',
+                                                    dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                             )
+                                        }
                                     },
                                     failFast: true
                                 )
