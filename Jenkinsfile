@@ -138,7 +138,7 @@ def startup(){
     def SONARQUBE_CREDENTIAL_ID = SONARQUBE_CREDENTIAL_ID
     node(){
         checkout scm
-        mac = load('ci/jenkins/scripts/mac.groovy')
+//         mac = load('ci/jenkins/scripts/mac.groovy')
         devpi = load('ci/jenkins/scripts/devpi.groovy')
     }
     parallel(
