@@ -139,7 +139,8 @@ def startup(){
     node(){
         checkout scm
 //         mac = load('ci/jenkins/scripts/mac.groovy')
-        devpi = load('ci/jenkins/scripts/devpi.groovy')
+// TODO: Make devpi load as needed
+//         devpi = load('ci/jenkins/scripts/devpi.groovy')
     }
     parallel(
         [
