@@ -467,7 +467,7 @@ pipeline {
                                     post{
                                         always{
                                             recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
-                                            stash includes: "reports/pylint_issues.txt,reports/pylint.txt", name: 'PYLINT_REPORT'
+                                            stash includes: 'reports/pylint_issues.txt,reports/pylint.txt', name: 'PYLINT_REPORT'
                                         }
                                     }
                                 }
@@ -508,7 +508,7 @@ pipeline {
                                 unstash 'PYTEST_REPORT'
                 // //                 unstash 'BANDIT_REPORT'
                                 unstash 'PYLINT_REPORT'
-                                unstash "FLAKE8_REPORT"
+                                unstash 'FLAKE8_REPORT'
                                 unstash 'DIST-INFO'
                                 sonarcloudSubmit('uiucprescon.ocr.dist-info/METADATA', 'reports/sonar-report.json', 'sonarcloud-uiucprescon.ocr')
                             }
