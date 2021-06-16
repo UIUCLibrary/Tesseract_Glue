@@ -162,9 +162,9 @@ def startup(){
                                     withEnv(['PIP_NO_CACHE_DIR=off']) {
                                         sh(
                                            label: 'Running setup.py with dist_info',
-                                           script: """python --version
+                                           script: '''python --version
                                                       python setup.py dist_info
-                                                   """
+                                                   '''
                                         )
                                     }
                                     stash includes: '*.dist-info/**', name: 'DIST-INFO'
