@@ -1010,7 +1010,7 @@ pipeline {
                             wheelStashes.each{
                                 unstash it
                             }
-                            devpi.upload(
+                            load('ci/jenkins/scripts/devpi.groovy').upload(
                                 server: 'https://devpi.library.illinois.edu',
                                 credentialsId: 'DS_devpi',
                                 index: getDevPiStagingIndex(),
@@ -1029,6 +1029,7 @@ pipeline {
                 stage('Test DevPi packages') {
                     steps{
                         script{
+                            def devpi = load('ci/jenkins/scripts/devpi.groovy')
                             def macPackages = [:]
                             SUPPORTED_MAC_VERSIONS.each{pythonVersion ->
                                 macPackages["MacOS - Python ${pythonVersion}: wheel"] = {
@@ -1240,7 +1241,7 @@ pipeline {
                     steps {
                         script{
                             echo 'Pushing to production/release index'
-                            devpi.pushPackageToIndex(
+                            load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                 pkgName: props.Name,
                                 pkgVersion: props.Version,
                                 server: 'https://devpi.library.illinois.edu',
@@ -1259,7 +1260,7 @@ pipeline {
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
                                 docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
-                                    devpi.pushPackageToIndex(
+                                    load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
                                         server: 'https://devpi.library.illinois.edu',
@@ -1277,7 +1278,7 @@ pipeline {
                         script{
                             checkout scm
                             docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
-                                devpi.removePackage(
+                                load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
                                     index: "DS_Jenkins/${getDevPiStagingIndex()}",
