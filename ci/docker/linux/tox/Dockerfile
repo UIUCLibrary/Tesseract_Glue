@@ -105,7 +105,7 @@ COPY --from=wheel_builder_py38 /wheels/* /wheels/
 COPY --from=wheel_builder_py39 /wheels/* /wheels/
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox conan cmake devpi_client pep517 && \
+RUN pip3 install tox conan cmake devpi_client pep517 twine && \
     python3 -m pep517.build -h
 
 
