@@ -1,7 +1,7 @@
 def getDevPiStagingIndex(){
 
     if (env.TAG_NAME?.trim()){
-        return "tag_staging"
+        return 'tag_staging'
     } else{
         return "${env.BRANCH_NAME}_staging"
     }
@@ -11,6 +11,12 @@ SONARQUBE_CREDENTIAL_ID = 'sonarcloud-uiucprescon.ocr'
 SUPPORTED_MAC_VERSIONS = ['3.8', '3.9']
 SUPPORTED_LINUX_VERSIONS = ['3.6', '3.7', '3.8', '3.9']
 SUPPORTED_WINDOWS_VERSIONS = ['3.6', '3.7', '3.8', '3.9']
+
+PYPI_SERVERS = [
+    'https://jenkins.library.illinois.edu/nexus/repository/uiuc_prescon_python_public/',
+    'https://jenkins.library.illinois.edu/nexus/repository/uiuc_prescon_python/',
+    'https://jenkins.library.illinois.edu/nexus/repository/uiuc_prescon_python_testing/'
+    ]
 
 def DEVPI_CONFIG = [
     stagingIndex: getDevPiStagingIndex(),
@@ -30,15 +36,15 @@ def get_sonarqube_unresolved_issues(report_task_file){
 
 def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
     def props = readProperties interpolate: true, file: metadataFile
-    withSonarQubeEnv(installationName:"sonarcloud", credentialsId: sonarCredentials) {
+    withSonarQubeEnv(installationName:'sonarcloud', credentialsId: sonarCredentials) {
         if (env.CHANGE_ID){
             sh(
-                label: "Running Sonar Scanner",
+                label: 'Running Sonar Scanner',
                 script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
                 )
         } else {
             sh(
-                label: "Running Sonar Scanner",
+                label: 'Running Sonar Scanner',
                 script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
                 )
         }
@@ -48,7 +54,7 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
          if (sonarqube_result.status != 'OK') {
              unstable "SonarQube quality gate: ${sonarqube_result.status}"
          }
-         def outstandingIssues = get_sonarqube_unresolved_issues(".scannerwork/report-task.txt")
+         def outstandingIssues = get_sonarqube_unresolved_issues('.scannerwork/report-task.txt')
          writeJSON file: outputJson, json: outstandingIssues
      }
 }
@@ -62,27 +68,27 @@ def deploy_docs(pkgName, prefix){
             sshPublisher(
                 publishers: [
                     sshPublisherDesc(
-                        configName: 'apache-ns - lib-dccuser-updater', 
-                        sshLabel: [label: 'Linux'], 
-                        transfers: [sshTransfer(excludes: '', 
-                        execCommand: '', 
-                        execTimeout: 120000, 
-                        flatten: false, 
-                        makeEmptyDirs: false, 
-                        noDefaultExcludes: false, 
-                        patternSeparator: '[, ]+', 
+                        configName: 'apache-ns - lib-dccuser-updater',
+                        sshLabel: [label: 'Linux'],
+                        transfers: [sshTransfer(excludes: '',
+                        execCommand: '',
+                        execTimeout: 120000,
+                        flatten: false,
+                        makeEmptyDirs: false,
+                        noDefaultExcludes: false,
+                        patternSeparator: '[, ]+',
                         remoteDirectory: "${pkgName}",
-                        remoteDirectorySDF: false, 
+                        remoteDirectorySDF: false,
                         removePrefix: "${prefix}",
                         sourceFiles: "${prefix}/**")],
-                    usePromotionTimestamp: false, 
-                    useWorkspaceInPromotion: false, 
+                    usePromotionTimestamp: false,
+                    useWorkspaceInPromotion: false,
                     verbose: true
                     )
                 ]
             )
         } catch(exc){
-            echo "User response timed out. Documentation not published."
+            echo 'User response timed out. Documentation not published.'
         }
     }
 }
@@ -90,10 +96,10 @@ def deploy_docs(pkgName, prefix){
 wheelStashes = []
 
 def getMacDevpiName(pythonVersion, format){
-    if(format == "wheel"){
+    if(format == 'wheel'){
         return "${pythonVersion.replace('.','')}-*macosx*.*whl"
-    } else if(format == "sdist"){
-        return "tar.gz"
+    } else if(format == 'sdist'){
+        return 'tar.gz'
     } else{
         error "unknown format ${format}"
     }
@@ -104,10 +110,10 @@ defaultParameterValues = [
 ]
 
 def get_props(){
-    stage("Reading Package Metadata"){
+    stage('Reading Package Metadata'){
         node() {
             try{
-                unstash "DIST-INFO"
+                unstash 'DIST-INFO'
                 def metadataFile = findFiles(excludes: '', glob: '*.dist-info/METADATA')[0]
                 def package_metadata = readProperties interpolate: true, file: metadataFile.path
                 echo """Metadata:
@@ -130,11 +136,6 @@ def get_props(){
 }
 def startup(){
     def SONARQUBE_CREDENTIAL_ID = SONARQUBE_CREDENTIAL_ID
-    node(){
-        checkout scm
-        mac = load("ci/jenkins/scripts/mac.groovy")
-        devpi = load("ci/jenkins/scripts/devpi.groovy")
-    }
     parallel(
         [
             failFast: true,
@@ -160,14 +161,14 @@ def startup(){
                                 docker.image('python').inside {
                                     withEnv(['PIP_NO_CACHE_DIR=off']) {
                                         sh(
-                                           label: "Running setup.py with dist_info",
-                                           script: """python --version
+                                           label: 'Running setup.py with dist_info',
+                                           script: '''python --version
                                                       python setup.py dist_info
-                                                   """
+                                                   '''
                                         )
                                     }
-                                    stash includes: "*.dist-info/**", name: 'DIST-INFO'
-                                    archiveArtifacts artifacts: "*.dist-info/**"
+                                    stash includes: '*.dist-info/**', name: 'DIST-INFO'
+                                    archiveArtifacts artifacts: '*.dist-info/**'
                                 }
                             } finally{
                                 cleanWs(
@@ -195,18 +196,19 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-        booleanParam(name: "RUN_CHECKS", defaultValue: true, description: "Run checks on code")
-        booleanParam(name: "TEST_RUN_TOX", defaultValue: false, description: "Run Tox Tests")
-        booleanParam(name: "USE_SONARQUBE", defaultValue: defaultParameterValues.USE_SONARQUBE, description: "Send data test data to SonarQube")
-        booleanParam(name: "BUILD_PACKAGES", defaultValue: false, description: "Build Python packages")
-        booleanParam(name: "BUILD_MAC_PACKAGES", defaultValue: false, description: "Test Python packages on Mac")
-        booleanParam(name: "TEST_PACKAGES", defaultValue: true, description: "Test Python packages by installing them and running tests on the installed package")
-        booleanParam(name: "DEPLOY_DEVPI", defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-        booleanParam(name: "DEPLOY_DEVPI_PRODUCTION", defaultValue: false, description: "Deploy to https://devpi.library.illinois.edu/production/release")
-        booleanParam(name: "DEPLOY_DOCS", defaultValue: false, description: "Update online documentation")
+        booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'Run checks on code')
+        booleanParam(name: 'TEST_RUN_TOX', defaultValue: false, description: 'Run Tox Tests')
+        booleanParam(name: 'USE_SONARQUBE', defaultValue: defaultParameterValues.USE_SONARQUBE, description: 'Send data test data to SonarQube')
+        booleanParam(name: 'BUILD_PACKAGES', defaultValue: false, description: 'Build Python packages')
+        booleanParam(name: 'BUILD_MAC_PACKAGES', defaultValue: false, description: 'Test Python packages on Mac')
+        booleanParam(name: 'TEST_PACKAGES', defaultValue: true, description: 'Test Python packages by installing them and running tests on the installed package')
+        booleanParam(name: 'DEPLOY_DEVPI', defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
+        booleanParam(name: 'DEPLOY_DEVPI_PRODUCTION', defaultValue: false, description: 'Deploy to https://devpi.library.illinois.edu/production/release')
+        booleanParam(name: 'DEPLOY_PYPI', defaultValue: false, description: 'Deploy to pypi')
+        booleanParam(name: 'DEPLOY_DOCS', defaultValue: false, description: 'Update online documentation')
     }
     stages {
-        stage("Building") {
+        stage('Building') {
             agent {
                 dockerfile {
                     filename 'ci/docker/linux/build/Dockerfile'
@@ -215,12 +217,12 @@ pipeline {
                 }
             }
             stages{
-                stage("Building Python Package"){
+                stage('Building Python Package'){
                     steps {
                         timeout(20){
-                            tee("logs/python_build.log"){
+                            tee('logs/python_build.log'){
                                 sh(
-                                    label: "Build python package",
+                                    label: 'Build python package',
                                     script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
                                 )
                             }
@@ -232,7 +234,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Building Documentation"){
+                stage('Building Documentation'){
                     steps{
                         timeout(3){
                             sh '''mkdir -p logs
@@ -247,12 +249,8 @@ pipeline {
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
-                            script{
-                                echo "props = ${props}"
-                                def DOC_ZIP_FILENAME = "${props.Name}-${props.Version}.doc.zip"
-                                zip archive: true, dir: "build/docs/html", glob: '', zipFile: "dist/${DOC_ZIP_FILENAME}"
-                                stash includes: "dist/${DOC_ZIP_FILENAME},build/docs/html/**", name: 'DOCS_ARCHIVE'
-                            }
+                            zip archive: true, dir: 'build/docs/html', glob: '', zipFile: "dist/${props.Name}-${props.Version}.doc.zip"
+                            stash includes: 'dist/*.doc.zip,build/docs/html/**', name: 'DOCS_ARCHIVE'
                         }
                     }
                 }
@@ -273,12 +271,12 @@ pipeline {
                 }
             }
         }
-        stage("Checks"){
+        stage('Checks'){
             when{
                 equals expected: true, actual: params.RUN_CHECKS
             }
             stages{
-                stage("Code Quality") {
+                stage('Code Quality') {
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
@@ -288,16 +286,16 @@ pipeline {
                         }
                     }
                     stages{
-                        stage("Setting up Tests"){
+                        stage('Setting up Tests'){
                             parallel{
                                 stage('Setting Up C++ Tests'){
                                     steps{
                                         sh(
-                                            label: "Running conan",
+                                            label: 'Running conan',
                                             script: 'conan install . -if build/cpp -g cmake_find_package'
                                         )
                                         sh(
-                                            label: "Running Build wrapper",
+                                            label: 'Running Build wrapper',
                                             script: '''cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
                                                        make -C build/cpp clean tester
                                                        '''
@@ -308,12 +306,12 @@ pipeline {
                                     steps{
                                         timeout(3){
                                             sh(
-                                                label: "Build python package",
+                                                label: 'Build python package',
                                                 script: '''mkdir -p build/python
                                                            CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory  python setup.py build -b build/python --build-lib build/python/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug
                                                            '''
                                             )
-                                            unstash "DOCS_ARCHIVE"
+                                            unstash 'DOCS_ARCHIVE'
                                             sh '''mkdir -p logs
                                                   mkdir -p reports
                                                   '''
@@ -322,13 +320,13 @@ pipeline {
                                 }
                             }
                         }
-                        stage("Running Tests"){
+                        stage('Running Tests'){
                             parallel {
-                                stage("Run Pytest Unit Tests"){
+                                stage('Run Pytest Unit Tests'){
                                     steps{
                                         timeout(10){
                                             sh(
-                                                label: "Running pytest",
+                                                label: 'Running pytest',
                                                 script: '''mkdir -p reports/pytestcoverage
                                                            coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                            '''
@@ -337,16 +335,16 @@ pipeline {
                                     }
                                     post {
                                         always {
-                                            junit "reports/pytest/junit-pytest.xml"
-                                            stash includes: "reports/pytest/junit-pytest.xml", name: 'PYTEST_REPORT'
+                                            junit 'reports/pytest/junit-pytest.xml'
+                                            stash includes: 'reports/pytest/junit-pytest.xml', name: 'PYTEST_REPORT'
 
                                         }
                                     }
                                 }
-                                stage("Run Doctest Tests"){
+                                stage('Run Doctest Tests'){
                                     steps {
                                         timeout(3){
-                                            sh "python -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log"
+                                            sh 'python -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log'
                                         }
                                     }
                                     post{
@@ -355,7 +353,7 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage("Clang Tidy Analysis") {
+                                stage('Clang Tidy Analysis') {
                                     steps{
                                         tee('logs/clang-tidy.log') {
                                             sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/')
@@ -370,14 +368,14 @@ pipeline {
                                 stage("C++ Tests") {
                                     steps{
                                         sh(
-                                            label: "Running CTest",
-                                            script: "cd build/cpp && ctest --output-on-failure --no-compress-output -T Test",
+                                            label: 'Running CTest',
+                                            script: 'cd build/cpp && ctest --output-on-failure --no-compress-output -T Test',
                                             returnStatus: true
                                         )
 
                                         sh(
-                                            label: "Running cpp tests",
-                                            script: "build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml"
+                                            label: 'Running cpp tests',
+                                            script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                         )
                                     }
                                     post{
@@ -393,7 +391,7 @@ pipeline {
                                                     CTest(
                                                         deleteOutputFiles: true,
                                                         failIfNotNew: true,
-                                                        pattern: "build/cpp/Testing/**/*.xml",
+                                                        pattern: 'build/cpp/Testing/**/*.xml',
                                                         skipNoTestFiles: true,
                                                         stopProcessingIfError: true
                                                     )
@@ -402,29 +400,29 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage("Run Flake8 Static Analysis") {
+                                stage('Run Flake8 Static Analysis') {
                                     steps{
                                         timeout(2){
-                                            catchError(buildResult: "SUCCESS", message: 'Flake8 found issues', stageResult: "UNSTABLE") {
+                                            catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
                                                 sh(
-                                                    label: "Running Flake8",
-                                                    script: "flake8 uiucprescon --tee --output-file logs/flake8.log"
+                                                    label: 'Running Flake8',
+                                                    script: 'flake8 uiucprescon --tee --output-file logs/flake8.log'
                                                 )
                                             }
                                         }
                                     }
                                     post {
                                         always {
-                                            stash includes: "logs/flake8.log", name: 'FLAKE8_REPORT'
+                                            stash includes: 'logs/flake8.log', name: 'FLAKE8_REPORT'
                                             recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                         }
                                     }
                                 }
-                                stage("Run MyPy Static Analysis") {
+                                stage('Run MyPy Static Analysis') {
                                     steps{
                                         timeout(3){
                                             sh(
-                                                label: "Running MyPy",
+                                                label: 'Running MyPy',
                                                 script: """stubgen uiucprescon -o mypy_stubs
                                                            mkdir -p reports/mypy/html
                                                            MYPYPATH="${WORKSPACE}/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
@@ -435,14 +433,14 @@ pipeline {
                                     post {
                                         always {
                                             recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
-                                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: "reports/mypy/html/", reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                                            publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                                         }
                                     }
                                 }
-                                stage("Run Pylint Static Analysis") {
+                                stage('Run Pylint Static Analysis') {
                                     steps{
                                         catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
-                                            sh(label: "Running pylint",
+                                            sh(label: 'Running pylint',
                                                 script: '''mkdir -p logs
                                                            mkdir -p reports
                                                            pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
@@ -452,23 +450,23 @@ pipeline {
                                         }
                                         sh(
                                             script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
-                                            label: "Running pylint for sonarqube",
+                                            label: 'Running pylint for sonarqube',
                                             returnStatus: true
                                         )
                                     }
                                     post{
                                         always{
                                             recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
-                                            stash includes: "reports/pylint_issues.txt,reports/pylint.txt", name: 'PYLINT_REPORT'
+                                            stash includes: 'reports/pylint_issues.txt,reports/pylint.txt', name: 'PYLINT_REPORT'
                                         }
                                     }
                                 }
                             }
                             post{
                                 always{
-                                    sh "mkdir -p build/coverage"
+                                    sh 'mkdir -p build/coverage'
                                     sh "find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=${WORKSPACE}/ \\;"
-                                    sh "mv *.gcov build/coverage/"
+                                    sh 'mv *.gcov build/coverage/'
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
                                                  gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
@@ -476,7 +474,7 @@ pipeline {
                                                  '''
                                         )
                                     archiveArtifacts artifacts: '**/*.gcov'
-                                    stash includes: "reports/coverage*.xml", name: 'COVERAGE_REPORT'
+                                    stash includes: 'reports/coverage*.xml', name: 'COVERAGE_REPORT'
                                     publishCoverage(
                                         adapters: [
                                             coberturaAdapter(mergeToOneReport: true, path: 'reports/coverage*.xml')
@@ -486,9 +484,9 @@ pipeline {
                                 }
                             }
                         }
-                        stage("Sonarcloud Analysis"){
+                        stage('Sonarcloud Analysis'){
                             options{
-                                lock("uiucprescon.ocr-sonarcloud")
+                                lock('uiucprescon.ocr-sonarcloud')
                             }
                             when{
                                 equals expected: true, actual: params.USE_SONARQUBE
@@ -496,27 +494,27 @@ pipeline {
                                 beforeOptions true
                             }
                             steps{
-                                unstash "COVERAGE_REPORT"
-                                unstash "PYTEST_REPORT"
-                // //                 unstash "BANDIT_REPORT"
-                                unstash "PYLINT_REPORT"
-                                unstash "FLAKE8_REPORT"
-                                unstash "DIST-INFO"
-                                sonarcloudSubmit("uiucprescon.ocr.dist-info/METADATA", "reports/sonar-report.json", 'sonarcloud-uiucprescon.ocr')
+                                unstash 'COVERAGE_REPORT'
+                                unstash 'PYTEST_REPORT'
+                // //                 unstash 'BANDIT_REPORT'
+                                unstash 'PYLINT_REPORT'
+                                unstash 'FLAKE8_REPORT'
+                                unstash 'DIST-INFO'
+                                sonarcloudSubmit('uiucprescon.ocr.dist-info/METADATA', 'reports/sonar-report.json', 'sonarcloud-uiucprescon.ocr')
                             }
                             post {
                                 always{
                                    recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                                 }
                                 failure{
-                                    sh "ls -R"
+                                    sh 'ls -R'
                                 }
                             }
                         }
                     }
 
                 }
-                stage("Run Tox test") {
+                stage('Run Tox test') {
                     when {
                        equals expected: true, actual: params.TEST_RUN_TOX
                     }
@@ -525,25 +523,25 @@ pipeline {
                             def tox
                             node(){
                                 checkout scm
-                                tox = load("ci/jenkins/scripts/tox.groovy")
+                                tox = load('ci/jenkins/scripts/tox.groovy')
                             }
                             def windowsJobs = [:]
                             def linuxJobs = [:]
-                            stage("Scanning Tox Environments"){
+                            stage('Scanning Tox Environments'){
                                 parallel(
-                                    "Linux":{
+                                    'Linux':{
                                         linuxJobs = tox.getToxTestsParallel(
-                                                envNamePrefix: "Tox Linux",
-                                                label: "linux && docker",
+                                                envNamePrefix: 'Tox Linux',
+                                                label: 'linux && docker',
                                                 dockerfile: 'ci/docker/linux/tox/Dockerfile',
                                                 dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                             )
                                     },
-                                    "Windows":{
+                                    'Windows':{
                                         timeout(240){
                                             windowsJobs = tox.getToxTestsParallel(
-                                                    envNamePrefix: "Tox Windows",
-                                                    label: "windows && docker",
+                                                    envNamePrefix: 'Tox Windows',
+                                                    label: 'windows && docker',
                                                     dockerfile: 'ci/docker/windows/tox/Dockerfile',
                                                     dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                              )
@@ -559,7 +557,7 @@ pipeline {
 
             }
         }
-        stage("Python Packaging"){
+        stage('Python Packaging'){
             when{
                 anyOf{
                     equals expected: true, actual: params.BUILD_PACKAGES
@@ -649,7 +647,7 @@ pipeline {
                                             ]
                                         ],
                                         buildCmd: {
-                                            sh "python3 -m build --sdist"
+                                            sh 'python3 -m build --sdist'
                                         },
                                         post:[
                                             success: {
@@ -667,7 +665,7 @@ pipeline {
                                                 )
                                             },
                                             failure: {
-                                                sh "python3 -m pip list"
+                                                sh 'python3 -m pip list'
                                             }
                                         ]
                                     )
@@ -685,7 +683,7 @@ pipeline {
                                             ]
                                         ],
                                         buildCmd: {
-                                            sh(label: "Building python wheel",
+                                            sh(label: 'Building python wheel',
                                                script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
                                                          auditwheel show ./dist/*.whl
                                                          auditwheel -v repair ./dist/*.whl -w ./dist
@@ -720,7 +718,7 @@ pipeline {
                         }
                     }
                 }
-                stage("Testing"){
+                stage('Testing'){
                     when{
                         equals expected: true, actual: params.TEST_PACKAGES
                     }
@@ -744,7 +742,7 @@ pipeline {
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.whl').each{
-                                                sh(label: "Running Tox",
+                                                sh(label: 'Running Tox',
                                                    script: """python${pythonVersion} -m venv venv
                                                    ./venv/bin/python -m pip install --upgrade pip
                                                    ./venv/bin/pip install tox
@@ -782,7 +780,7 @@ pipeline {
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.tar.gz').each{
-                                                sh(label: "Running Tox",
+                                                sh(label: 'Running Tox',
                                                    script: """python${pythonVersion} -m venv venv
                                                    ./venv/bin/python -m pip install --upgrade pip
                                                    ./venv/bin/pip install tox
@@ -818,14 +816,14 @@ pipeline {
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                             ]
                                         ],
-                                        dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase(),
+                                        dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase(),
                                         testSetup: {
                                              checkout scm
                                              unstash "python${pythonVersion} windows wheel"
                                         },
                                         testCommand: {
                                              findFiles(glob: 'dist/*.whl').each{
-                                                 powershell(label: "Running Tox", script: "tox --installpkg ${it.path} --workdir \$env:TEMP\\tox  -e py${pythonVersion.replace('.', '')}")
+                                                 powershell(label: 'Running Tox', script: "tox --installpkg ${it.path} --workdir \$env:TEMP\\tox  -e py${pythonVersion.replace('.', '')}")
                                              }
 
                                         },
@@ -855,14 +853,14 @@ pipeline {
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                             ]
                                         ],
-                                        dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase(),
+                                        dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase(),
                                         testSetup: {
                                             checkout scm
                                             unstash 'python sdist'
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.tar.gz').each{
-                                                bat(label: "Running Tox", script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v")
+                                                bat(label: 'Running Tox', script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v")
                                             }
                                         },
                                         post:[
@@ -933,7 +931,7 @@ pipeline {
                                         ],
                                         testSetup: {
                                             checkout scm
-                                            unstash "python sdist"
+                                            unstash 'python sdist'
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.tar.gz').each{
@@ -968,18 +966,18 @@ pipeline {
                 }
             }
         }
-        stage("Deploy to DevPi") {
+        stage('Deploy to DevPi') {
             agent none
             options{
-                lock("uiucprescon.ocr-devpi")
+                lock('uiucprescon.ocr-devpi')
             }
             when {
                 allOf{
                     equals expected: true, actual: params.DEPLOY_DEVPI
                     anyOf {
-                        equals expected: "master", actual: env.BRANCH_NAME
-                        equals expected: "dev", actual: env.BRANCH_NAME
-                        tag "*"
+                        equals expected: 'master', actual: env.BRANCH_NAME
+                        equals expected: 'dev', actual: env.BRANCH_NAME
+                        tag '*'
                     }
                 }
                 beforeAgent true
@@ -989,7 +987,7 @@ pipeline {
                 devpiStagingIndex = getDevPiStagingIndex()
             }
             stages{
-                stage("Upload to DevPi Staging"){
+                stage('Upload to DevPi Staging'){
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
@@ -1002,15 +1000,15 @@ pipeline {
                     }
                     steps {
                         script{
-                            unstash "DOCS_ARCHIVE"
+                            unstash 'DOCS_ARCHIVE'
                             wheelStashes.each{
                                 unstash it
                             }
-                            devpi.upload(
-                                server: "https://devpi.library.illinois.edu",
-                                credentialsId: "DS_devpi",
+                            load('ci/jenkins/scripts/devpi.groovy').upload(
+                                server: 'https://devpi.library.illinois.edu',
+                                credentialsId: 'DS_devpi',
                                 index: getDevPiStagingIndex(),
-                                clientDir: "./devpi"
+                                clientDir: './devpi'
                             )
                         }
                     }
@@ -1025,6 +1023,7 @@ pipeline {
                 stage('Test DevPi packages') {
                     steps{
                         script{
+                            def devpi = load('ci/jenkins/scripts/devpi.groovy')
                             def macPackages = [:]
                             SUPPORTED_MAC_VERSIONS.each{pythonVersion ->
                                 macPackages["MacOS - Python ${pythonVersion}: wheel"] = {
@@ -1208,13 +1207,13 @@ pipeline {
                         }
                     }
                 }
-                stage("Deploy to DevPi Production") {
+                stage('Deploy to DevPi Production') {
                     when {
                         allOf{
                             equals expected: true, actual: params.DEPLOY_DEVPI_PRODUCTION
                             anyOf {
-                                branch "master"
-                                tag "*"
+                                branch 'master'
+                                tag '*'
                             }
                         }
                         beforeAgent true
@@ -1235,13 +1234,13 @@ pipeline {
                     }
                     steps {
                         script{
-                            echo "Pushing to production/release index"
-                            devpi.pushPackageToIndex(
+                            echo 'Pushing to production/release index'
+                            load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                 pkgName: props.Name,
                                 pkgVersion: props.Version,
-                                server: "https://devpi.library.illinois.edu",
+                                server: 'https://devpi.library.illinois.edu',
                                 indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
-                                indexDestination: "production/release",
+                                indexDestination: 'production/release',
                                 credentialsId: 'DS_devpi'
                             )
                         }
@@ -1254,11 +1253,11 @@ pipeline {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
-                                docker.build("ocr:devpi",'-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
-                                    devpi.pushPackageToIndex(
+                                docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                                    load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
-                                        server: "https://devpi.library.illinois.edu",
+                                        server: 'https://devpi.library.illinois.edu',
                                         indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
                                         indexDestination: "DS_Jenkins/${env.BRANCH_NAME}",
                                         credentialsId: 'DS_devpi'
@@ -1272,12 +1271,12 @@ pipeline {
                     node('linux && docker') {
                         script{
                             checkout scm
-                            docker.build("ocr:devpi",'-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
-                                devpi.removePackage(
+                            docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                                load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
                                     index: "DS_Jenkins/${getDevPiStagingIndex()}",
-                                    server: "https://devpi.library.illinois.edu",
+                                    server: 'https://devpi.library.illinois.edu',
                                     credentialsId: 'DS_devpi',
 
                                 )
@@ -1287,9 +1286,69 @@ pipeline {
                 }
             }
         }
-        stage("Deploy"){
+        stage('Deploy'){
             parallel{
-                stage("Deploy Online Documentation") {
+                stage('Deploy to pypi') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/linux/build/Dockerfile'
+                            label 'linux && docker'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                        }
+                    }
+                    when{
+                        allOf{
+                            equals expected: true, actual: params.BUILD_PACKAGES
+                            equals expected: true, actual: params.DEPLOY_PYPI
+                        }
+                        beforeAgent true
+                        beforeInput true
+                    }
+                    options{
+                        retry(3)
+                    }
+                    input {
+                        message 'Upload to pypi server?'
+                        parameters {
+                            choice(
+                                choices: PYPI_SERVERS,
+                                description: 'Url to the pypi index to upload python packages.',
+                                name: 'SERVER_URL'
+                            )
+                        }
+                    }
+                    steps{
+                        unstash 'python sdist'
+                        script{
+                            wheelStashes.each{
+                                unstash it
+                            }
+                            def pypi = fileLoader.fromGit(
+                                    'pypi',
+                                    'https://github.com/UIUCLibrary/jenkins_helper_scripts.git',
+                                    '2',
+                                    null,
+                                    ''
+                                )
+                            pypi.pypiUpload(
+                                credentialsId: 'jenkins-nexus',
+                                repositoryUrl: SERVER_URL,
+                                glob: 'dist/*'
+                                )
+                        }
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                patterns: [
+                                        [pattern: 'dist/', type: 'INCLUDE']
+                                    ]
+                            )
+                        }
+                    }
+                }
+                stage('Deploy Online Documentation') {
                     when{
                         equals expected: true, actual: params.DEPLOY_DOCS
                         beforeAgent true
@@ -1301,8 +1360,8 @@ pipeline {
                         }
                     }
                     steps{
-                        unstash "DOCS_ARCHIVE"
-                        deploy_docs(props.Name, "build/docs/html")
+                        unstash 'DOCS_ARCHIVE'
+                        deploy_docs(props.Name, 'build/docs/html')
                     }
                 }
             }
