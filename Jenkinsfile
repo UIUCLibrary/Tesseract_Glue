@@ -410,20 +410,20 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage("Run Flake8 Static Analysis") {
+                                stage('Run Flake8 Static Analysis') {
                                     steps{
                                         timeout(2){
                                             catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
                                                 sh(
-                                                    label: "Running Flake8",
-                                                    script: "flake8 uiucprescon --tee --output-file logs/flake8.log"
+                                                    label: 'Running Flake8',
+                                                    script: 'flake8 uiucprescon --tee --output-file logs/flake8.log'
                                                 )
                                             }
                                         }
                                     }
                                     post {
                                         always {
-                                            stash includes: "logs/flake8.log", name: 'FLAKE8_REPORT'
+                                            stash includes: 'logs/flake8.log', name: 'FLAKE8_REPORT'
                                             recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                         }
                                     }
@@ -657,7 +657,7 @@ pipeline {
                                             ]
                                         ],
                                         buildCmd: {
-                                            sh "python3 -m build --sdist"
+                                            sh 'python3 -m build --sdist'
                                         },
                                         post:[
                                             success: {
@@ -675,7 +675,7 @@ pipeline {
                                                 )
                                             },
                                             failure: {
-                                                sh "python3 -m pip list"
+                                                sh 'python3 -m pip list'
                                             }
                                         ]
                                     )
