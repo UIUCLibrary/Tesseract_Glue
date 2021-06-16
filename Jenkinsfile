@@ -59,39 +59,39 @@ def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
      }
 }
 
-// def deploy_docs(pkgName, prefix){
-//     script{
-//         try{
-//             timeout(30) {
-//                 input "Update project documentation to https://www.library.illinois.edu/dccdocs/${pkgName}"
-//             }
-//             sshPublisher(
-//                 publishers: [
-//                     sshPublisherDesc(
-//                         configName: 'apache-ns - lib-dccuser-updater',
-//                         sshLabel: [label: 'Linux'],
-//                         transfers: [sshTransfer(excludes: '',
-//                         execCommand: '',
-//                         execTimeout: 120000,
-//                         flatten: false,
-//                         makeEmptyDirs: false,
-//                         noDefaultExcludes: false,
-//                         patternSeparator: '[, ]+',
-//                         remoteDirectory: "${pkgName}",
-//                         remoteDirectorySDF: false,
-//                         removePrefix: "${prefix}",
-//                         sourceFiles: "${prefix}/**")],
-//                     usePromotionTimestamp: false,
-//                     useWorkspaceInPromotion: false,
-//                     verbose: true
-//                     )
-//                 ]
-//             )
-//         } catch(exc){
-//             echo 'User response timed out. Documentation not published.'
-//         }
-//     }
-// }
+def deploy_docs(pkgName, prefix){
+    script{
+        try{
+            timeout(30) {
+                input "Update project documentation to https://www.library.illinois.edu/dccdocs/${pkgName}"
+            }
+            sshPublisher(
+                publishers: [
+                    sshPublisherDesc(
+                        configName: 'apache-ns - lib-dccuser-updater',
+                        sshLabel: [label: 'Linux'],
+                        transfers: [sshTransfer(excludes: '',
+                        execCommand: '',
+                        execTimeout: 120000,
+                        flatten: false,
+                        makeEmptyDirs: false,
+                        noDefaultExcludes: false,
+                        patternSeparator: '[, ]+',
+                        remoteDirectory: "${pkgName}",
+                        remoteDirectorySDF: false,
+                        removePrefix: "${prefix}",
+                        sourceFiles: "${prefix}/**")],
+                    usePromotionTimestamp: false,
+                    useWorkspaceInPromotion: false,
+                    verbose: true
+                    )
+                ]
+            )
+        } catch(exc){
+            echo 'User response timed out. Documentation not published.'
+        }
+    }
+}
 
 wheelStashes = []
 
