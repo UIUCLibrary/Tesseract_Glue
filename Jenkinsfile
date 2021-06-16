@@ -136,12 +136,6 @@ def get_props(){
 }
 def startup(){
     def SONARQUBE_CREDENTIAL_ID = SONARQUBE_CREDENTIAL_ID
-//     node(){
-//         checkout scm
-//         mac = load('ci/jenkins/scripts/mac.groovy')
-// TODO: Make devpi load as needed
-//         devpi = load('ci/jenkins/scripts/devpi.groovy')
-//     }
     parallel(
         [
             failFast: true,
