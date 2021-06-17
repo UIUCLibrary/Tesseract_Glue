@@ -464,9 +464,10 @@ pipeline {
                             }
                             post{
                                 always{
-                                    sh 'mkdir -p build/coverage'
-                                    sh "find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=${WORKSPACE}/ \\;"
-                                    sh 'mv *.gcov build/coverage/'
+                                    sh(script: '''mkdir -p build/coverage
+                                                  find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=$WORKSPACE/ \\;
+                                                  mv *.gcov build/coverage/
+                                                  ''')
                                     sh(script:'''coverage combine
                                                  coverage xml -o ./reports/coverage-python.xml
                                                  gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
