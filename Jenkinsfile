@@ -1026,7 +1026,7 @@ pipeline {
                     steps{
                         script{
                             def devpi = load('ci/jenkins/scripts/devpi.groovy')
-                            echo 'Generating tasks to test packages uploaded to devpi'
+//                             echo 'Generating tasks to test packages uploaded to devpi'
                             def macPackages = [:]
                             SUPPORTED_MAC_VERSIONS.each{pythonVersion ->
                                 macPackages["MacOS - Python ${pythonVersion}: wheel"] = {
