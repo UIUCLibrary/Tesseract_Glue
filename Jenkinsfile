@@ -24,40 +24,40 @@ def DEVPI_CONFIG = [
     credentialsId: 'DS_devpi',
 ]
 
-def get_sonarqube_unresolved_issues(report_task_file){
-    script{
-
-        def props = readProperties  file: '.scannerwork/report-task.txt'
-        def response = httpRequest url : props['serverUrl'] + "/api/issues/search?componentKeys=" + props['projectKey'] + "&resolved=no"
-        def outstandingIssues = readJSON text: response.content
-        return outstandingIssues
-    }
-}
-
-def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
-    def props = readProperties interpolate: true, file: metadataFile
-    withSonarQubeEnv(installationName:'sonarcloud', credentialsId: sonarCredentials) {
-        if (env.CHANGE_ID){
-            sh(
-                label: 'Running Sonar Scanner',
-                script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
-                )
-        } else {
-            sh(
-                label: 'Running Sonar Scanner',
-                script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
-                )
-        }
-    }
-     timeout(time: 1, unit: 'HOURS') {
-         def sonarqube_result = waitForQualityGate(abortPipeline: false)
-         if (sonarqube_result.status != 'OK') {
-             unstable "SonarQube quality gate: ${sonarqube_result.status}"
-         }
-         def outstandingIssues = get_sonarqube_unresolved_issues('.scannerwork/report-task.txt')
-         writeJSON file: outputJson, json: outstandingIssues
-     }
-}
+// def get_sonarqube_unresolved_issues(report_task_file){
+//     script{
+//
+//         def props = readProperties  file: '.scannerwork/report-task.txt'
+//         def response = httpRequest url : props['serverUrl'] + "/api/issues/search?componentKeys=" + props['projectKey'] + "&resolved=no"
+//         def outstandingIssues = readJSON text: response.content
+//         return outstandingIssues
+//     }
+// }
+//
+// def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
+//     def props = readProperties interpolate: true, file: metadataFile
+//     withSonarQubeEnv(installationName:'sonarcloud', credentialsId: sonarCredentials) {
+//         if (env.CHANGE_ID){
+//             sh(
+//                 label: 'Running Sonar Scanner',
+//                 script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
+//                 )
+//         } else {
+//             sh(
+//                 label: 'Running Sonar Scanner',
+//                 script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
+//                 )
+//         }
+//     }
+//      timeout(time: 1, unit: 'HOURS') {
+//          def sonarqube_result = waitForQualityGate(abortPipeline: false)
+//          if (sonarqube_result.status != 'OK') {
+//              unstable "SonarQube quality gate: ${sonarqube_result.status}"
+//          }
+//          def outstandingIssues = get_sonarqube_unresolved_issues('.scannerwork/report-task.txt')
+//          writeJSON file: outputJson, json: outstandingIssues
+//      }
+// }
 
 def deploy_docs(pkgName, prefix){
     script{
@@ -464,14 +464,14 @@ pipeline {
                             }
                             post{
                                 always{
-                                    sh 'mkdir -p build/coverage'
-                                    sh "find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=${WORKSPACE}/ \\;"
-                                    sh 'mv *.gcov build/coverage/'
-                                    sh(script:'''coverage combine
-                                                 coverage xml -o ./reports/coverage-python.xml
-                                                 gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
-                                                 gcovr --filter uiucprescon/ocr --print-summary --keep
-                                                 '''
+                                    sh(script: '''mkdir -p build/coverage
+                                                  find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=$WORKSPACE/ \\;
+                                                  mv *.gcov build/coverage/
+                                                  coverage combine
+                                                  coverage xml -o ./reports/coverage-python.xml
+                                                  gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
+                                                  gcovr --filter uiucprescon/ocr --print-summary --keep
+                                                  '''
                                         )
                                     archiveArtifacts artifacts: '**/*.gcov'
                                     stash includes: 'reports/coverage*.xml', name: 'COVERAGE_REPORT'
@@ -500,7 +500,9 @@ pipeline {
                                 unstash 'PYLINT_REPORT'
                                 unstash 'FLAKE8_REPORT'
                                 unstash 'DIST-INFO'
-                                sonarcloudSubmit('uiucprescon.ocr.dist-info/METADATA', 'reports/sonar-report.json', 'sonarcloud-uiucprescon.ocr')
+                                script{
+                                    load('ci/jenkins/scripts/sonarqube.groovy').sonarcloudSubmit('uiucprescon.ocr.dist-info/METADATA', 'reports/sonar-report.json', 'sonarcloud-uiucprescon.ocr')
+                                }
                             }
                             post {
                                 always{
@@ -983,9 +985,9 @@ pipeline {
                 beforeAgent true
                 beforeOptions true
             }
-            environment{
-                devpiStagingIndex = getDevPiStagingIndex()
-            }
+//             environment{
+//                 devpiStagingIndex = getDevPiStagingIndex()
+//             }
             stages{
                 stage('Upload to DevPi Staging'){
                     agent {
@@ -1023,7 +1025,11 @@ pipeline {
                 stage('Test DevPi packages') {
                     steps{
                         script{
-                            def devpi = load('ci/jenkins/scripts/devpi.groovy')
+                            def devpi = null
+                            node(){
+                                checkout scm
+                                devpi = load('ci/jenkins/scripts/devpi.groovy')
+                            }
                             def macPackages = [:]
                             SUPPORTED_MAC_VERSIONS.each{pythonVersion ->
                                 macPackages["MacOS - Python ${pythonVersion}: wheel"] = {
