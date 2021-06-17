@@ -730,6 +730,7 @@ pipeline {
                                 packages = load 'ci/jenkins/scripts/packaging.groovy'
                             }
                             def macTestStages = [:]
+                            echo 'Generating Jobs for MacOS'
                             SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
                                 macTestStages["MacOS - Python ${pythonVersion}: wheel"] = {
                                     packages.testPkg2(
@@ -805,6 +806,7 @@ pipeline {
                                     )
                                 }
                             }
+                            echo 'Generating Jobs for Windows'
                             def windowsTestStages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
                                 windowsTestStages["Windows - Python ${pythonVersion}: wheel"] = {
@@ -878,6 +880,7 @@ pipeline {
                                     )
                                 }
                             }
+                            echo 'Generating Jobs for Linux'
                             def linuxTestStages = [:]
                             SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
                                 linuxTestStages["Linux - Python ${pythonVersion}: wheel"] = {
