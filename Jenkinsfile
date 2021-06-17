@@ -985,9 +985,9 @@ pipeline {
                 beforeAgent true
                 beforeOptions true
             }
-            environment{
-                devpiStagingIndex = getDevPiStagingIndex()
-            }
+//             environment{
+//                 devpiStagingIndex = getDevPiStagingIndex()
+//             }
             stages{
                 stage('Upload to DevPi Staging'){
                     agent {
