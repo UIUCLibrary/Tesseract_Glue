@@ -17,7 +17,7 @@ RUN if id $USER_ID ; then \
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
-ENV SONAR_SCANNER_VERSION=4.4.0.2170
+ENV SONAR_SCANNER_VERSION=4.6.2.2472
 ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
 ENV SONAR_USER_HOME=/opt/sonar/.sonar
 ENV SONAR_SCANNER_OPTS="-server"
