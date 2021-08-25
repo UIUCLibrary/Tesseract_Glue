@@ -181,7 +181,6 @@ class LanguageDownloader:
         try:
             with os.fdopen(file_pointer, "wb") as file_writer:
                 response = request.urlopen(url)
-                i = 0
                 hash_data = hashlib.md5()
                 start_time = time.time()
                 last_printed = start_time
@@ -191,7 +190,6 @@ class LanguageDownloader:
                         break
                     file_writer.write(chunk)
                     hash_data.update(chunk)
-                    i += 1
                     update_time = time.time()
                     if update_time - last_printed > 0.5:
                         last_printed = time.time()
