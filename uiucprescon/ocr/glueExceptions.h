@@ -10,7 +10,7 @@ class TesseractGlueException: public std::exception{
     std::string message;
 public:
     explicit TesseractGlueException(std::basic_string<char> message) noexcept;
-    TesseractGlueException(TesseractGlueException &&e1) noexcept: message(std::move(e1.message)){};
+    TesseractGlueException(TesseractGlueException &&e1) noexcept: message{e1.message}{};
 };
 
 
