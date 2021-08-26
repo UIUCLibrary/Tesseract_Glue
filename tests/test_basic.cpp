@@ -1,9 +1,9 @@
 #include "catch2/catch.hpp"
+#include "fileLoader.h"
 #include "glue.h"
+#include "glueExceptions.h"
 #include "reader.h"
 #include "reader2.h"
-#include "glueExceptions.h"
-#include "fileLoader.h"
 #include <iostream>
 
 TEST_CASE("dummy"){
