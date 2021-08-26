@@ -13,7 +13,7 @@ Reader2::Reader2(const std::string &tessdata, const std::string &lang):
     language(lang),
     tessdata(tessdata)
 {
-    if (tess.Init(tessdata.c_str(), lang.c_str())){
+    if (0 != tess.Init(tessdata.c_str(), lang.c_str())){
         cerr << "OCRTesseract: Could not initialize tesseract." << endl;
         this->good = false;
         return;
