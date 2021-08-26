@@ -1,10 +1,10 @@
 #include "Image.h"
-#include "reader2.h"
-#include <string>
-#include <iostream>
-#include <memory>
 #include "fileLoader.h"
 #include "glueExceptions.h"
+#include "reader2.h"
+#include <iostream>
+#include <memory>
+#include <string>
 
 using std::endl;
 using std::cerr;

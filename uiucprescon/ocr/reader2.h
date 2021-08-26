@@ -1,8 +1,8 @@
 #pragma once
-#include <memory>
-#include <tesseract/baseapi.h>
-#include <string>
 #include "Image.h"
+#include <memory>
+#include <string>
+#include <tesseract/baseapi.h>
 
 class Reader2
 {

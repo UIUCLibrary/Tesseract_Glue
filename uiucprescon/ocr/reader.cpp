@@ -1,7 +1,7 @@
 #include "reader.h"
-#include <string>
 #include <iostream>
 #include <leptonica/allheaders.h>
+#include <string>
 
 Reader::Reader(const std::string &tessdata, const std::string &lang):language(lang), tessdata(tessdata)
 {
