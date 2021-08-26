@@ -18,7 +18,7 @@ Reader::~Reader()
     tess.End();
 }
 
-bool Reader::isGood(){
+bool Reader::isGood() const{
     return this->good;
 }
 
