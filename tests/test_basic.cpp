@@ -1,10 +1,10 @@
 #include "catch2/catch.hpp"
+#include "fileLoader.h"
 #include "glue.h"
+#include "glueExceptions.h"
 #include "reader.h"
 #include "reader2.h"
-#include "glueExceptions.h"
 #include <iostream>
-#include "fileLoader.h"
 
 TEST_CASE("dummy"){
     Reader2 reader(TESS_DATA, "eng");

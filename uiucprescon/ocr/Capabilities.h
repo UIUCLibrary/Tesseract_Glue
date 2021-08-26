@@ -5,8 +5,8 @@
 #ifndef OCR_CAPABILITIES_H
 #define OCR_CAPABILITIES_H
 
-#include <string>
 #include <map>
+#include <string>
 
 class Capabilities {
 public:

@@ -26,8 +26,8 @@ find_package(Leptonica REQUIRED)
 include(FetchContent)
 
 FetchContent_Declare(libpybind11
-        URL https://github.com/pybind/pybind11/archive/v2.6.2.tar.gz
-        URL_HASH SHA1=e340be2d61439deaf7bdd4bd273bb8c51b713f26
+        URL https://github.com/pybind/pybind11/archive/v2.7.1.tar.gz
+        URL_HASH SHA1=8ddca54a17e646aa3e42488b0a0cb250f8b8ed83
         )
 
 FetchContent_GetProperties(libpybind11)

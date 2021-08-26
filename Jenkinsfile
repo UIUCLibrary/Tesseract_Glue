@@ -356,7 +356,7 @@ pipeline {
                                 stage('Clang Tidy Analysis') {
                                     steps{
                                         tee('logs/clang-tidy.log') {
-                                            sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/')
+                                            sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./uiucprescon/ocr')
                                         }
                                     }
                                     post{

@@ -5,9 +5,9 @@
 #ifndef OCR_FILELOADER_H
 #define OCR_FILELOADER_H
 
-#include <string>
-#include "ImageLoaderStrategies.h"
 #include "Image.h"
+#include "ImageLoaderStrategies.h"
+#include <string>
 
 class ImageLoader{
 public:
