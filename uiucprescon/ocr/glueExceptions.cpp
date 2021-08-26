@@ -5,5 +5,4 @@
 
 #include "glueExceptions.h"
 
-
-TesseractGlueException::TesseractGlueException(std::basic_string<char> message) noexcept: message(std::move(message)) {}
+TesseractGlueException::TesseractGlueException(const std::string &message) noexcept: message(std::move(message)) {}
