@@ -2,8 +2,9 @@
 #include "fileLoader.h"
 #include "glue.h"
 #include <memory>
-using namespace std;
+using std::string;
+using std::shared_ptr;
 
-std::shared_ptr<Image> load_image(const string &source) {
+shared_ptr<Image> load_image(const string &source) {
     return ImageLoader::loadImage(source);
 }
