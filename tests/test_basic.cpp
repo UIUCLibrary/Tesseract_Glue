@@ -3,8 +3,8 @@
 #include "reader.h"
 #include "reader2.h"
 #include "glueExceptions.h"
-#include <iostream>
 #include "fileLoader.h"
+#include <iostream>
 
 TEST_CASE("dummy"){
     Reader2 reader(TESS_DATA, "eng");
