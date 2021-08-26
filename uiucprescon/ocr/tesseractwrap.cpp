@@ -1,8 +1,8 @@
 #include "glue.h"
+#include "Capabilities.h"
 #include "reader2.h"
 #include "utils.h"
 #include "glueExceptions.h"
-#include "Capabilities.h"
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <leptonica/allheaders.h>
