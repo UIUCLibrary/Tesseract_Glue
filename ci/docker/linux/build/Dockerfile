@@ -39,7 +39,8 @@ RUN mkdir -p /.cache/pip && \
 
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
-    pip install wheel cmake
+    pip install wheel cmake && \
+    pip install conan
 
 ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
 
@@ -53,8 +54,9 @@ FROM base_python as conan_builder
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install conan
-COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
+#COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+RUN conan profile new default --detect
 ENV CONAN_USER_HOME=/conan
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init
@@ -116,9 +118,7 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 COPY --from=wheel_builder /wheels/* /wheels/
 
-RUN pip install --no-index --find-links=/wheels/ conan
 COPY --from=conan_builder /conan/.conan/ /conan/.conan/
-COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 
