@@ -25,6 +25,7 @@ endif(NOT TARGET Tesseract::Tesseract)
 find_package(Leptonica REQUIRED)
 include(FetchContent)
 
+find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 FetchContent_Declare(libpybind11
         URL https://github.com/pybind/pybind11/archive/v2.7.1.tar.gz
         URL_HASH SHA1=8ddca54a17e646aa3e42488b0a0cb250f8b8ed83
