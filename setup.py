@@ -111,5 +111,6 @@ setuptools.setup(
     ext_modules=[
         tesseract_extension
     ],
+    package_data={"uiucprescon.ocr": ["py.typed"]},
     cmdclass=cmd_class,
 )
