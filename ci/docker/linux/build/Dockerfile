@@ -1,5 +1,6 @@
 ARG PYTHON_VERSION=3.8
 FROM python:${PYTHON_VERSION} as base_python
+RUN apt update -y && apt install -y ca-certificates
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ARG USER_ID=1000
