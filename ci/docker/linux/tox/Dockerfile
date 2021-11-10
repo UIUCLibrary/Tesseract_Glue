@@ -74,6 +74,21 @@ RUN $PYTHON -m pip install pip --upgrade pip && \
     $PYTHON -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt
 
 # ==============================================================================
+# ==============================================================================
+FROM wheel_builder_base as wheel_builder_py310
+
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_INDEX_URL
+
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
+ENV PYTHON=python3.10
+RUN $PYTHON -m ensurepip --upgrade && \
+    $PYTHON -m pip install pip --upgrade pip && \
+    $PYTHON -m pip install wheel && \
+    $PYTHON -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
+    $PYTHON -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt
+
+# ==============================================================================
 
 FROM wheel_builder_base as conan_builder
 RUN pip3 install conan cmake ninja
@@ -98,6 +113,8 @@ COPY --from=wheel_builder_py36 /wheels/* /wheels/
 COPY --from=wheel_builder_py37 /wheels/* /wheels/
 COPY --from=wheel_builder_py38 /wheels/* /wheels/
 COPY --from=wheel_builder_py39 /wheels/* /wheels/
+COPY --from=wheel_builder_py310 /wheels/* /wheels/
+
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
 RUN pip3 install tox conan cmake devpi_client pep517 twine && \
