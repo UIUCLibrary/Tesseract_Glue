@@ -17,13 +17,14 @@ class AbsReader(metaclass=abc.ABCMeta):
         super().__init__()
 
         def is_lang_in_path(lang: str) -> bool:
-            data_file = "{}.traineddata".format(lang)
+            data_file = f"{lang}.traineddata"
             return os.path.exists(os.path.join(tesseract_data_path, data_file))
 
         if not is_lang_in_path(language_code):
             raise FileNotFoundError(
-                "No \"{}\" language file located in \"{}\"".format(
-                    language_code, tesseract_data_path))
+                f'No "{language_code}" language file located '
+                f'in "{tesseract_data_path}"'
+            )
 
         if not is_lang_in_path("osd"):
             raise FileNotFoundError(

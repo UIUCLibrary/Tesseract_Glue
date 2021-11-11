@@ -193,8 +193,9 @@ class LanguageDownloader:
                     update_time = time.time()
                     if update_time - last_printed > 0.5:
                         last_printed = time.time()
-                        print("Download Tesseract language data"
-                              ": {:.2f} MB".format(file_writer.tell() / 1e+6))
+                        percent_completed = file_writer.tell() / 1e+6
+                        print(f"Download Tesseract language "
+                              f"data : {percent_completed:.2f} MB")
 
                 if md5_hash is not None and hash_data.hexdigest() != md5_hash:
                     raise IOError("File does not match expected hash")
@@ -202,7 +203,7 @@ class LanguageDownloader:
                 print("Downloaded Tesseract language data. "
                       "Total {:.2f} MB".format(file_writer.tell() / 1e+6))
 
-            print("Renaming {} to {}".format(temp_file, destination_file))
+            print(f"Renaming {temp_file} to {destination_file}")
             os.rename(temp_file, destination_file)
         finally:
             if os.path.exists(temp_file):
