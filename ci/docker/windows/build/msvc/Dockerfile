@@ -87,6 +87,10 @@ RUN python -m pip install --upgrade pip ; `
 FROM PYTHON_BASE
 COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
 ADD conanfile.py C:/TEMP/
+
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
+
 RUN conan install C:/TEMP/ --build  missing --no-import ;`
     conan remove * -b --src -f ; `
     conan remove --locks

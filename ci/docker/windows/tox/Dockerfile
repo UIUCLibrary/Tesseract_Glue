@@ -213,7 +213,9 @@ COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  C:/Users/ContainerAdministrator/.conan/remotes.json
 COPY ci/docker/windows/tox/conan/profile.ini  C:/Users/ContainerAdministrator/.conan/profiles/default
 ENV CONAN_USER_HOME=C:\Users\ContainerAdministrator\
-RUN conan config init
+RUN conan config init ; `
+    conan config set general.revisions_enabled=1
+
 RUN conan install c:/temp/ --build missing --no-import; `
     conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import  ; `
     conan remove "*" -b --src -f ; `

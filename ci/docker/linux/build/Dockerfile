@@ -60,7 +60,8 @@ COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 RUN conan profile new default --detect
 ENV CONAN_USER_HOME=/conan
 COPY conanfile.py /tmp/conanfile.py
-RUN conan config init
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
 RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan install /tmp --build outdated --build=openjpeg --no-import  -s build_type=Debug && \
     conan remove "*" -b --src -f && \
@@ -124,7 +125,9 @@ COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 
 ENV CONAN_USER_HOME=/conan
-RUN conan config init
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
+
 RUN conan install /tmp --build  missing --no-import && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
