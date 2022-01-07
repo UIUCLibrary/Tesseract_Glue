@@ -97,7 +97,9 @@ COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/profiles/d
 USER user
 WORKDIR /home/user
 COPY conanfile.py /tmp/conanfile.py
-RUN conan config init
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
+
 RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
@@ -127,6 +129,10 @@ COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
 RUN conan config home
+
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
+
 RUN conan install /tmp --build  missing --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \

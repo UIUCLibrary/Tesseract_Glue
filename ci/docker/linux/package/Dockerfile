@@ -11,7 +11,9 @@ COPY ci/docker/linux/package/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ENV CONAN_USER_HOME=/conan
 COPY conanfile.py /tmp/conanfile.py
-RUN conan config init
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
+
 RUN conan install /tmp --build missing && \
     $(conan info /tmp/conanfile.py --paths --package-filter="tesseract/*" | grep package_folder: | sed -e 's/[ \t]*package_folder: //' -e "s/$/\/bin\/tesseract/") --version > /tmp/results.txt && \
     cat /tmp/results.txt && \
@@ -26,7 +28,9 @@ COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
 COPY --from=conan_builder /conan/.conan/ /conan/.conan/
-RUN conan config home
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
+
 RUN conan install /tmp --build outdated --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
