@@ -273,13 +273,12 @@ pipeline {
                                             sh(
                                                 label: 'Build python package',
                                                 script: '''mkdir -p build/python
+                                                           mkdir -p logs
+                                                           mkdir -p reports
                                                            CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory  python setup.py build -b build/python --build-lib build/python/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug
                                                            '''
                                             )
                                             unstash 'DOCS_ARCHIVE'
-                                            sh '''mkdir -p logs
-                                                  mkdir -p reports
-                                                  '''
                                         }
                                     }
                                 }
