@@ -23,7 +23,41 @@ def DEVPI_CONFIG = [
     server: 'https://devpi.library.illinois.edu',
     credentialsId: 'DS_devpi',
 ]
-
+def getToxStages(){
+    script{
+        def tox
+        node(){
+            checkout scm
+            tox = load('ci/jenkins/scripts/tox.groovy')
+        }
+        def windowsJobs = [:]
+        def linuxJobs = [:]
+        stage('Scanning Tox Environments'){
+            parallel(
+                'Linux':{
+                    linuxJobs = tox.getToxTestsParallel(
+                            envNamePrefix: 'Tox Linux',
+                            label: 'linux && docker',
+                            dockerfile: 'ci/docker/linux/tox/Dockerfile',
+                            dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                        )
+                },
+                'Windows':{
+                    timeout(240){
+                        windowsJobs = tox.getToxTestsParallel(
+                                envNamePrefix: 'Tox Windows',
+                                label: 'windows && docker',
+                                dockerfile: 'ci/docker/windows/tox/Dockerfile',
+                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                         )
+                    }
+                },
+                failFast: true
+            )
+        }
+        return windowsJobs + linuxJobs
+    }
+}
 // def get_sonarqube_unresolved_issues(report_task_file){
 //     script{
 //
@@ -58,40 +92,6 @@ def DEVPI_CONFIG = [
 //          writeJSON file: outputJson, json: outstandingIssues
 //      }
 // }
-
-def deploy_docs(pkgName, prefix){
-    script{
-        try{
-            timeout(30) {
-                input "Update project documentation to https://www.library.illinois.edu/dccdocs/${pkgName}"
-            }
-            sshPublisher(
-                publishers: [
-                    sshPublisherDesc(
-                        configName: 'apache-ns - lib-dccuser-updater',
-                        sshLabel: [label: 'Linux'],
-                        transfers: [sshTransfer(excludes: '',
-                        execCommand: '',
-                        execTimeout: 120000,
-                        flatten: false,
-                        makeEmptyDirs: false,
-                        noDefaultExcludes: false,
-                        patternSeparator: '[, ]+',
-                        remoteDirectory: "${pkgName}",
-                        remoteDirectorySDF: false,
-                        removePrefix: "${prefix}",
-                        sourceFiles: "${prefix}/**")],
-                    usePromotionTimestamp: false,
-                    useWorkspaceInPromotion: false,
-                    verbose: true
-                    )
-                ]
-            )
-        } catch(exc){
-            echo 'User response timed out. Documentation not published.'
-        }
-    }
-}
 
 wheelStashes = []
 
@@ -245,7 +245,6 @@ pipeline {
                     post{
                         always {
                             recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log', id: 'sphinx_build')])
-
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -291,12 +290,9 @@ pipeline {
                                 stage('Setting Up C++ Tests'){
                                     steps{
                                         sh(
-                                            label: 'Running conan',
-                                            script: 'conan install . -if build/cpp -g cmake_find_package'
-                                        )
-                                        sh(
-                                            label: 'Running Build wrapper',
-                                            script: '''cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                            label: 'Building C++ project for metrics',
+                                            script: '''conan install . -if build/cpp -g cmake_find_package
+                                                       cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
                                                        make -C build/cpp clean tester
                                                        '''
                                         )
@@ -308,13 +304,12 @@ pipeline {
                                             sh(
                                                 label: 'Build python package',
                                                 script: '''mkdir -p build/python
+                                                           mkdir -p logs
+                                                           mkdir -p reports
                                                            CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory  python setup.py build -b build/python --build-lib build/python/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug
                                                            '''
                                             )
                                             unstash 'DOCS_ARCHIVE'
-                                            sh '''mkdir -p logs
-                                                  mkdir -p reports
-                                                  '''
                                         }
                                     }
                                 }
@@ -365,7 +360,7 @@ pipeline {
                                         }
                                     }
                                 }
-                                stage("C++ Tests") {
+                                stage('C++ Tests') {
                                     steps{
                                         sh(
                                             label: 'Running CTest',
@@ -420,15 +415,13 @@ pipeline {
                                 }
                                 stage('Run MyPy Static Analysis') {
                                     steps{
-                                        timeout(3){
-                                            sh(
-                                                label: 'Running MyPy',
-                                                script: """stubgen uiucprescon -o mypy_stubs
-                                                           mkdir -p reports/mypy/html
-                                                           MYPYPATH="${WORKSPACE}/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                                           """
-                                            )
-                                        }
+                                        sh(
+                                            label: 'Running MyPy',
+                                            script: '''stubgen uiucprescon -o mypy_stubs
+                                                       mkdir -p reports/mypy/html
+                                                       MYPYPATH="$WORKSPACE/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                       '''
+                                        )
                                     }
                                     post {
                                         always {
@@ -449,7 +442,7 @@ pipeline {
                                             )
                                         }
                                         sh(
-                                            script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
+                                            script: 'pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
                                             label: 'Running pylint for sonarqube',
                                             returnStatus: true
                                         )
@@ -473,7 +466,6 @@ pipeline {
                                                   gcovr --filter uiucprescon/ocr --print-summary --keep
                                                   '''
                                         )
-                                    archiveArtifacts artifacts: '**/*.gcov'
                                     stash includes: 'reports/coverage*.xml', name: 'COVERAGE_REPORT'
                                     publishCoverage(
                                         adapters: [
@@ -508,9 +500,6 @@ pipeline {
                                 always{
                                    recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                                 }
-                                failure{
-                                    sh 'ls -R'
-                                }
                             }
                         }
                     }
@@ -522,41 +511,11 @@ pipeline {
                     }
                     steps {
                         script{
-                            def tox
-                            node(){
-                                checkout scm
-                                tox = load('ci/jenkins/scripts/tox.groovy')
-                            }
-                            def windowsJobs = [:]
-                            def linuxJobs = [:]
-                            stage('Scanning Tox Environments'){
-                                parallel(
-                                    'Linux':{
-                                        linuxJobs = tox.getToxTestsParallel(
-                                                envNamePrefix: 'Tox Linux',
-                                                label: 'linux && docker',
-                                                dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                            )
-                                    },
-                                    'Windows':{
-                                        timeout(240){
-                                            windowsJobs = tox.getToxTestsParallel(
-                                                    envNamePrefix: 'Tox Windows',
-                                                    label: 'windows && docker',
-                                                    dockerfile: 'ci/docker/windows/tox/Dockerfile',
-                                                    dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                                             )
-                                        }
-                                    },
-                                    failFast: true
-                                )
-                            }
-                            parallel(windowsJobs + linuxJobs)
+                            parallel(getToxStages())
                         }
+
                     }
                 }
-
             }
         }
         stage('Python Packaging'){
@@ -818,7 +777,7 @@ pipeline {
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                             ]
                                         ],
-                                        dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase(),
+                                        dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
                                         testSetup: {
                                              checkout scm
                                              unstash "python${pythonVersion} windows wheel"
@@ -855,7 +814,7 @@ pipeline {
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                             ]
                                         ],
-                                        dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase(),
+                                        dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
                                         testSetup: {
                                             checkout scm
                                             unstash 'python sdist'
@@ -1354,10 +1313,11 @@ pipeline {
                         }
                     }
                 }
-                stage('Deploy Online Documentation') {
+                 stage('Deploy Online Documentation') {
                     when{
                         equals expected: true, actual: params.DEPLOY_DOCS
                         beforeAgent true
+                        beforeInput true
                     }
                     agent {
                         dockerfile {
@@ -1365,9 +1325,28 @@ pipeline {
                             label 'linux && docker'
                         }
                     }
+                    options{
+                        timeout(time: 1, unit: 'DAYS')
+                    }
+                    input {
+                        message 'Update project documentation?'
+                    }
                     steps{
                         unstash 'DOCS_ARCHIVE'
-                        deploy_docs(props.Name, 'build/docs/html')
+                        withCredentials([usernamePassword(credentialsId: 'dccdocs-server', passwordVariable: 'docsPassword', usernameVariable: 'docsUsername')]) {
+                            sh 'python utils/upload_docs.py --username=$docsUsername --password=$docsPassword --subroute=ocr build/docs/html apache-ns.library.illinois.edu'
+                        }
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                patterns: [
+                                    [pattern: 'build/', type: 'INCLUDE'],
+                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                ]
+                            )
+                        }
                     }
                 }
             }
