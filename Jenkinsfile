@@ -23,7 +23,41 @@ def DEVPI_CONFIG = [
     server: 'https://devpi.library.illinois.edu',
     credentialsId: 'DS_devpi',
 ]
-
+def getToxStages(){
+    script{
+        def tox
+        node(){
+            checkout scm
+            tox = load('ci/jenkins/scripts/tox.groovy')
+        }
+        def windowsJobs = [:]
+        def linuxJobs = [:]
+        stage('Scanning Tox Environments'){
+            parallel(
+                'Linux':{
+                    linuxJobs = tox.getToxTestsParallel(
+                            envNamePrefix: 'Tox Linux',
+                            label: 'linux && docker',
+                            dockerfile: 'ci/docker/linux/tox/Dockerfile',
+                            dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                        )
+                },
+                'Windows':{
+                    timeout(240){
+                        windowsJobs = tox.getToxTestsParallel(
+                                envNamePrefix: 'Tox Windows',
+                                label: 'windows && docker',
+                                dockerfile: 'ci/docker/windows/tox/Dockerfile',
+                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                         )
+                    }
+                },
+                failFast: true
+            )
+        }
+        return windowsJobs + linuxJobs
+    }
+}
 // def get_sonarqube_unresolved_issues(report_task_file){
 //     script{
 //
@@ -477,41 +511,11 @@ pipeline {
                     }
                     steps {
                         script{
-                            def tox
-                            node(){
-                                checkout scm
-                                tox = load('ci/jenkins/scripts/tox.groovy')
-                            }
-                            def windowsJobs = [:]
-                            def linuxJobs = [:]
-                            stage('Scanning Tox Environments'){
-                                parallel(
-                                    'Linux':{
-                                        linuxJobs = tox.getToxTestsParallel(
-                                                envNamePrefix: 'Tox Linux',
-                                                label: 'linux && docker',
-                                                dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                            )
-                                    },
-                                    'Windows':{
-                                        timeout(240){
-                                            windowsJobs = tox.getToxTestsParallel(
-                                                    envNamePrefix: 'Tox Windows',
-                                                    label: 'windows && docker',
-                                                    dockerfile: 'ci/docker/windows/tox/Dockerfile',
-                                                    dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                                             )
-                                        }
-                                    },
-                                    failFast: true
-                                )
-                            }
-                            parallel(windowsJobs + linuxJobs)
+                            parallel(getToxStages())
                         }
+
                     }
                 }
-
             }
         }
         stage('Python Packaging'){
