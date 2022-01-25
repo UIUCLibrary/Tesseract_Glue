@@ -470,9 +470,6 @@ pipeline {
                                 always{
                                    recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                                 }
-                                failure{
-                                    sh 'ls -R'
-                                }
                             }
                         }
                     }
