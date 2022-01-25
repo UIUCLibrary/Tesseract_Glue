@@ -387,10 +387,10 @@ pipeline {
                                     steps{
                                         sh(
                                             label: 'Running MyPy',
-                                            script: """stubgen uiucprescon -o mypy_stubs
+                                            script: '''stubgen uiucprescon -o mypy_stubs
                                                        mkdir -p reports/mypy/html
-                                                       MYPYPATH="${WORKSPACE}/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                                       """
+                                                       MYPYPATH="$WORKSPACE/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                       '''
                                         )
                                     }
                                     post {
