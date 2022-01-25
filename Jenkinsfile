@@ -1354,10 +1354,11 @@ pipeline {
                         }
                     }
                 }
-                stage('Deploy Online Documentation') {
+                 stage('Deploy Online Documentation') {
                     when{
                         equals expected: true, actual: params.DEPLOY_DOCS
                         beforeAgent true
+                        beforeInput true
                     }
                     agent {
                         dockerfile {
@@ -1365,9 +1366,28 @@ pipeline {
                             label 'linux && docker'
                         }
                     }
+                    options{
+                        timeout(time: 1, unit: 'DAYS')
+                    }
+                    input {
+                        message 'Update project documentation?'
+                    }
                     steps{
                         unstash 'DOCS_ARCHIVE'
-                        deploy_docs(props.Name, 'build/docs/html')
+                        withCredentials([usernamePassword(credentialsId: 'dccdocs-server', passwordVariable: 'docsPassword', usernameVariable: 'docsUsername')]) {
+                            sh 'python utils/upload_docs.py --username=$docsUsername --password=$docsPassword --subroute=ocr build/docs/html apache-ns.library.illinois.edu'
+                        }
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                deleteDirs: true,
+                                patterns: [
+                                    [pattern: 'build/', type: 'INCLUDE'],
+                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                ]
+                            )
+                        }
                     }
                 }
             }
