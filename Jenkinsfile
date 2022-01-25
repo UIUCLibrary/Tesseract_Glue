@@ -256,12 +256,9 @@ pipeline {
                                 stage('Setting Up C++ Tests'){
                                     steps{
                                         sh(
-                                            label: 'Running conan',
-                                            script: 'conan install . -if build/cpp -g cmake_find_package'
-                                        )
-                                        sh(
-                                            label: 'Running Build wrapper',
-                                            script: '''cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                            label: 'Building C++ project for metrics',
+                                            script: '''conan install . -if build/cpp -g cmake_find_package
+                                                       cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
                                                        make -C build/cpp clean tester
                                                        '''
                                         )
