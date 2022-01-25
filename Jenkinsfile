@@ -412,7 +412,7 @@ pipeline {
                                             )
                                         }
                                         sh(
-                                            script: 'pylint   -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
+                                            script: 'pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
                                             label: 'Running pylint for sonarqube',
                                             returnStatus: true
                                         )
@@ -436,7 +436,6 @@ pipeline {
                                                   gcovr --filter uiucprescon/ocr --print-summary --keep
                                                   '''
                                         )
-                                    archiveArtifacts artifacts: '**/*.gcov'
                                     stash includes: 'reports/coverage*.xml', name: 'COVERAGE_REPORT'
                                     publishCoverage(
                                         adapters: [
