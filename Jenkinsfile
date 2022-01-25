@@ -211,7 +211,6 @@ pipeline {
                     post{
                         always {
                             recordIssues(tools: [sphinxBuild(name: 'Sphinx Documentation Build', pattern: 'logs/build_sphinx.log', id: 'sphinx_build')])
-
                         }
                         success{
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'build/docs/html', reportFiles: 'index.html', reportName: 'Documentation', reportTitles: ''])
@@ -386,15 +385,13 @@ pipeline {
                                 }
                                 stage('Run MyPy Static Analysis') {
                                     steps{
-                                        timeout(3){
-                                            sh(
-                                                label: 'Running MyPy',
-                                                script: """stubgen uiucprescon -o mypy_stubs
-                                                           mkdir -p reports/mypy/html
-                                                           MYPYPATH="${WORKSPACE}/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                                           """
-                                            )
-                                        }
+                                        sh(
+                                            label: 'Running MyPy',
+                                            script: """stubgen uiucprescon -o mypy_stubs
+                                                       mkdir -p reports/mypy/html
+                                                       MYPYPATH="${WORKSPACE}/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                       """
+                                        )
                                     }
                                     post {
                                         always {
