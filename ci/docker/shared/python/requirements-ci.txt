@@ -7,6 +7,7 @@ gcovr
 lxml
 mypy
 ninja
+paramiko
 pep517
 pybind11
 pylint
