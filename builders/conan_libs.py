@@ -174,7 +174,7 @@ def update_extension2(extension, text_md):
 
 def get_compiler_info():
     groups = re.match(
-        '(GCC|Clang|MSVC) (([0-9]+.?)*) [(]?',
+        '^(GCC|Clang|MSVC) (([0-9]+.?)*)',
         platform.python_compiler()
     )
     compiler_name = None
@@ -263,12 +263,17 @@ class BuildConan(setuptools.Command):
         )
 
         build_dir_full_path = os.path.abspath(build_dir)
+        ninja = shutil.which("ninja")
+        env = []
+        if ninja:
+            env.append(f"NINJA={ninja}")
         conan.install(
             options=conan_options,
             cwd=build_dir,
             settings=settings,
             build=build if len(build) > 0 else None,
             path=conanfile_path,
+            env=env,
             install_folder=build_dir_full_path,
             # profile_build=profile
         )
