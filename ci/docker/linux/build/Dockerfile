@@ -124,6 +124,8 @@ COPY --from=wheel_builder /wheels/* /wheels/
 
 COPY --from=conan_builder /conan/.conan/ /conan/.conan/
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+ARG TARGETARCH
+COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  /conan/.conan/profiles/default
 ADD conanfile.py /tmp/conanfile.py
 
 ENV CONAN_USER_HOME=/conan

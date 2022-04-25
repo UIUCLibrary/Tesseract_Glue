@@ -213,7 +213,7 @@ pipeline {
                 dockerfile {
                     filename 'ci/docker/linux/build/Dockerfile'
                     label 'linux && docker && x86'
-                    additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                    additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL '
                 }
             }
             stages{
@@ -280,7 +280,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
                             label 'linux && docker && x86'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                             args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                         }
                     }
@@ -1263,7 +1263,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/build/Dockerfile'
                             label 'linux && docker'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                         }
                     }
                     when{
