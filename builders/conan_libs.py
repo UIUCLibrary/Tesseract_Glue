@@ -5,10 +5,12 @@ import shutil
 import abc
 from typing import Iterable, Any, Dict, List, Union
 import setuptools
+import platform
 from distutils import ccompiler
 from pathlib import Path
 from builders.deps import get_win_deps
 import json
+import re
 
 
 class ConanBuildInfoParser:
@@ -170,6 +172,28 @@ def update_extension2(extension, text_md):
     extension.define_macros = define_macros + extension.define_macros
 
 
+def get_compiler_info():
+    groups = re.match(
+        '(GCC|Clang|MSVC) (([0-9]+.?)*) [(]',
+        platform.python_compiler()
+    )
+    compiler_name = None
+    if "Clang" in groups[1]:
+        if platform.system() == "Darwin":
+            compiler_name = 'apple-clang'
+    elif "GCC" in groups[1]:
+        compiler_name = 'gcc'
+    else:
+        compiler_name = groups[1]
+
+    parsed_version = re.findall('([0-9]+).?', groups[2])
+    version = f"{parsed_version[0]}.{parsed_version[1]}"
+    return {
+        "name": compiler_name,
+        "version": version
+    }
+
+
 class BuildConan(setuptools.Command):
     user_options = [
         ('conan-cache=', None, 'conan cache directory')
@@ -223,7 +247,10 @@ class BuildConan(setuptools.Command):
             settings.append("build_type=Debug")
         else:
             settings.append("build_type=Release")
-        #     FIXME: This should be the setup.py file dir
+
+        compiler_info = get_compiler_info()
+        settings.append(f"compiler={compiler_info['name']}")
+        settings.append(f"compiler.version={compiler_info['version']}")
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
         )
