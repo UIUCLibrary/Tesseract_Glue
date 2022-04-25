@@ -1,3 +1,4 @@
+ARG TARGETARCH=x86
 FROM ubuntu:20.04 as wheel_builder_base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 RUN apt update && \
