@@ -93,7 +93,8 @@ RUN $PYTHON -m ensurepip --upgrade && \
 FROM wheel_builder_base as conan_builder
 RUN pip3 install conan cmake ninja
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
-COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/profiles/default
+ARG TARGETARCH
+COPY --chown=user:user ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
 USER user
 WORKDIR /home/user
 COPY conanfile.py /tmp/conanfile.py
@@ -119,12 +120,13 @@ COPY --from=wheel_builder_py310 /wheels/* /wheels/
 
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox conan cmake devpi_client pep517 twine && \
-    python3 -m pep517.build -h
+RUN pip3 install tox conan cmake devpi_client build twine
 
 
 COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
-COPY ci/docker/shared/conan/profile.ini  /conan/.conan/profiles/default
+#COPY ci/docker/shared/conan/profile.ini  /conan/.conan/profiles/default
+ARG TARGETARCH
+COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan

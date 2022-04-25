@@ -39,7 +39,7 @@ def getToxStages(){
                             envNamePrefix: 'Tox Linux',
                             label: 'linux && docker && x86',
                             dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                            dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            dockerArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                         )
                 },
                 'Windows':{
