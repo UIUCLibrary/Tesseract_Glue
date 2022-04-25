@@ -174,17 +174,24 @@ def update_extension2(extension, text_md):
 
 def get_compiler_info():
     groups = re.match(
-        '(GCC|Clang|MSVC) (([0-9]+.?)*) [(]',
+        '(GCC|Clang|MSVC) (([0-9]+.?)*) [(]?',
         platform.python_compiler()
     )
     compiler_name = None
-    if "Clang" in groups[1]:
-        if platform.system() == "Darwin":
-            compiler_name = 'apple-clang'
-    elif "GCC" in groups[1]:
-        compiler_name = 'gcc'
-    else:
-        compiler_name = groups[1]
+    try:
+        if "Clang" in groups[1]:
+            if platform.system() == "Darwin":
+                compiler_name = 'apple-clang'
+        elif "GCC" in groups[1]:
+            compiler_name = 'gcc'
+        else:
+            compiler_name = groups[1]
+    except TypeError:
+        print(
+            f"python compiler = {platform.python_compiler()}",
+            file=sys.stderr
+        )
+        raise
 
     parsed_version = re.findall('([0-9]+).?', groups[2])
     version = f"{parsed_version[0]}.{parsed_version[1]}"
