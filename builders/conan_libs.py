@@ -204,9 +204,13 @@ def get_compiler_version():
         Clang 13.1.6 (clang-1316.0.21.2)
     """
     full_version = re.search(
-        "^(?:[A-Za-z]+) ((?:(v.)?)([0-9]+[.]?)+)(?:[ \n$])",
+        r"^(?:[A-Za-z]+ )(?:v[.])?(([0-9]+[.]?)+)(?:[ \n$])",
         platform.python_compiler()
     ).groups()[0]
+    if get_compiler_name() == "msvc":
+        # MSVC compiler uses versions like 1916 but conan wants it as 191
+        return full_version[:3]
+
     parsed_version = re.findall(
         "([0-9]+)(?:[.]?)",
         full_version
