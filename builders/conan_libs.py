@@ -216,7 +216,6 @@ def get_visual_studio_version():
     return sorted_values[-1].split(".")[0]
 
 
-
 def get_compiler_version():
     """
     Examples of compiler data:
