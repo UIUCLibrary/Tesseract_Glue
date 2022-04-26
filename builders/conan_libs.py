@@ -172,20 +172,19 @@ def update_extension2(extension, text_md):
     extension.define_macros = define_macros + extension.define_macros
 
 
-def get_compiler_info():
+def get_compiler_name() -> str:
     groups = re.match(
-        '^(GCC|Clang|MSVC) (([0-9]+.?)*)',
+        '^(GCC|Clang|MSVC|MSC)',
         platform.python_compiler()
     )
-    compiler_name = None
     try:
         if "Clang" in groups[1]:
             if platform.system() == "Darwin":
-                compiler_name = 'apple-clang'
+                return 'apple-clang'
         elif "GCC" in groups[1]:
-            compiler_name = 'gcc'
+            return 'gcc'
         else:
-            compiler_name = groups[1]
+            return groups[1]
     except TypeError:
         print(
             f"python compiler = {platform.python_compiler()}",
@@ -193,11 +192,32 @@ def get_compiler_info():
         )
         raise
 
-    parsed_version = re.findall('([0-9]+).?', groups[2])
-    version = f"{parsed_version[0]}.{parsed_version[1]}"
+
+def get_compiler_version():
+    """
+    Examples of compiler data:
+        GCC 10.2.1 20210110
+        GCC 9.4.0
+        MSC v.1916 64 bit (AMD64)
+        Clang 13.1.6 (clang-1316.0.21.2)
+    """
+    full_version = re.search(
+        "^(?:[A-Za-z]+) ((?:(v.)?)([0-9]+[.]?)+)(?:[ \n$])",
+        platform.python_compiler()
+    ).groups()[0]
+    parsed_version = re.findall(
+        "([0-9]+)(?:[.]?)",
+        full_version
+    )
+    if len(parsed_version) <= 2:
+        return full_version
+    return f"{parsed_version[0]}.{parsed_version[1]}"
+
+
+def get_compiler_info():
     return {
-        "name": compiler_name,
-        "version": version
+        "name": get_compiler_name(),
+        "version": get_compiler_version()
     }
 
 
