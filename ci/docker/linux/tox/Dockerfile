@@ -129,6 +129,7 @@ COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
 ARG TARGETARCH
 COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+COPY ci/docker/linux/tox/conan/$TARGETARCH/settings.yml /conan/.conan/settings.yml
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
 RUN conan config home
