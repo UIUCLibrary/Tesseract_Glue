@@ -304,15 +304,21 @@ class BuildConan(setuptools.Command):
             settings.append("build_type=Debug")
         else:
             settings.append("build_type=Release")
-
-        settings.append(f"compiler={get_compiler_name()}")
-        settings.append(f"compiler.version={get_compiler_version()}")
-        if get_compiler_name() == "msvc":
-            settings.append(f"compiler.cppstd=14")
-            settings.append(f"compiler.runtime=dynamic")
-        elif get_compiler_name() == "Visual Studio":
-            settings.append(f"compiler.runtime=MD")
-            settings.append(f"compiler.toolset=v142")
+        try:
+            settings.append(f"compiler={get_compiler_name()}")
+            settings.append(f"compiler.version={get_compiler_version()}")
+            if get_compiler_name() == "msvc":
+                settings.append(f"compiler.cppstd=14")
+                settings.append(f"compiler.runtime=dynamic")
+            elif get_compiler_name() == "Visual Studio":
+                settings.append(f"compiler.runtime=MD")
+                settings.append(f"compiler.toolset=v142")
+        except AttributeError:
+            print(
+                f"Unable to get compiler information "
+                f"for {platform.python_compiler()}"
+            )
+            raise
 
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
