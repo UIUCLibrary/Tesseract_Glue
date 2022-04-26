@@ -183,6 +183,8 @@ def get_compiler_name() -> str:
                 return 'apple-clang'
         elif "GCC" in groups[1]:
             return 'gcc'
+        elif groups[1] in ['MSVC', 'MSC']:
+            return 'msvc'
         else:
             return groups[1]
     except TypeError:
