@@ -184,7 +184,8 @@ def get_compiler_name() -> str:
         elif "GCC" in groups[1]:
             return 'gcc'
         elif groups[1] in ['MSVC', 'MSC']:
-            return 'msvc'
+            return 'Visual Studio'
+            # return 'msvc'
         else:
             return groups[1]
     except TypeError:
@@ -193,6 +194,27 @@ def get_compiler_name() -> str:
             file=sys.stderr
         )
         raise
+
+
+def get_visual_studio_version():
+    import winreg
+    possible_versions = [
+        "8.0", "9.0", "10.0", "11.0", "12.0", "14.0", "15.0", "16.0"
+    ]
+    installed_versions = []
+    key = "SOFTWARE\Microsoft\VisualStudio\%s"
+
+    for v in possible_versions:
+        try:
+            winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key % v, 0,
+                            winreg.KEY_ALL_ACCESS)
+            installed_versions.append(v)
+        except Exception as e:
+            pass
+    sorted_values = sorted(installed_versions, key=lambda value: float(value))
+    print(sorted_values)
+    return sorted_values[-1]
+
 
 
 def get_compiler_version():
@@ -210,6 +232,8 @@ def get_compiler_version():
     if get_compiler_name() == "msvc":
         # MSVC compiler uses versions like 1916 but conan wants it as 191
         return full_version[:3]
+    elif get_compiler_name() == "Visual Studio":
+        return get_visual_studio_version()
 
     parsed_version = re.findall(
         "([0-9]+)(?:[.]?)",
@@ -281,12 +305,14 @@ class BuildConan(setuptools.Command):
         else:
             settings.append("build_type=Release")
 
-        compiler_info = get_compiler_info()
         settings.append(f"compiler={get_compiler_name()}")
-        settings.append(f"compiler.version={compiler_info['version']}")
+        settings.append(f"compiler.version={get_compiler_version()}")
         if get_compiler_name() == "msvc":
             settings.append(f"compiler.cppstd=14")
             settings.append(f"compiler.runtime=dynamic")
+        elif get_compiler_name() == "Visual Studio":
+            settings.append(f"compiler.runtime=MD")
+            settings.append(f"compiler.toolset=v142")
 
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
