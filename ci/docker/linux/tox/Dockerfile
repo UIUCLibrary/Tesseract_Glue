@@ -1,4 +1,5 @@
 ARG TARGETARCH=x86
+ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES=9.4
 FROM ubuntu:20.04 as wheel_builder_base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 RUN apt update && \
@@ -103,9 +104,10 @@ RUN conan config init && \
     conan config set general.revisions_enabled=1
 
 COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
-RUN python3 /tmp/update_conan_compiler.py /home/user/.conan/settings.yml gcc 9.4
+ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
+RUN python3 /tmp/update_conan_compiler.py /home/user/.conan/settings.yml gcc $COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
 
-RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
+RUN conan install /tmp --build outdated --build=openjpeg --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
@@ -139,8 +141,8 @@ RUN conan config home
 RUN conan config init && \
     conan config set general.revisions_enabled=1
 
-
-RUN conan install /tmp --build  missing --no-import  && \
+ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
+RUN conan install /tmp --build  missing --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 /conan
