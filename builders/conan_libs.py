@@ -282,9 +282,10 @@ class BuildConan(setuptools.Command):
             settings.append("build_type=Release")
 
         compiler_info = get_compiler_info()
-        settings.append(f"compiler={compiler_info['name']}")
+        settings.append(f"compiler={get_compiler_name()}")
         settings.append(f"compiler.version={compiler_info['version']}")
-        settings.append(f"compiler.cppstd=14")
+        if get_compiler_name() == "msvc":
+            settings.append(f"compiler.cppstd=14")
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
         )
