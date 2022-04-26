@@ -505,17 +505,17 @@ pipeline {
                     }
 
                 }
-                stage('Run Tox test') {
-                    when {
-                       equals expected: true, actual: params.TEST_RUN_TOX
-                    }
-                    steps {
-                        script{
-                            parallel(getToxStages())
-                        }
-
-                    }
+            }
+        }
+        stage('Run Tox test') {
+            when {
+               equals expected: true, actual: params.TEST_RUN_TOX
+            }
+            steps {
+                script{
+                    parallel(getToxStages())
                 }
+
             }
         }
         stage('Python Packaging'){
