@@ -284,6 +284,7 @@ class BuildConan(setuptools.Command):
         compiler_info = get_compiler_info()
         settings.append(f"compiler={compiler_info['name']}")
         settings.append(f"compiler.version={compiler_info['version']}")
+        settings.append(f"compiler.cppstd=14")
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
         )
