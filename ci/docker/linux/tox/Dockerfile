@@ -102,6 +102,9 @@ COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
     conan config set general.revisions_enabled=1
 
+COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
+RUN python3 /tmp/update_conan_compiler.py /home/user/.conan/settings.yml gcc 9.4
+
 RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
@@ -125,17 +128,17 @@ RUN pip3 install tox conan cmake devpi_client build twine
 
 
 COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
-#COPY ci/docker/shared/conan/profile.ini  /conan/.conan/profiles/default
+COPY --from=conan_builder /home/user/.conan/settings.yml  /conan/.conan/settings.yml
 ARG TARGETARCH
 COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
-COPY ci/docker/linux/tox/conan/$TARGETARCH/settings.yml /conan/.conan/settings.yml
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
 RUN conan config home
 
 RUN conan config init && \
     conan config set general.revisions_enabled=1
+
 
 RUN conan install /tmp --build  missing --no-import  && \
     conan remove "*" -b --src -f && \
