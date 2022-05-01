@@ -603,6 +603,7 @@ pipeline {
                                     node('linux && docker'){
                                         docker.image("python").inside(){
                                             try{
+                                                checkout scm
                                                 sh "python -m venv venv --upgrade-deps &&  venv/bin/pip install build"
                                                 sh "venv/bin/python -m build --sdist"
                                                 archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
@@ -863,8 +864,8 @@ pipeline {
                                 }
                             }
                             def linuxTestStages = [:]
-                            if(params.BUILD_MANYLINUX_PACKAGES){
-                                SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
+                            SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
+                                if(params.BUILD_MANYLINUX_PACKAGES){
                                     linuxTestStages["Linux - Python ${pythonVersion}: wheel"] = {
                                         packages.testPkg2(
                                             agent: [
@@ -905,41 +906,41 @@ pipeline {
                                             ]
                                         )
                                     }
-                                    linuxTestStages["Linux - Python ${pythonVersion}: sdist"] = {
-                                        packages.testPkg2(
-                                            agent: [
-                                                dockerfile: [
-                                                    label: 'linux && docker',
-                                                    filename: 'ci/docker/linux/tox/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                                ]
-                                            ],
-                                            testSetup: {
-                                                checkout scm
-                                                unstash 'python sdist'
-                                            },
-                                            testCommand: {
-                                                findFiles(glob: 'dist/*.tar.gz').each{
-                                                    sh(
-                                                        label: 'Running Tox',
-                                                        script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
-                                                        )
-                                                }
-                                            },
-                                            post:[
-                                                cleanup: {
-                                                    cleanWs(
-                                                        patterns: [
-                                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                            ],
-                                                        notFailBuild: true,
-                                                        deleteDirs: true
-                                                    )
-                                                },
+                                }
+                                linuxTestStages["Linux - Python ${pythonVersion}: sdist"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'linux && docker',
+                                                filename: 'ci/docker/linux/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                             ]
-                                        )
-                                    }
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash 'python sdist'
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.tar.gz').each{
+                                                sh(
+                                                    label: 'Running Tox',
+                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                    )
+                                            }
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                        ]
+                                    )
                                 }
                             }
                             def testingStages = windowsTestStages + linuxTestStages
