@@ -603,7 +603,7 @@ pipeline {
                                     packages.buildPkg(
                                         agent: [
                                             dockerfile: [
-                                                label: 'linux && docker',
+                                                label: 'linux && docker && x86',
                                                 filename: 'ci/docker/linux/package/Dockerfile',
                                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                             ]
