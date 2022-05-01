@@ -602,8 +602,8 @@ pipeline {
                                 'Source Distribution': {
                                     node('linux && docker && x86'){
                                         docker.image("python").inside(){
-                                            sh "python --version"
-                                            sh "python -m pip list"
+                                            sh "python -m pip install build"
+                                            sh "python -m build --sdist"
                                         }
                                     }
 //                                    packages.buildPkg(
