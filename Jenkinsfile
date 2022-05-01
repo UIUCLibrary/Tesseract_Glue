@@ -600,37 +600,40 @@ pipeline {
                             def buildStages =  [
                                failFast: true,
                                 'Source Distribution': {
-                                    packages.buildPkg(
-                                        agent: [
-                                            dockerfile: [
-                                                label: 'linux && docker && x86',
-                                                filename: 'ci/docker/linux/package/Dockerfile',
-                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                            ]
-                                        ],
-                                        buildCmd: {
-                                            sh 'python3 -m build --sdist'
-                                        },
-                                        post:[
-                                            success: {
-                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
-                                                wheelStashes << 'python sdist'
-                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
-                                            },
-                                            cleanup: {
-                                                cleanWs(
-                                                    patterns: [
-                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                        ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
-                                            },
-                                            failure: {
-                                                sh 'python3 -m pip list'
-                                            }
-                                        ]
-                                    )
+                                    docker.image("python").inside(){
+                                        sh "python --version"
+                                    }
+//                                    packages.buildPkg(
+//                                        agent: [
+//                                            dockerfile: [
+//                                                label: 'linux && docker && x86',
+//                                                filename: 'ci/docker/linux/package/Dockerfile',
+//                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+//                                            ]
+//                                        ],
+//                                        buildCmd: {
+//                                            sh 'python3 -m build --sdist'
+//                                        },
+//                                        post:[
+//                                            success: {
+//                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
+//                                                wheelStashes << 'python sdist'
+//                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
+//                                            },
+//                                            cleanup: {
+//                                                cleanWs(
+//                                                    patterns: [
+//                                                            [pattern: 'dist/', type: 'INCLUDE'],
+//                                                        ],
+//                                                    notFailBuild: true,
+//                                                    deleteDirs: true
+//                                                )
+//                                            },
+//                                            failure: {
+//                                                sh 'python3 -m pip list'
+//                                            }
+//                                        ]
+//                                    )
                                 }
                             ]
                             def linuxBuildStages = [:]
