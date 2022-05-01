@@ -600,7 +600,7 @@ pipeline {
                             def buildStages =  [
                                failFast: true,
                                 'Source Distribution': {
-                                    node('linux && docker && x86'){
+                                    node('linux && docker'){
                                         docker.image("python").inside(){
                                             try{
                                                 sh "python -m venv venv --upgrade-deps &&  venv/bin/pip install build"
