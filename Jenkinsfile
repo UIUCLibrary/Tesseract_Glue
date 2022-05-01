@@ -602,11 +602,22 @@ pipeline {
                                 'Source Distribution': {
                                     node('linux && docker && x86'){
                                         docker.image("python").inside(){
-                                            sh "python -m venv venv --upgrade-deps &&  venv/bin/pip install build"
-//                                            withEnv(['PIP_NO_CACHE_DIR=off']) {
-//                                                sh "python -m pip install build"
-//                                            }
-                                            sh "venv/bin/python -m build --sdist"
+                                            try{
+                                                sh "python -m venv venv --upgrade-deps &&  venv/bin/pip install build"
+                                                sh "venv/bin/python -m build --sdist"
+                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
+                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
+                                                wheelStashes << 'python sdist'
+                                            } finally {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            }
                                         }
                                     }
 //                                    packages.buildPkg(
