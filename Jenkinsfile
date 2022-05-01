@@ -604,8 +604,12 @@ pipeline {
                                         docker.image("python").inside(){
                                             try{
                                                 checkout scm
-                                                sh "python -m venv venv --upgrade-deps &&  venv/bin/pip install build"
-                                                sh "venv/bin/python -m build --sdist"
+                                                sh(label: 'Building sdist',
+                                                   script: '''python -m venv venv --upgrade-deps
+                                                              venv/bin/pip install build
+                                                              venv/bin/python -m build --sdist
+                                                              '''
+                                                )
                                                 archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
                                                 stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
                                                 wheelStashes << 'python sdist'
