@@ -201,6 +201,7 @@ pipeline {
         booleanParam(name: 'USE_SONARQUBE', defaultValue: defaultParameterValues.USE_SONARQUBE, description: 'Send data test data to SonarQube')
         booleanParam(name: 'BUILD_PACKAGES', defaultValue: false, description: 'Build Python packages')
         booleanParam(name: 'BUILD_MAC_PACKAGES', defaultValue: false, description: 'Test Python packages on Mac')
+        booleanParam(name: 'BUILD_MANYLINUX_PACKAGES', defaultValue: false, description: 'Manylinux Python packages')
         booleanParam(name: 'TEST_PACKAGES', defaultValue: true, description: 'Test Python packages by installing them and running tests on the installed package')
         booleanParam(name: 'DEPLOY_DEVPI', defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: 'DEPLOY_DEVPI_PRODUCTION', defaultValue: false, description: 'Deploy to https://devpi.library.illinois.edu/production/release')
@@ -633,42 +634,44 @@ pipeline {
                                 }
                             ]
                             def linuxBuildStages = [:]
-                            SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
-                                linuxBuildStages["Linux - Python ${pythonVersion}: wheel"] = {
-                                    packages.buildPkg(
-                                        agent: [
-                                            dockerfile: [
-                                                label: 'linux && docker',
-                                                filename: 'ci/docker/linux/package/Dockerfile',
-                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                            ]
-                                        ],
-                                        buildCmd: {
-                                            sh(label: 'Building python wheel',
-                                               script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
-                                                         auditwheel show ./dist/*.whl
-                                                         auditwheel -v repair ./dist/*.whl -w ./dist
-                                                         auditwheel show ./dist/*manylinux*.whl
-                                                         """
-                                               )
-                                        },
-                                        post:[
-                                            cleanup: {
-                                                cleanWs(
-                                                    patterns: [
-                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                        ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
+                            if(params.BUILD_MANYLINUX_PACKAGES){
+                                SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
+                                    linuxBuildStages["Linux - Python ${pythonVersion}: wheel"] = {
+                                        packages.buildPkg(
+                                            agent: [
+                                                dockerfile: [
+                                                    label: 'linux && docker',
+                                                    filename: 'ci/docker/linux/package/Dockerfile',
+                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                ]
+                                            ],
+                                            buildCmd: {
+                                                sh(label: 'Building python wheel',
+                                                   script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
+                                                             auditwheel show ./dist/*.whl
+                                                             auditwheel -v repair ./dist/*.whl -w ./dist
+                                                             auditwheel show ./dist/*manylinux*.whl
+                                                             """
+                                                   )
                                             },
-                                            success: {
-                                                stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
-                                                wheelStashes << "python${pythonVersion} linux wheel"
-                                            }
-                                        ]
-                                    )
+                                            post:[
+                                                cleanup: {
+                                                    cleanWs(
+                                                        patterns: [
+                                                                [pattern: 'dist/', type: 'INCLUDE'],
+                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                            ],
+                                                        notFailBuild: true,
+                                                        deleteDirs: true
+                                                    )
+                                                },
+                                                success: {
+                                                    stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
+                                                    wheelStashes << "python${pythonVersion} linux wheel"
+                                                }
+                                            ]
+                                        )
+                                    }
                                 }
                             }
                             buildStages = buildStages + windowsBuildStages + linuxBuildStages
