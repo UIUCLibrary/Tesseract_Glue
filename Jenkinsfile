@@ -602,7 +602,9 @@ pipeline {
                                 'Source Distribution': {
                                     node('linux && docker && x86'){
                                         docker.image("python").inside(){
-                                            sh "python -m pip install build"
+                                            withEnv(['PIP_NO_CACHE_DIR=off']) {
+                                                sh "python -m pip install build"
+                                            }
                                             sh "python -m build --sdist"
                                         }
                                     }
