@@ -1165,7 +1165,7 @@ pipeline {
                                                 dockerfile: [
                                                     filename: 'ci/docker/linux/tox/Dockerfile',
                                                     additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
-                                                    label: 'linux && docker && x86 && devpi-access''
+                                                    label: 'linux && docker && x86 && devpi-access'
                                                 ]
                                             ],
                                             devpi: [
