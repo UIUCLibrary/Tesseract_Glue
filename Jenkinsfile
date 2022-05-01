@@ -600,16 +600,25 @@ pipeline {
                             def buildStages =  [
                                failFast: true,
                                 'Source Distribution': {
-                                    node('linux && docker'){
+                                    node('docker'){
                                         docker.image("python").inside(){
                                             try{
                                                 checkout scm
-                                                sh(label: 'Building sdist',
-                                                   script: '''python -m venv venv --upgrade-deps
-                                                              venv/bin/pip install build
-                                                              venv/bin/python -m build --sdist
-                                                              '''
-                                                )
+                                                if(isUnix()){
+                                                    sh(label: 'Building sdist',
+                                                       script: '''python -m venv venv --upgrade-deps
+                                                                  venv/bin/pip install build
+                                                                  venv/bin/python -m build --sdist
+                                                                  '''
+                                                    )
+                                                } else{
+                                                   bat(label: 'Building sdist',
+                                                       script: '''python -m venv venv --upgrade-deps
+                                                                  venv\\Scripts\\pip install build
+                                                                  venv\\bin\\python -m build --sdist
+                                                                  '''
+                                                   )
+                                                }
                                                 archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
                                                 stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
                                                 wheelStashes << 'python sdist'
