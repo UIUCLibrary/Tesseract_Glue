@@ -600,8 +600,10 @@ pipeline {
                             def buildStages =  [
                                failFast: true,
                                 'Source Distribution': {
-                                    docker.image("python").inside(){
-                                        sh "python --version"
+                                    node('linux && docker && x86'){
+                                        docker.image("python").inside(){
+                                            sh "python --version"
+                                        }
                                     }
 //                                    packages.buildPkg(
 //                                        agent: [
