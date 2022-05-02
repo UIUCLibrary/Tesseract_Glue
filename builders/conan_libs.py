@@ -5,10 +5,12 @@ import shutil
 import abc
 from typing import Iterable, Any, Dict, List, Union
 import setuptools
+import platform
 from distutils import ccompiler
 from pathlib import Path
 from builders.deps import get_win_deps
 import json
+import re
 
 
 class ConanBuildInfoParser:
@@ -170,6 +172,84 @@ def update_extension2(extension, text_md):
     extension.define_macros = define_macros + extension.define_macros
 
 
+def get_compiler_name() -> str:
+    groups = re.match(
+        '^(GCC|Clang|MSVC|MSC)',
+        platform.python_compiler()
+    )
+    try:
+        if "Clang" in groups[1]:
+            if platform.system() == "Darwin":
+                return 'apple-clang'
+        elif "GCC" in groups[1]:
+            return 'gcc'
+        elif groups[1] in ['MSVC', 'MSC']:
+            return 'Visual Studio'
+            # return 'msvc'
+        else:
+            return groups[1]
+    except TypeError:
+        print(
+            f"python compiler = {platform.python_compiler()}",
+            file=sys.stderr
+        )
+        raise
+
+
+def get_visual_studio_version():
+    import winreg
+    possible_versions = [
+        "8.0", "9.0", "10.0", "11.0", "12.0", "14.0", "15.0", "16.0"
+    ]
+    installed_versions = []
+    key = "SOFTWARE\Microsoft\VisualStudio\%s"
+
+    for v in possible_versions:
+        try:
+            winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, key % v, 0,
+                            winreg.KEY_ALL_ACCESS)
+            installed_versions.append(v)
+        except Exception as e:
+            pass
+    sorted_values = sorted(installed_versions, key=lambda value: float(value))
+    print(sorted_values)
+    return sorted_values[-1].split(".")[0]
+
+
+def get_compiler_version():
+    """
+    Examples of compiler data:
+        GCC 10.2.1 20210110
+        GCC 9.4.0
+        MSC v.1916 64 bit (AMD64)
+        Clang 13.1.6 (clang-1316.0.21.2)
+    """
+    full_version = re.search(
+        r"^(?:[A-Za-z]+ )(?:v[.])?(([0-9]+[.]?)+)",
+        platform.python_compiler()
+    ).groups()[0]
+    if get_compiler_name() == "msvc":
+        # MSVC compiler uses versions like 1916 but conan wants it as 191
+        return full_version[:3]
+    elif get_compiler_name() == "Visual Studio":
+        return get_visual_studio_version()
+
+    parsed_version = re.findall(
+        "([0-9]+)(?:[.]?)",
+        full_version
+    )
+    if len(parsed_version) <= 2:
+        return full_version
+    return f"{parsed_version[0]}.{parsed_version[1]}"
+
+
+def get_compiler_info():
+    return {
+        "name": get_compiler_name(),
+        "version": get_compiler_version()
+    }
+
+
 class BuildConan(setuptools.Command):
     user_options = [
         ('conan-cache=', None, 'conan cache directory')
@@ -223,18 +303,38 @@ class BuildConan(setuptools.Command):
             settings.append("build_type=Debug")
         else:
             settings.append("build_type=Release")
-        #     FIXME: This should be the setup.py file dir
+        try:
+            settings.append(f"compiler={get_compiler_name()}")
+            settings.append(f"compiler.version={get_compiler_version()}")
+            if get_compiler_name() == "msvc":
+                settings.append(f"compiler.cppstd=14")
+                settings.append(f"compiler.runtime=dynamic")
+            elif get_compiler_name() == "Visual Studio":
+                settings.append(f"compiler.runtime=MD")
+                settings.append(f"compiler.toolset=v142")
+        except AttributeError:
+            print(
+                f"Unable to get compiler information "
+                f"for {platform.python_compiler()}"
+            )
+            raise
+
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
         )
 
         build_dir_full_path = os.path.abspath(build_dir)
+        ninja = shutil.which("ninja")
+        env = []
+        if ninja:
+            env.append(f"NINJA={ninja}")
         conan.install(
             options=conan_options,
             cwd=build_dir,
             settings=settings,
             build=build if len(build) > 0 else None,
             path=conanfile_path,
+            env=env,
             install_folder=build_dir_full_path,
             # profile_build=profile
         )

@@ -55,9 +55,11 @@ FROM base_python as conan_builder
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install conan
-#COPY ci/docker/linux/build/conan/profile.ini  /conan/.conan/profiles/default
+ARG TARGETARCH
+COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  /conan/.conan/profiles/default
+#COPY ci/docker/linux/test/conan/$TARGETARCH/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
-RUN conan profile new default --detect
+RUN #conan profile new default --detect
 ENV CONAN_USER_HOME=/conan
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
@@ -122,6 +124,8 @@ COPY --from=wheel_builder /wheels/* /wheels/
 
 COPY --from=conan_builder /conan/.conan/ /conan/.conan/
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+ARG TARGETARCH
+COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  /conan/.conan/profiles/default
 ADD conanfile.py /tmp/conanfile.py
 
 ENV CONAN_USER_HOME=/conan

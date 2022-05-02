@@ -1,3 +1,5 @@
+ARG TARGETARCH=x86
+ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES=9.4
 FROM ubuntu:20.04 as wheel_builder_base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 RUN apt update && \
@@ -93,14 +95,19 @@ RUN $PYTHON -m ensurepip --upgrade && \
 FROM wheel_builder_base as conan_builder
 RUN pip3 install conan cmake ninja
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
-COPY --chown=user:user ci/docker/shared/conan/profile.ini  /home/user/profiles/default
+ARG TARGETARCH
+COPY --chown=user:user ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
 USER user
 WORKDIR /home/user
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
     conan config set general.revisions_enabled=1
 
-RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
+COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
+ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
+RUN python3 /tmp/update_conan_compiler.py /home/user/.conan/settings.yml gcc $COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
+
+RUN conan install /tmp --build outdated --build=openjpeg --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES  && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
@@ -119,12 +126,13 @@ COPY --from=wheel_builder_py310 /wheels/* /wheels/
 
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox conan cmake devpi_client pep517 twine && \
-    python3 -m pep517.build -h
+RUN pip3 install tox conan cmake devpi_client build twine
 
 
 COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
-COPY ci/docker/shared/conan/profile.ini  /conan/.conan/profiles/default
+COPY --from=conan_builder /home/user/.conan/settings.yml  /conan/.conan/settings.yml
+ARG TARGETARCH
+COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
@@ -133,7 +141,8 @@ RUN conan config home
 RUN conan config init && \
     conan config set general.revisions_enabled=1
 
-RUN conan install /tmp --build  missing --no-import  && \
+ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
+RUN conan install /tmp --build  missing --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 /conan
