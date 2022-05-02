@@ -892,7 +892,7 @@ pipeline {
                                                 dockerfile: [
                                                     label: 'linux && docker && x86',
                                                     filename: 'ci/docker/linux/tox/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                    additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                                 ]
                                             ],
                                             testSetup: {
@@ -933,7 +933,7 @@ pipeline {
                                             dockerfile: [
                                                 label: 'linux && docker && x86',
                                                 filename: 'ci/docker/linux/tox/Dockerfile',
-                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                             ]
                                         ],
                                         testSetup: {
