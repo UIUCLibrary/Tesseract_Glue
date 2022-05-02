@@ -991,7 +991,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
-                            label 'linux && docker'
+                            label 'linux && docker && devpi-access'
                             additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                           }
                     }
@@ -1236,7 +1236,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
-                            label 'linux&&docker'
+                            label 'linux&&docker && devpi-access'
                             additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                         }
                     }
@@ -1257,7 +1257,7 @@ pipeline {
             }
             post {
                 success{
-                    node('linux && docker') {
+                    node('linux && docker && devpi-access') {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
@@ -1276,7 +1276,7 @@ pipeline {
                     }
                 }
                 cleanup{
-                    node('linux && docker') {
+                    node('linux && docker && devpi-access') {
                         script{
                             checkout scm
                             docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
