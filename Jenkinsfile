@@ -545,12 +545,14 @@ pipeline {
                                             label: "mac && python${pythonVersion} && x86",
                                         ],
                                         buildCmd: {
-                                            sh """
-                                            python${pythonVersion} -m venv venv
-                                            venv/bin/python -m pip install --upgrade pip
-                                            venv/bin/pip install build
-                                            venv/bin/python -m build .
-                                            """
+                                             sh(label: 'Building wheel',
+                                                script: """python${pythonVersion} -m venv venv
+                                                           ./venv/bin/python -m pip install --upgrade pip
+                                                           ./venv/bin/pip install wheel
+                                                           ./venv/bin/pip install build
+                                                           ./venv/bin/python -m build --wheel
+                                                           """
+                                               )
                                         },
                                         post:[
                                             cleanup: {
@@ -996,7 +998,7 @@ pipeline {
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
-                            label 'linux && docker && x86'
+                            label 'linux && docker && x86 && devpi-access'
                             additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                           }
                     }
@@ -1038,7 +1040,7 @@ pipeline {
                                 macPackages["MacOS - Python ${pythonVersion}: wheel"] = {
                                     devpi.testDevpiPackage(
                                         agent: [
-                                            label: "mac && python${pythonVersion} && x86 devpi-access"
+                                            label: "mac && python${pythonVersion} && x86 && devpi-access"
                                         ],
                                         devpi: [
                                             index: DEVPI_CONFIG.stagingIndex,
@@ -1262,7 +1264,7 @@ pipeline {
             }
             post {
                 success{
-                    node('linux && docker') {
+                    node('linux && docker && devpi-access') {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
@@ -1281,7 +1283,7 @@ pipeline {
                     }
                 }
                 cleanup{
-                    node('linux && docker') {
+                    node('linux && docker && devpi-access') {
                         script{
                             checkout scm
                             docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
