@@ -999,7 +999,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
                             label 'linux && docker && x86 && devpi-access'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                           }
                     }
                     options{
@@ -1166,7 +1166,7 @@ pipeline {
                                             agent: [
                                                 dockerfile: [
                                                     filename: 'ci/docker/linux/tox/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+                                                    additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
                                                     label: 'linux && docker && x86 && devpi-access'
                                                 ]
                                             ],
@@ -1191,8 +1191,8 @@ pipeline {
                                                 agent: [
                                                     dockerfile: [
                                                         filename: 'ci/docker/linux/tox/Dockerfile',
-                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
-                                                        label: 'linux && docker'
+                                                        additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+                                                        label: 'linux && docker && x86 && devpi-access'
                                                     ]
                                                 ],
                                                 devpi: [
@@ -1244,7 +1244,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
                             label 'linux && docker && devpi-access'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                         }
                     }
                     steps {
@@ -1268,7 +1268,7 @@ pipeline {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
-                                docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                                docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
                                     load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
@@ -1286,7 +1286,7 @@ pipeline {
                     node('linux && docker && devpi-access') {
                         script{
                             checkout scm
-                            docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                            docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
                                 load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
