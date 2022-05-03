@@ -109,6 +109,198 @@ defaultParameterValues = [
     USE_SONARQUBE: false
 ]
 
+def build_wheels(){
+    script{
+        def packages
+        node(){
+            checkout scm
+            packages = load 'ci/jenkins/scripts/packaging.groovy'
+        }
+        def macBuildStages = [:]
+        SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
+            macBuildStages["MacOS - Python ${pythonVersion}: wheel"] = {
+                packages.buildPkg(
+                    agent: [
+                        label: "mac && python${pythonVersion} && x86",
+                    ],
+                    buildCmd: {
+                         sh(label: 'Building wheel',
+                            script: """python${pythonVersion} -m venv venv
+                                       ./venv/bin/python -m pip install --upgrade pip
+                                       ./venv/bin/pip install wheel
+                                       ./venv/bin/pip install build
+                                       ./venv/bin/python -m build --wheel
+                                       """
+                           )
+                    },
+                    post:[
+                        cleanup: {
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                    ],
+                                notFailBuild: true,
+                                deleteDirs: true
+                            )
+                        },
+                        success: {
+                            stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
+                            wheelStashes << "python${pythonVersion} mac wheel"
+                        }
+                    ]
+                )
+            }
+        }
+        def windowsBuildStages = [:]
+        SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
+            windowsBuildStages["Windows - Python ${pythonVersion}: wheel"] = {
+                packages.buildPkg(
+                    agent: [
+                        dockerfile: [
+                            label: 'windows && docker && x86',
+                            filename: 'ci/docker/windows/tox/Dockerfile',
+                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                        ]
+                    ],
+                    buildCmd: {
+                        bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                    },
+                    post:[
+                        cleanup: {
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                    ],
+                                notFailBuild: true,
+                                deleteDirs: true
+                            )
+                        },
+                        success: {
+                            stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
+                            wheelStashes << "python${pythonVersion} windows wheel"
+                        }
+                    ]
+                )
+            }
+        }
+        def buildStages =  [
+           failFast: true,
+            'Source Distribution': {
+                node('docker'){
+                    docker.image("python").inside(){
+                        try{
+                            checkout scm
+                            if(isUnix()){
+                                sh(label: 'Building sdist',
+                                   script: '''python -m venv venv --upgrade-deps
+                                              venv/bin/pip install build
+                                              venv/bin/python -m build --sdist
+                                              '''
+                                )
+                            } else{
+                               bat(label: 'Building sdist',
+                                   script: '''python -m venv venv --upgrade-deps
+                                              venv\\Scripts\\pip install build
+                                              venv\\bin\\python -m build --sdist
+                                              '''
+                               )
+                            }
+                            archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
+                            stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
+                            wheelStashes << 'python sdist'
+                        } finally {
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                        [pattern: 'venv/', type: 'INCLUDE'],
+                                    ],
+                                notFailBuild: true,
+                                deleteDirs: true
+                            )
+                        }
+                    }
+                }
+    //                                    packages.buildPkg(
+    //                                        agent: [
+    //                                            dockerfile: [
+    //                                                label: 'linux && docker && x86',
+    //                                                filename: 'ci/docker/linux/package/Dockerfile',
+    //                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+    //                                            ]
+    //                                        ],
+    //                                        buildCmd: {
+    //                                            sh 'python3 -m build --sdist'
+    //                                        },
+    //                                        post:[
+    //                                            success: {
+    //                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
+    //                                                wheelStashes << 'python sdist'
+    //                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
+    //                                            },
+    //                                            cleanup: {
+    //                                                cleanWs(
+    //                                                    patterns: [
+    //                                                            [pattern: 'dist/', type: 'INCLUDE'],
+    //                                                        ],
+    //                                                    notFailBuild: true,
+    //                                                    deleteDirs: true
+    //                                                )
+    //                                            },
+    //                                            failure: {
+    //                                                sh 'python3 -m pip list'
+    //                                            }
+    //                                        ]
+    //                                    )
+            }
+        ]
+        def linuxBuildStages = [:]
+        if(params.BUILD_MANYLINUX_PACKAGES){
+            SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
+                linuxBuildStages["Linux - Python ${pythonVersion}: wheel"] = {
+                    packages.buildPkg(
+                        agent: [
+                            dockerfile: [
+                                label: 'linux && docker',
+                                filename: 'ci/docker/linux/package/Dockerfile',
+                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            ]
+                        ],
+                        buildCmd: {
+                            sh(label: 'Building python wheel',
+                               script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
+                                         auditwheel show ./dist/*.whl
+                                         auditwheel -v repair ./dist/*.whl -w ./dist
+                                         auditwheel show ./dist/*manylinux*.whl
+                                         """
+                               )
+                        },
+                        post:[
+                            cleanup: {
+                                cleanWs(
+                                    patterns: [
+                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                        ],
+                                    notFailBuild: true,
+                                    deleteDirs: true
+                                )
+                            },
+                            success: {
+                                stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
+                                wheelStashes << "python${pythonVersion} linux wheel"
+                            }
+                        ]
+                    )
+                }
+            }
+        }
+        buildStages = buildStages + windowsBuildStages + linuxBuildStages
+        if(params.BUILD_MAC_PACKAGES == true){
+            buildStages = buildStages + macBuildStages
+        }
+        parallel(buildStages)
+    }
+}
 def get_props(){
     stage('Reading Package Metadata'){
         node() {
@@ -531,196 +723,8 @@ pipeline {
             stages{
                 stage('Building'){
                     steps{
-                        script{
-                            def packages
-                            node(){
-                                checkout scm
-                                packages = load 'ci/jenkins/scripts/packaging.groovy'
-                            }
-                            def macBuildStages = [:]
-                            SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
-                                macBuildStages["MacOS - Python ${pythonVersion}: wheel"] = {
-                                    packages.buildPkg(
-                                        agent: [
-                                            label: "mac && python${pythonVersion} && x86",
-                                        ],
-                                        buildCmd: {
-                                             sh(label: 'Building wheel',
-                                                script: """python${pythonVersion} -m venv venv
-                                                           ./venv/bin/python -m pip install --upgrade pip
-                                                           ./venv/bin/pip install wheel
-                                                           ./venv/bin/pip install build
-                                                           ./venv/bin/python -m build --wheel
-                                                           """
-                                               )
-                                        },
-                                        post:[
-                                            cleanup: {
-                                                cleanWs(
-                                                    patterns: [
-                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                        ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
-                                            },
-                                            success: {
-                                                stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
-                                                wheelStashes << "python${pythonVersion} mac wheel"
-                                            }
-                                        ]
-                                    )
-                                }
-                            }
-                            def windowsBuildStages = [:]
-                            SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
-                                windowsBuildStages["Windows - Python ${pythonVersion}: wheel"] = {
-                                    packages.buildPkg(
-                                        agent: [
-                                            dockerfile: [
-                                                label: 'windows && docker && x86',
-                                                filename: 'ci/docker/windows/tox/Dockerfile',
-                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                                            ]
-                                        ],
-                                        buildCmd: {
-                                            bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
-                                        },
-                                        post:[
-                                            cleanup: {
-                                                cleanWs(
-                                                    patterns: [
-                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                        ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
-                                            },
-                                            success: {
-                                                stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
-                                                wheelStashes << "python${pythonVersion} windows wheel"
-                                            }
-                                        ]
-                                    )
-                                }
-                            }
-                            def buildStages =  [
-                               failFast: true,
-                                'Source Distribution': {
-                                    node('docker'){
-                                        docker.image("python").inside(){
-                                            try{
-                                                checkout scm
-                                                if(isUnix()){
-                                                    sh(label: 'Building sdist',
-                                                       script: '''python -m venv venv --upgrade-deps
-                                                                  venv/bin/pip install build
-                                                                  venv/bin/python -m build --sdist
-                                                                  '''
-                                                    )
-                                                } else{
-                                                   bat(label: 'Building sdist',
-                                                       script: '''python -m venv venv --upgrade-deps
-                                                                  venv\\Scripts\\pip install build
-                                                                  venv\\bin\\python -m build --sdist
-                                                                  '''
-                                                   )
-                                                }
-                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
-                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
-                                                wheelStashes << 'python sdist'
-                                            } finally {
-                                                cleanWs(
-                                                    patterns: [
-                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                                        ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
-                                            }
-                                        }
-                                    }
-//                                    packages.buildPkg(
-//                                        agent: [
-//                                            dockerfile: [
-//                                                label: 'linux && docker && x86',
-//                                                filename: 'ci/docker/linux/package/Dockerfile',
-//                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-//                                            ]
-//                                        ],
-//                                        buildCmd: {
-//                                            sh 'python3 -m build --sdist'
-//                                        },
-//                                        post:[
-//                                            success: {
-//                                                stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
-//                                                wheelStashes << 'python sdist'
-//                                                archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
-//                                            },
-//                                            cleanup: {
-//                                                cleanWs(
-//                                                    patterns: [
-//                                                            [pattern: 'dist/', type: 'INCLUDE'],
-//                                                        ],
-//                                                    notFailBuild: true,
-//                                                    deleteDirs: true
-//                                                )
-//                                            },
-//                                            failure: {
-//                                                sh 'python3 -m pip list'
-//                                            }
-//                                        ]
-//                                    )
-                                }
-                            ]
-                            def linuxBuildStages = [:]
-                            if(params.BUILD_MANYLINUX_PACKAGES){
-                                SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
-                                    linuxBuildStages["Linux - Python ${pythonVersion}: wheel"] = {
-                                        packages.buildPkg(
-                                            agent: [
-                                                dockerfile: [
-                                                    label: 'linux && docker',
-                                                    filename: 'ci/docker/linux/package/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                                ]
-                                            ],
-                                            buildCmd: {
-                                                sh(label: 'Building python wheel',
-                                                   script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
-                                                             auditwheel show ./dist/*.whl
-                                                             auditwheel -v repair ./dist/*.whl -w ./dist
-                                                             auditwheel show ./dist/*manylinux*.whl
-                                                             """
-                                                   )
-                                            },
-                                            post:[
-                                                cleanup: {
-                                                    cleanWs(
-                                                        patterns: [
-                                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                            ],
-                                                        notFailBuild: true,
-                                                        deleteDirs: true
-                                                    )
-                                                },
-                                                success: {
-                                                    stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
-                                                    wheelStashes << "python${pythonVersion} linux wheel"
-                                                }
-                                            ]
-                                        )
-                                    }
-                                }
-                            }
-                            buildStages = buildStages + windowsBuildStages + linuxBuildStages
-                            if(params.BUILD_MAC_PACKAGES == true){
-                                buildStages = buildStages + macBuildStages
-                            }
-                            parallel(buildStages)
-                        }
+                        build_wheels()
+
                     }
                 }
                 stage('Testing'){
