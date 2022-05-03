@@ -962,6 +962,41 @@ pipeline {
                                         ]
                                     )
                                 }
+                                linuxTestStages["Linux - Python ${pythonVersion} - arm64: sdist"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'linux && docker && arm64',
+                                                filename: 'ci/docker/linux/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg TARGETARCH=arm64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                            ]
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash 'python sdist'
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.tar.gz').each{
+                                                sh(
+                                                    label: 'Running Tox',
+                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                    )
+                                            }
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                        ]
+                                    )
+                                }
                             }
                             def testingStages = windowsTestStages + linuxTestStages
                             if(params.BUILD_MAC_PACKAGES == true){
