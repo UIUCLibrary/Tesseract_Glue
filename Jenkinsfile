@@ -901,7 +901,7 @@ pipeline {
                                         )
                                     }
                                 }
-                                linuxTestStages["Linux - Python ${pythonVersion}: sdist"] = {
+                                linuxTestStages["Linux - Python ${pythonVersion} - x86_64: sdist"] = {
                                     packages.testPkg2(
                                         agent: [
                                             dockerfile: [
