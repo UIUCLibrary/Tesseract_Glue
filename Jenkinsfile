@@ -201,7 +201,7 @@ def build_wheels(){
                                bat(label: 'Building sdist',
                                    script: '''python -m venv venv --upgrade-deps
                                               venv\\Scripts\\pip install build
-                                              venv\\bin\\python -m build --sdist
+                                              venv\\Scripts\\python -m build --sdist
                                               '''
                                )
                             }
