@@ -23,19 +23,6 @@ RUN if id $USER_ID ; then \
     fi
 
 
-# ******************************************************************************
-FROM wheel_builder_base as wheel_builder_py36
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt  /tmp/
-ENV PYTHON=python3.6
-RUN $PYTHON -m pip install pip --upgrade pip && \
-    $PYTHON -m pip install wheel && \
-    $PYTHON -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
-    $PYTHON -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt
-
 # ==============================================================================
 FROM wheel_builder_base as wheel_builder_py37
 
@@ -118,7 +105,6 @@ FROM wheel_builder_base
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
-COPY --from=wheel_builder_py36 /wheels/* /wheels/
 COPY --from=wheel_builder_py37 /wheels/* /wheels/
 COPY --from=wheel_builder_py38 /wheels/* /wheels/
 COPY --from=wheel_builder_py39 /wheels/* /wheels/
