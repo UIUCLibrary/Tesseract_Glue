@@ -40,5 +40,6 @@ RUN conan install /tmp --build outdated --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 /conan
-#ENV CONAN_COMPILER_VERSION=10.2
+ENV CONAN_COMPILER_VERSION=10
+ENV CONAN_COMPILER_LIBCXX=libstdc++11
 RUN python3 -m pip install build

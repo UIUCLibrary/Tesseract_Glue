@@ -279,6 +279,8 @@ class BuildConan(setuptools.Command):
                     os.environ.get("CONAN_USER_HOME", build_dir),
                     ".conan"
                 )
+        if self.compiler_libcxx is None:
+            self.compiler_libcxx = os.getenv("CONAN_COMPILER_LIBCXX")
         if self.compiler_version is None:
             self.compiler_version = \
                 os.getenv("CONAN_COMPILER_VERSION", get_compiler_version())
