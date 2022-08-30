@@ -236,7 +236,7 @@ def build_wheels(){
                         ],
                         buildCmd: {
                             sh(label: 'Building python wheel',
-                               script:"""python${pythonVersion} -m build --wheel .
+                               script:"""python${pythonVersion} -m build --wheel "--config-setting=conan_cache=/conan" "--config-setting=conan_compiler_version=10"  "--config-setting=conan_compiler_libcxx=libstdc++11"
                                          auditwheel show ./dist/*.whl
                                          auditwheel -v repair ./dist/*.whl -w ./dist
                                          auditwheel show ./dist/*manylinux*.whl
