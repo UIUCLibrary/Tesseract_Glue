@@ -298,30 +298,32 @@ class BuildConan(setuptools.Command):
             conan_options = ['tesseract:shared=True']
         else:
             conan_options = []
-        build = ['outdated', "tesseract"]
 
         build_ext_cmd = self.get_finalized_command("build_ext")
         settings = []
         logger = logging.Logger(__name__)
         conan_profile_cache = os.path.join(build_dir, "profiles")
+        build = ['outdated']
         for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
             settings.append(f"{name}={value}")
-
         if build_ext_cmd.debug is not None:
             settings.append("build_type=Debug")
         else:
             settings.append("build_type=Release")
         try:
-            settings.append(f"compiler={get_compiler_name()}")
+            compiler_name = get_compiler_name()
+            settings.append(f"compiler={compiler_name}")
             if self.compiler_libcxx is not None:
                 if 'compiler.libcxx=libstdc' in settings:
                     settings.remove('compiler.libcxx=libstdc')
                 settings.append(f'compiler.libcxx={self.compiler_libcxx}')
             settings.append(f"compiler.version={self.compiler_version}")
-            if get_compiler_name() == "msvc":
+            if compiler_name == 'gcc':
+                build.append("tesseract")
+            elif compiler_name == "msvc":
                 settings.append(f"compiler.cppstd=14")
                 settings.append(f"compiler.runtime=dynamic")
-            elif get_compiler_name() == "Visual Studio":
+            elif compiler_name == "Visual Studio":
                 settings.append(f"compiler.runtime=MD")
                 settings.append(f"compiler.toolset=v142")
         except AttributeError:
@@ -340,6 +342,7 @@ class BuildConan(setuptools.Command):
         env = []
         if ninja:
             env.append(f"NINJA={ninja}")
+
         conan.install(
             options=conan_options,
             cwd=build_dir,
