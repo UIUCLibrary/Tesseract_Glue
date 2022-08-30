@@ -305,7 +305,9 @@ class BuildConan(setuptools.Command):
             settings.append("build_type=Release")
         try:
             settings.append(f"compiler={get_compiler_name()}")
-            settings.append(f"compiler.version={get_compiler_version()}")
+
+            compiler_version = os.getenv("CONAN_COMPILER_VERSION", get_compiler_version())
+            settings.append(f"compiler.version={compiler_version}")
             if get_compiler_name() == "msvc":
                 settings.append(f"compiler.cppstd=14")
                 settings.append(f"compiler.runtime=dynamic")
