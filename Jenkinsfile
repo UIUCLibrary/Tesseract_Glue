@@ -236,7 +236,7 @@ def build_wheels(){
                         ],
                         buildCmd: {
                             sh(label: 'Building python wheel',
-                               script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
+                               script:"""python${pythonVersion} -m build .
                                          auditwheel show ./dist/*.whl
                                          auditwheel -v repair ./dist/*.whl -w ./dist
                                          auditwheel show ./dist/*manylinux*.whl
