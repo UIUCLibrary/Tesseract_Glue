@@ -11,6 +11,7 @@ from pathlib import Path
 from builders.deps import get_win_deps
 import json
 import re
+from distutils.dist import Distribution
 
 
 class ConanBuildInfoParser:
@@ -432,6 +433,21 @@ class BuildConan(setuptools.Command):
             if any(map(lambda s: s in conan_lib_metadata.deps(), extension.libraries)):
                 update_extension2(extension, text_md)
                 # update_extension(extension, conan_lib_metadata)
+
+
+def build_conan(wheel_directory, config_settings=None, metadata_directory=None):
+    dist = Distribution()
+    dist.parse_config_files()
+    command = BuildConan(dist)
+    build_ext_cmd = command.get_finalized_command("build_ext")
+    if config_settings:
+        command.conan_cache = config_settings.get('conan_cache', os.path.join(build_ext_cmd.build_temp, ".conan"))
+    else:
+        command.conan_cache = \
+            os.path.join(build_ext_cmd.build_temp, ".conan")
+
+    command.finalize_options()
+    command.run()
 
 
 class ConanBuildMetadata:
