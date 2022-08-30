@@ -26,13 +26,13 @@ COPY ci/docker/linux/package/conan/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
-COPY --from=conan_builder /conan/.conan/ /conan/.conan/
 RUN conan config init && \
     conan config set general.revisions_enabled=1
+COPY --from=conan_builder /conan/.conan/ /conan/.conan/dock
 
 RUN conan install /tmp --build outdated --no-import  && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 /conan
-
-RUN python3 -m pip install pep517 build
+ENV CONAN_COMPILER_VERSION=10
+RUN python3 -m pip install build

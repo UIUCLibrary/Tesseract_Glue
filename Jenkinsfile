@@ -226,42 +226,40 @@ def build_wheels(){
         if(params.BUILD_MANYLINUX_PACKAGES){
             SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
                 linuxBuildStages["Linux - Python ${pythonVersion}: wheel"] = {
-                    withEnv(['CONAN_COMPILER_VERSION=10']) {
-                        packages.buildPkg(
-                            agent: [
-                                dockerfile: [
-                                    label: 'linux && docker && x86',
-                                    filename: 'ci/docker/linux/package/Dockerfile',
-                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
-                                ]
-                            ],
-                            buildCmd: {
-                                sh(label: 'Building python wheel',
-                                   script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
-                                             auditwheel show ./dist/*.whl
-                                             auditwheel -v repair ./dist/*.whl -w ./dist
-                                             auditwheel show ./dist/*manylinux*.whl
-                                             """
-                                   )
-                            },
-                            post:[
-                                cleanup: {
-                                    cleanWs(
-                                        patterns: [
-                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                            ],
-                                        notFailBuild: true,
-                                        deleteDirs: true
-                                    )
-                                },
-                                success: {
-                                    stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
-                                    wheelStashes << "python${pythonVersion} linux wheel"
-                                }
+                    packages.buildPkg(
+                        agent: [
+                            dockerfile: [
+                                label: 'linux && docker && x86',
+                                filename: 'ci/docker/linux/package/Dockerfile',
+                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                             ]
-                        )
-                    }
+                        ],
+                        buildCmd: {
+                            sh(label: 'Building python wheel',
+                               script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
+                                         auditwheel show ./dist/*.whl
+                                         auditwheel -v repair ./dist/*.whl -w ./dist
+                                         auditwheel show ./dist/*manylinux*.whl
+                                         """
+                               )
+                        },
+                        post:[
+                            cleanup: {
+                                cleanWs(
+                                    patterns: [
+                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                        ],
+                                    notFailBuild: true,
+                                    deleteDirs: true
+                                )
+                            },
+                            success: {
+                                stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
+                                wheelStashes << "python${pythonVersion} linux wheel"
+                            }
+                        ]
+                    )
                 }
             }
         }
