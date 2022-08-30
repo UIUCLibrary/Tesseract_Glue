@@ -1,3 +1,5 @@
+import sys
+
 import setuptools.build_meta
 
 
