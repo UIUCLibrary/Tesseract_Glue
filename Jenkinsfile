@@ -463,7 +463,7 @@ pipeline {
                                 }
                                 stage('Setting Up Python Tests'){
                                     steps{
-                                        timeout(3){
+                                        timeout(10){
                                             sh(
                                                 label: 'Build python package',
                                                 script: '''mkdir -p build/python

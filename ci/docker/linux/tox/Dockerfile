@@ -112,7 +112,7 @@ COPY --from=wheel_builder_py310 /wheels/* /wheels/
 
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox conan cmake devpi_client build twine
+RUN pip3 install tox conan cmake "devpi-client<6.0" build twine
 
 
 COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/

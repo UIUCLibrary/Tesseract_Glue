@@ -8,7 +8,7 @@ minversion = "6.0"
 testpaths = [
     "tests"
  ]
-addopts = "--verbose --capture=tee-sys"
+addopts = "--verbose"
 markers =[
     "integration"
 ]
