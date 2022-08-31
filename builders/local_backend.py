@@ -8,7 +8,7 @@ def build_sdist(sdist_directory, config_settings=None):
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
-    conan_libs.build_conan(wheel_directory, config_settings, metadata_directory)
+    # conan_libs.build_conan(wheel_directory, config_settings, metadata_directory)
     return setuptools.build_meta.build_wheel(wheel_directory, config_settings, metadata_directory)
 
 
