@@ -23,3 +23,12 @@ bdd_features_base_dir = "tests/features/"
 
 [tool.pylint.MASTER]
 init-hook="sys.path.append('.')"
+
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/tests"
+manylinux-x86_64-image = "manylinux2014"
+
+[tool.cibuildwheel.linux]
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
+
