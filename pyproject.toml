@@ -1,7 +1,7 @@
 [build-system]
-requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11>=2.5', "wheel", "cmake", "conan"]
-build-backend = "local_backend"
-backend-path = ["builders"]
+requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11>=2.5', "wheel", "cmake", "conan>=1.51"]
+build-backend = "builders.local_backend"
+backend-path = ["."]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -23,3 +23,24 @@ bdd_features_base_dir = "tests/features/"
 
 [tool.pylint.MASTER]
 init-hook="sys.path.append('.')"
+
+[tool.cibuildwheel]
+test-requires = "pytest"
+test-command = "pytest {project}/tests"
+manylinux-x86_64-image = "manylinux2014"
+build-frontend = "build"
+
+[tool.cibuildwheel.linux]
+before-all = [
+    "pip3 install conan cmake ninja",
+    "conan profile new /tmp/conan/.conan/profiles/default --detect",
+    "conan install ./ --build missing --build tesseract"
+
+]
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
+build-verbosity = 1
+[tool.cibuildwheel.linux.environment]
+CONAN_USER_HOME="/tmp/conan"
+CONAN_COMPILER_VERSION="10"
+CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
+

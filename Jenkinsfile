@@ -229,14 +229,14 @@ def build_wheels(){
                     packages.buildPkg(
                         agent: [
                             dockerfile: [
-                                label: 'linux && docker',
+                                label: 'linux && docker && x86',
                                 filename: 'ci/docker/linux/package/Dockerfile',
                                 additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                             ]
                         ],
                         buildCmd: {
                             sh(label: 'Building python wheel',
-                               script:"""python${pythonVersion} -m pip wheel -v --no-deps -w ./dist .
+                               script:"""python${pythonVersion} -m build --wheel "--config-setting=conan_cache=/conan" "--config-setting=conan_compiler_version=10"  "--config-setting=conan_compiler_libcxx=libstdc++11"
                                          auditwheel show ./dist/*.whl
                                          auditwheel -v repair ./dist/*.whl -w ./dist
                                          auditwheel show ./dist/*manylinux*.whl

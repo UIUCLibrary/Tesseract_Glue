@@ -1,11 +1,14 @@
-import setuptools.build_meta
+import sys
 
+import setuptools.build_meta
+from . import conan_libs
 
 def build_sdist(sdist_directory, config_settings=None):
     return setuptools.build_meta.build_sdist(sdist_directory, config_settings)
 
 
 def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
+    # conan_libs.build_conan(wheel_directory, config_settings, metadata_directory)
     return setuptools.build_meta.build_wheel(wheel_directory, config_settings, metadata_directory)
 
 

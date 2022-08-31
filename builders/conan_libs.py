@@ -11,6 +11,7 @@ from pathlib import Path
 from builders.deps import get_win_deps
 import json
 import re
+from distutils.dist import Distribution
 
 
 class ConanBuildInfoParser:
@@ -252,13 +253,17 @@ def get_compiler_info():
 
 class BuildConan(setuptools.Command):
     user_options = [
-        ('conan-cache=', None, 'conan cache directory')
+        ('conan-cache=', None, 'conan cache directory'),
+        ('compiler-version=', None, 'Compiler version'),
+        ('compiler-libcxx=', None, 'Compiler libcxx')
     ]
 
     description = "Get the required dependencies from a Conan package manager"
 
     def initialize_options(self):
         self.conan_cache = None
+        self.compiler_version = None
+        self.compiler_libcxx = None
 
     def __init__(self, dist, **kw):
         super().__init__(dist, **kw)
@@ -274,6 +279,11 @@ class BuildConan(setuptools.Command):
                     os.environ.get("CONAN_USER_HOME", build_dir),
                     ".conan"
                 )
+        if self.compiler_libcxx is None:
+            self.compiler_libcxx = os.getenv("CONAN_COMPILER_LIBCXX")
+        if self.compiler_version is None:
+            self.compiler_version = \
+                os.getenv("CONAN_COMPILER_VERSION", get_compiler_version())
 
     def getConanBuildInfo(self, root_dir):
         for root, dirs, files in os.walk(root_dir):
@@ -290,26 +300,32 @@ class BuildConan(setuptools.Command):
             conan_options = ['tesseract:shared=True']
         else:
             conan_options = []
-        build = ['outdated']
 
         build_ext_cmd = self.get_finalized_command("build_ext")
         settings = []
         logger = logging.Logger(__name__)
         conan_profile_cache = os.path.join(build_dir, "profiles")
+        build = ['outdated']
         for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
             settings.append(f"{name}={value}")
-
         if build_ext_cmd.debug is not None:
             settings.append("build_type=Debug")
         else:
             settings.append("build_type=Release")
         try:
-            settings.append(f"compiler={get_compiler_name()}")
-            settings.append(f"compiler.version={get_compiler_version()}")
-            if get_compiler_name() == "msvc":
+            compiler_name = get_compiler_name()
+            settings.append(f"compiler={compiler_name}")
+            if self.compiler_libcxx is not None:
+                if 'compiler.libcxx=libstdc' in settings:
+                    settings.remove('compiler.libcxx=libstdc')
+                settings.append(f'compiler.libcxx={self.compiler_libcxx}')
+            settings.append(f"compiler.version={self.compiler_version}")
+            if compiler_name == 'gcc':
+                build.append("tesseract")
+            elif compiler_name == "msvc":
                 settings.append(f"compiler.cppstd=14")
                 settings.append(f"compiler.runtime=dynamic")
-            elif get_compiler_name() == "Visual Studio":
+            elif compiler_name == "Visual Studio":
                 settings.append(f"compiler.runtime=MD")
                 settings.append(f"compiler.toolset=v142")
         except AttributeError:
@@ -328,6 +344,7 @@ class BuildConan(setuptools.Command):
         env = []
         if ninja:
             env.append(f"NINJA={ninja}")
+
         conan.install(
             options=conan_options,
             cwd=build_dir,
@@ -430,6 +447,23 @@ class BuildConan(setuptools.Command):
             if any(map(lambda s: s in conan_lib_metadata.deps(), extension.libraries)):
                 update_extension2(extension, text_md)
                 # update_extension(extension, conan_lib_metadata)
+
+
+def build_conan(wheel_directory, config_settings=None, metadata_directory=None):
+    dist = Distribution()
+    dist.parse_config_files()
+    command = BuildConan(dist)
+    build_ext_cmd = command.get_finalized_command("build_ext")
+    if config_settings:
+        command.conan_cache = config_settings.get('conan_cache', os.path.join(build_ext_cmd.build_temp, ".conan"))
+        command.compiler_libcxx = config_settings.get('conan_compiler_libcxx')
+        command.compiler_version = config_settings.get('conan_compiler_version', get_compiler_version())
+    else:
+        command.conan_cache = \
+            os.path.join(build_ext_cmd.build_temp, ".conan")
+
+    command.finalize_options()
+    command.run()
 
 
 class ConanBuildMetadata:
