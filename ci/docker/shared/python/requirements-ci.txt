@@ -1,5 +1,5 @@
 build
-conan
+conan>=1.51
 cmake
 devpi-client
 flake8
