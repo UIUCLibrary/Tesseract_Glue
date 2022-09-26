@@ -35,6 +35,7 @@ skip = [
     "cp311-*",
     "pp*",
     "*-win32",
+    "*-musllinux*",
     "*-manylinux_i686"
 ]
 build-verbosity = 1
