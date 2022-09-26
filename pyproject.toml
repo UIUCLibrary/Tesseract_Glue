@@ -45,7 +45,9 @@ environment-pass = ["CONAN_COMPILER_VERSION"]
 before-all = [
     "pip install wheel",
     "pip install conan cmake ninja",
+    "echo 'Creating new 'profile'",
     "conan profile new C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\conan\\profiles\\default --detect --force",
+    "echo 'updating 'profile'",
     "conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\conan\\profiles\\default",
     "conan install ./ --build missing"
 ]
