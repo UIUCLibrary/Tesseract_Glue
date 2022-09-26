@@ -60,6 +60,5 @@ before-all = [
 
 [tool.cibuildwheel.linux.environment]
 CONAN_USER_HOME="/tmp/conan"
-CONAN_COMPILER_VERSION="10"
 CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
 
