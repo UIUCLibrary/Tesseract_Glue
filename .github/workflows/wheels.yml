@@ -34,7 +34,7 @@ jobs:
           dumpbin
 
       - name: Build wheels
-        if: !contains(matrix.os, 'windows')
+        if: "!contains(matrix.os, 'windows')"
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
            CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
