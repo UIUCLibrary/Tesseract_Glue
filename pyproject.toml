@@ -29,7 +29,14 @@ test-requires = "pytest"
 test-command = "pytest {project}/tests"
 manylinux-x86_64-image = "manylinux2014"
 build-frontend = "build"
-skip = ["cp36-*", "cp37-macosx_*", "cp311-macosx_*", "pp*"]
+skip = [
+    "cp36-*",
+    "cp37-macosx_*",
+    "cp311-*",
+    "pp*",
+    "*-win32",
+    "*-manylinux_i686"
+]
 build-verbosity = 1
 environment-pass = ["CONAN_COMPILER_VERSION"]
 [tool.cibuildwheel.macos]
