@@ -28,7 +28,8 @@ jobs:
 
       - name: Windows test
         if: contains(matrix.os, 'windows')
-        run: echo 'this is windows'
+        run: vcvarsall.bat
+
       - name: Build wheels
         run: python -m cibuildwheel --output-dir wheelhouse
         env:
