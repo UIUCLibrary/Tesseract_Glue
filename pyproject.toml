@@ -48,7 +48,7 @@ before-all = [
     "conan install ./ --build missing"
 ]
 [tool.cibuildwheel.windows.environment]
-CONAN_USER_HOME="/tmp/conan"
+CONAN_USER_HOME="%TEMP%\\conan"
 CONAN_DEFAULT_PROFILE_PATH="%TEMP%\\conan\\profiles\\default"
 
 
