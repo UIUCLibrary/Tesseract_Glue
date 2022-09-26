@@ -40,16 +40,18 @@ skip = [
 ]
 build-verbosity = 1
 environment-pass = ["CONAN_COMPILER_VERSION"]
+
 [tool.cibuildwheel.windows]
 before-all = [
     "pip install wheel",
     "pip install conan cmake ninja",
-    'conan profile new %TEMP%\\conan\\profiles\\default --detect --force',
-    'conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% %TEMP%\\conan\\profiles\\default',
+    "conan profile new %TEMP%\\conan\\profiles\\default --detect --force",
+    "conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% %TEMP%\\conan\\profiles\\default",
     "conan install ./ --build missing"
 ]
+environment-pass = ["TEMP"]
 [tool.cibuildwheel.windows.environment]
-CONAN_USER_HOME='%TEMP%\\conan'
+CONAN_USER_HOME="%TEMP%\\conan"
 CONAN_DEFAULT_PROFILE_PATH='%TEMP%\\conan\\profiles\\default'
 
 
