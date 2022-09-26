@@ -29,16 +29,35 @@ test-requires = "pytest"
 test-command = "pytest {project}/tests"
 manylinux-x86_64-image = "manylinux2014"
 build-frontend = "build"
+skip = ["cp36-*", "cp37-macosx_*", "cp311-macosx_*", "pp*"]
+build-verbosity = 1
+environment-pass = ["CONAN_COMPILER_VERSION"]
+[tool.cibuildwheel.macos]
+before-all = [
+    "pip3 install conan cmake ninja",
+    "conan profile new /tmp/conan/.conan/profiles/default --detect --force",
+    "conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION /tmp/conan/.conan/profiles/default",
+    "conan install ./ --build missing"
+]
+repair-wheel-command = [
+  "delocate-listdeps {wheel}",
+  "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} {wheel}",
+]
+
+[tool.cibuildwheel.macos.environment]
+CONAN_USER_HOME="/tmp/conan"
+CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
+
 
 [tool.cibuildwheel.linux]
+repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-all = [
     "pip3 install conan cmake ninja",
     "conan profile new /tmp/conan/.conan/profiles/default --detect",
     "conan install ./ --build missing --build tesseract"
 
 ]
-repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
-build-verbosity = 1
+
 [tool.cibuildwheel.linux.environment]
 CONAN_USER_HOME="/tmp/conan"
 CONAN_COMPILER_VERSION="10"
