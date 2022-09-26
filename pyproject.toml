@@ -47,6 +47,7 @@ before-all = [
     "pip install conan cmake ninja",
     "echo 'Creating new 'profile'",
     "conan profile new C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\conan\\profiles\\default --detect --force",
+    "dir C:\\Users\\RUNNER~1\\AppData\\Local\\Temp\\conan\\profiles",
     "echo 'updating 'profile'",
     "conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% C:/Users/RUNNER~1/AppData/Local/Temp/conan/profiles/default",
     "conan install ./ --build missing"
