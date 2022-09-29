@@ -19,14 +19,10 @@ jobs:
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
         run: tox -e py
-      - uses: ilammy/msvc-dev-cmd@v1
-        if: contains(matrix.os, 'windows')
-        with:
-          arch: amd64
-      - name: test compiler
-        if: contains(matrix.os, 'windows')
-        run: cl /?
+
       - name: Run tox
         if: contains(matrix.os, 'windows')
         run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+          cl /?
           tox -e py
