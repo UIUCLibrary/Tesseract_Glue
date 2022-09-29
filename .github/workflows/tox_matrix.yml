@@ -19,8 +19,7 @@ jobs:
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
         run: tox -e py
+      - uses: ilammy/msvc-dev-cmd@v1
       - name: Run tox
-        uses: ilammy/msvc-dev-cmd@v1
         if: contains(matrix.os, 'windows')
-        run: |
-          tox -e py
+        run: tox -e py
