@@ -58,6 +58,157 @@ def getToxStages(){
         return windowsJobs + linuxJobs
     }
 }
+
+def getMacDevpiTestStages(packageName, packageVersion, pythonVersions, devpiServer, devpiCredentialsId, devpiIndex) {
+    node(){
+        checkout scm
+        devpi = load('ci/jenkins/scripts/devpi.groovy')
+    }
+    def macPackageStages = [:]
+    pythonVersions.each{pythonVersion ->
+        macPackageStages["MacOS x86_64 - Python ${pythonVersion}: wheel"] = {
+            withEnv(['PATH+EXTRA=./venv/bin']) {
+                devpi.testDevpiPackage(
+                    agent: [
+                        label: "mac && python${pythonVersion} && x86 && devpi-access"
+                    ],
+                    devpi: [
+                        index: devpiIndex,
+                        server: devpiServer,
+                        credentialsId: devpiCredentialsId,
+                        devpiExec: 'venv/bin/devpi'
+                    ],
+                    package:[
+                        name: packageName,
+                        version: packageVersion,
+                        selector: "(${pythonVersion.replace('.','')}).*(-*macosx_*).*(x86_64\\.whl)"
+                    ],
+                    test:[
+                        setup: {
+                            sh(
+                                label:'Installing Devpi client',
+                                script: '''python3 -m venv venv
+                                            venv/bin/python -m pip install pip --upgrade
+                                            venv/bin/python -m pip install devpi_client tox
+                                            '''
+                            )
+                        },
+                        toxEnv: "py${pythonVersion}".replace('.',''),
+                        teardown: {
+                            sh( label: 'Remove Devpi client', script: 'rm -r venv')
+                        }
+                    ]
+                )
+            }
+        }
+        macPackageStages["MacOS m1 - Python ${pythonVersion}: wheel"] = {
+            withEnv(['PATH+EXTRA=./venv/bin']) {
+                devpi.testDevpiPackage(
+                    agent: [
+                        label: "mac && python${pythonVersion} && m1 && devpi-access"
+                    ],
+                    devpi: [
+                        index: devpiIndex,
+                        server: devpiServer,
+                        credentialsId: devpiCredentialsId,
+                        devpiExec: 'venv/bin/devpi'
+                    ],
+                    package:[
+                        name: packageName,
+                        version: packageVersion,
+                        selector: "(${pythonVersion.replace('.','')}).*(-*macosx_*).*(arm64\\.whl)"
+                    ],
+                    test:[
+                        setup: {
+                            sh(
+                                label:'Installing Devpi client',
+                                script: '''python3 -m venv venv
+                                            venv/bin/python -m pip install pip --upgrade
+                                            venv/bin/python -m pip install devpi_client tox
+                                            '''
+                            )
+                        },
+                        toxEnv: "py${pythonVersion}".replace('.',''),
+                        teardown: {
+                            sh( label: 'Remove Devpi client', script: 'rm -r venv')
+                        }
+                    ]
+                )
+            }
+        }
+        macPackageStages["MacOS x86_64 - Python ${pythonVersion}: sdist"]= {
+            withEnv(['PATH+EXTRA=./venv/bin']) {
+                devpi.testDevpiPackage(
+                    agent: [
+                        label: "mac && python${pythonVersion} && x86 && devpi-access"
+                    ],
+                    devpi: [
+                        index: devpiIndex,
+                        server: devpiServer,
+                        credentialsId: devpiCredentialsId,
+                        devpiExec: 'venv/bin/devpi'
+                    ],
+                    package:[
+                        name: packageName,
+                        version: packageVersion,
+                        selector: 'tar.gz'
+                    ],
+                    test:[
+                        setup: {
+                            sh(
+                                label:'Installing Devpi client',
+                                script: '''python3 -m venv venv
+                                            venv/bin/python -m pip install pip --upgrade
+                                            venv/bin/python -m pip install devpi_client tox
+                                            '''
+                            )
+                        },
+                        toxEnv: "py${pythonVersion}".replace('.',''),
+                        teardown: {
+                            sh( label: 'Remove Devpi client', script: 'rm -r venv')
+                        }
+                    ]
+                )
+            }
+        }
+        macPackageStages["MacOS m1 - Python ${pythonVersion}: sdist"]= {
+            withEnv(['PATH+EXTRA=./venv/bin']) {
+                devpi.testDevpiPackage(
+                    agent: [
+                        label: "mac && python${pythonVersion} && m1 && devpi-access"
+                    ],
+                    devpi: [
+                        index: devpiIndex,
+                        server: devpiServer,
+                        credentialsId: devpiCredentialsId,
+                        devpiExec: 'venv/bin/devpi'
+                    ],
+                    package:[
+                        name: packageName,
+                        version: packageVersion,
+                        selector: 'tar.gz'
+                    ],
+                    test:[
+                        setup: {
+                            sh(
+                                label:'Installing Devpi client',
+                                script: '''python3 -m venv venv
+                                            venv/bin/python -m pip install pip --upgrade
+                                            venv/bin/python -m pip install devpi_client tox
+                                            '''
+                            )
+                        },
+                        toxEnv: "py${pythonVersion}".replace('.',''),
+                        teardown: {
+                            sh( label: 'Remove Devpi client', script: 'rm -r venv')
+                        }
+                    ]
+                )
+            }
+        }
+    }
+    return macPackageStages;
+}
 // def get_sonarqube_unresolved_issues(report_task_file){
 //     script{
 //
@@ -97,7 +248,7 @@ wheelStashes = []
 
 def getMacDevpiName(pythonVersion, format){
     if(format == 'wheel'){
-        return "${pythonVersion.replace('.','')}-*macosx*.*whl"
+        return "(${pythonVersion.replace('.','')}).*(-*macosx_*).*(x86_64\\.whl)"
     } else if(format == 'sdist'){
         return 'tar.gz'
     } else{
@@ -118,20 +269,32 @@ def build_wheels(){
         }
         def macBuildStages = [:]
         SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
-            macBuildStages["MacOS - Python ${pythonVersion}: wheel"] = {
+            macBuildStages["MacOS x86_64 - Python ${pythonVersion}: wheel"] = {
                 packages.buildPkg(
                     agent: [
                         label: "mac && python${pythonVersion} && x86",
                     ],
                     buildCmd: {
-                         sh(label: 'Building wheel',
-                            script: """python${pythonVersion} -m venv venv
-                                       ./venv/bin/python -m pip install --upgrade pip
-                                       ./venv/bin/pip install wheel
-                                       ./venv/bin/pip install build
-                                       ./venv/bin/python -m build --wheel
-                                       """
-                           )
+                        withEnv([
+                            '_PYTHON_HOST_PLATFORM=macosx-10.9-x86_64',
+                            'ARCHFLAGS=-arch x86_64'
+                        ]){
+                             sh(label: 'Building wheel',
+                                script: """python${pythonVersion} -m venv venv
+                                           ./venv/bin/python -m pip install --upgrade pip
+                                           ./venv/bin/pip install wheel
+                                           ./venv/bin/pip install build delocate
+                                           ./venv/bin/python -m build --wheel
+                                           """
+                               )
+                             findFiles(glob: 'dist/*.whl').each{
+                                    sh(label: 'Fixing up wheel',
+                                       script: """./venv/bin/delocate-listdeps --depending ${it.path}
+                                                  ./venv/bin/delocate-wheel -w fixed_wheels --require-archs x86_64 --verbose ${it.path}
+                                               """
+                                 )
+                             }
+                         }
                     },
                     post:[
                         cleanup: {
@@ -144,8 +307,57 @@ def build_wheels(){
                             )
                         },
                         success: {
-                            stash includes: 'dist/*.whl', name: "python${pythonVersion} mac wheel"
-                            wheelStashes << "python${pythonVersion} mac wheel"
+                            stash includes: 'dist/*.whl', name: "python${pythonVersion} mac x86_64 wheel"
+                            wheelStashes << "python${pythonVersion} mac x86_64 wheel"
+                        }
+                    ]
+                )
+            }
+            macBuildStages["MacOS M1 - Python ${pythonVersion}: wheel"] = {
+                packages.buildPkg(
+                    agent: [
+                        label: "mac && python${pythonVersion} && m1",
+                    ],
+                    buildCmd: {
+//                     Taken from cibuildwheel source code
+//                     https://github.com/pypa/cibuildwheel/blob/main/cibuildwheel/macos.py
+//
+//                     # macOS 11 is the first OS with arm64 support, so the wheels
+//                     # have that as a minimum.
+                        withEnv([
+                            '_PYTHON_HOST_PLATFORM=macosx-11.0-arm64',
+                            'ARCHFLAGS=-arch arm64'
+                            ]) {
+                             sh(label: 'Building wheel',
+                                script: """python${pythonVersion} -m venv venv
+                                           ./venv/bin/python -m pip install --upgrade pip
+                                           ./venv/bin/pip install wheel
+                                           ./venv/bin/pip install build delocate
+                                           ./venv/bin/python -m build --wheel
+                                           """
+                               )
+                             findFiles(glob: 'dist/*.whl').each{
+                                sh(label: 'Fixing up wheel',
+                                   script: """./venv/bin/delocate-listdeps --depending ${it.path}
+                                              ./venv/bin/delocate-wheel -w fixed_wheels --require-archs arm64 --verbose ${it.path}
+                                           """
+                             )
+                         }
+                        }
+                    },
+                    post:[
+                        cleanup: {
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                    ],
+                                notFailBuild: true,
+                                deleteDirs: true
+                            )
+                        },
+                        success: {
+                            stash includes: 'dist/*.whl', name: "python${pythonVersion} m1 mac wheel"
+                            wheelStashes << "python${pythonVersion} m1 mac wheel"
                         }
                     ]
                 )
@@ -710,14 +922,14 @@ pipeline {
                             }
                             def macTestStages = [:]
                             SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
-                                macTestStages["MacOS - Python ${pythonVersion}: wheel"] = {
+                                macTestStages["MacOS x86_64 - Python ${pythonVersion}: wheel"] = {
                                     packages.testPkg2(
                                         agent: [
                                             label: "mac && python${pythonVersion} && x86",
                                         ],
                                         testSetup: {
                                             checkout scm
-                                            unstash "python${pythonVersion} mac wheel"
+                                            unstash "python${pythonVersion} mac x86_64 wheel"
                                         },
                                         testCommand: {
                                             findFiles(glob: 'dist/*.whl').each{
@@ -748,10 +960,83 @@ pipeline {
                                         ]
                                     )
                                 }
-                                macTestStages["MacOS - Python ${pythonVersion}: sdist"] = {
+                                macTestStages["MacOS m1 - Python ${pythonVersion}: wheel"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            label: "mac && python${pythonVersion} && m1",
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash "python${pythonVersion} m1 mac wheel"
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.whl').each{
+                                                sh(label: 'Running Tox',
+                                                   script: """python${pythonVersion} -m venv venv
+                                                   ./venv/bin/python -m pip install --upgrade pip
+                                                   ./venv/bin/pip install tox
+                                                   ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                )
+                                            }
+
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                                            [pattern: '.tox/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+                                                 archiveArtifacts artifacts: 'dist/*.whl'
+                                            }
+                                        ]
+                                    )
+                                }
+                                macTestStages["MacOS x86_64 - Python ${pythonVersion}: sdist"] = {
                                     packages.testPkg2(
                                         agent: [
                                             label: "mac && python${pythonVersion} && x86",
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash 'python sdist'
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.tar.gz').each{
+                                                sh(label: 'Running Tox',
+                                                   script: """python${pythonVersion} -m venv venv
+                                                   ./venv/bin/python -m pip install --upgrade pip
+                                                   ./venv/bin/pip install tox
+                                                   ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                )
+                                            }
+
+                                        },
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                                            [pattern: '.tox/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                        ]
+                                    )
+                                }
+                                macTestStages["MacOS m1 - Python ${pythonVersion}: sdist"] = {
+                                    packages.testPkg2(
+                                        agent: [
+                                            label: "mac && python${pythonVersion} && m1",
                                         ],
                                         testSetup: {
                                             checkout scm
@@ -1046,80 +1331,7 @@ pipeline {
                                 checkout scm
                                 devpi = load('ci/jenkins/scripts/devpi.groovy')
                             }
-                            def macPackages = [:]
-                            SUPPORTED_MAC_VERSIONS.each{pythonVersion ->
-                                macPackages["MacOS - Python ${pythonVersion}: wheel"] = {
-                                    withEnv(['PATH+EXTRA=./venv/bin']) {
-                                        devpi.testDevpiPackage(
-                                            agent: [
-                                                label: "mac && python${pythonVersion} && x86 && devpi-access"
-                                            ],
-                                            devpi: [
-                                                index: DEVPI_CONFIG.stagingIndex,
-                                                server: DEVPI_CONFIG.server,
-                                                credentialsId: DEVPI_CONFIG.credentialsId,
-                                                devpiExec: 'venv/bin/devpi'
-                                            ],
-                                            package:[
-                                                name: props.Name,
-                                                version: props.Version,
-                                                selector: getMacDevpiName(pythonVersion, 'wheel'),
-                                            ],
-                                            test:[
-                                                setup: {
-                                                    sh(
-                                                        label:'Installing Devpi client',
-                                                        script: '''python3 -m venv venv
-                                                                    venv/bin/python -m pip install pip --upgrade
-                                                                    venv/bin/python -m pip install devpi_client tox
-                                                                    '''
-                                                    )
-                                                },
-                                                toxEnv: "py${pythonVersion}".replace('.',''),
-                                                teardown: {
-                                                    sh( label: 'Remove Devpi client', script: 'rm -r venv')
-                                                }
-                                            ]
-                                        )
-                                    }
-                                }
-                                macPackages["MacOS - Python ${pythonVersion}: sdist"]= {
-                                    withEnv(['PATH+EXTRA=./venv/bin']) {
-                                        devpi.testDevpiPackage(
-                                            agent: [
-                                                label: "mac && python${pythonVersion} && x86 && devpi-access"
-                                            ],
-                                            devpi: [
-                                                index: DEVPI_CONFIG.stagingIndex,
-                                                server: DEVPI_CONFIG.server,
-                                                credentialsId: DEVPI_CONFIG.credentialsId,
-                                                devpiExec: 'venv/bin/devpi'
-                                            ],
-                                            package:[
-                                                name: props.Name,
-                                                version: props.Version,
-                                                selector: 'tar.gz'
-                                            ],
-                                            test:[
-                                                setup: {
-                                                    sh(
-                                                        label:'Installing Devpi client',
-                                                        script: '''python3 -m venv venv
-                                                                    venv/bin/python -m pip install pip --upgrade
-                                                                    venv/bin/python -m pip install devpi_client tox
-                                                                    '''
-                                                    )
-                                                },
-                                                toxEnv: "py${pythonVersion}".replace('.',''),
-                                                teardown: {
-                                                    sh( label: 'Remove Devpi client', script: 'rm -r venv')
-                                                }
-                                            ]
-                                        )
-                                    }
-                                }
-                            }
-
+                            def macPackages = getMacDevpiTestStages(props.Name, props.Version, SUPPORTED_MAC_VERSIONS, DEVPI_CONFIG.server, DEVPI_CONFIG.credentialsId, DEVPI_CONFIG.stagingIndex)
                             def windowsPackages = [:]
                             SUPPORTED_WINDOWS_VERSIONS.each{pythonVersion ->
                                 windowsPackages["Windows - Python ${pythonVersion}: sdist"] = {
