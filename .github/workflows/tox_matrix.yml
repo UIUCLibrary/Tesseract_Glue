@@ -27,7 +27,7 @@ jobs:
       - name: test windows compiler
         if: contains(matrix.os, 'windows')
         run: |
-          dir "C:\Program Files (x86)\Windows Kits\"
+          dir "C:\Program Files (x86)\Windows Kits\10\"
           cl /?
 
       - name: Run tox
