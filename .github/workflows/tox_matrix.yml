@@ -11,9 +11,6 @@ jobs:
     name: Python ${{ matrix.python-version }} ${{ matrix.os }} build
     steps:
       - uses: actions/checkout@v3
-      - name: Set up MSVC compiler
-        if: matrix.os == 'windows-latest'
-        uses: ilammy/msvc-dev-cmd@v1
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.python-version }}
@@ -23,6 +20,7 @@ jobs:
         if: "!contains(matrix.os, 'windows')"
         run: tox -e py
       - name: Run tox
+        uses: ilammy/msvc-dev-cmd@v1
         if: contains(matrix.os, 'windows')
         run: |
           tox -e py
