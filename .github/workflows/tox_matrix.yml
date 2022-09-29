@@ -39,7 +39,8 @@ jobs:
           conan profile new default --detect
           conan install . --build tesseract
           tox -e py
-
+        env:
+          CONAN_USER_HOME: "C:/Users/runneradmin"
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
         run: tox -e py
