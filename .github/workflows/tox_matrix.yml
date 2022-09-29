@@ -7,7 +7,7 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
         python-version: ['3.7', '3.8' ,'3.9', '3.10']
-#      fail-fast: false
+      fail-fast: false
     name: Python ${{ matrix.python-version }} ${{ matrix.os }} build
     steps:
       - uses: actions/checkout@v3
@@ -21,7 +21,6 @@ jobs:
         run: tox -e py
       - name: Run tox
         if: contains(matrix.os, 'windows')
-        uses: ilammy/msvc-dev-cmd@v1
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
