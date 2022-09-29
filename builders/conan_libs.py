@@ -321,7 +321,8 @@ class BuildConan(setuptools.Command):
                 settings.append(f'compiler.libcxx={self.compiler_libcxx}')
             settings.append(f"compiler.version={self.compiler_version}")
             if compiler_name == 'gcc':
-                build.append("tesseract")
+                pass
+                # build.append("tesseract")
             elif compiler_name == "msvc":
                 settings.append(f"compiler.cppstd=14")
                 settings.append(f"compiler.runtime=dynamic")
