@@ -16,14 +16,9 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           architecture: x64
-        if: "!contains(matrix.os, 'windows')"
+      - if: "!contains(matrix.os, 'windows')"
         run: pip install tox; tox -e py
-      - name: Setup python
-        uses: actions/setup-python@v2
-        with:
-          python-version: ${{ matrix.python-version }}
-          architecture: x64
-        if: contains(matrix.os, 'windows')
+      - if: contains(matrix.os, 'windows')
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
