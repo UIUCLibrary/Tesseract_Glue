@@ -24,7 +24,7 @@ jobs:
         run: tox -e py
       - name: Run tox
         if: contains(matrix.os, 'windows')
-        shell: cmd
+#        shell: cmd
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
+#          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           tox -e py
