@@ -13,8 +13,8 @@ jobs:
       - uses: actions/checkout@v3
 
       - uses: actions/setup-python@v4
-      - name: Setup python
-        run: pip install tox
+        with:
+          run: pip install tox
 
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
