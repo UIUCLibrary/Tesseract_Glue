@@ -313,26 +313,26 @@ class BuildConan(setuptools.Command):
         with open(build_file, "r") as f:
             parser = ConanBuildInfoParser(f)
             data = parser.parse()
-            path = data['bindirs_tesseract']
-            tesseract = shutil.which("tesseract", path=path[0])
+        path = data['bindirs_tesseract']
+        tesseract = shutil.which("tesseract", path=path[0])
 
-            tester = {
-                'darwin': MacResultTester,
-                'linux': LinuxResultTester,
-                'win32': WindowsResultTester
-            }.get(sys.platform)
+        tester = {
+            'darwin': MacResultTester,
+            'linux': LinuxResultTester,
+            'win32': WindowsResultTester
+        }.get(sys.platform)
 
-            if tester is None:
-                self.announce(f"unable to test for platform {sys.platform}", 5)
-                return
+        if tester is None:
+            self.announce(f"unable to test for platform {sys.platform}", 5)
+            return
 
-            compiler = ccompiler.new_compiler()
-            tester = tester(compiler)
-            libs_dirs = data['libdirs']
-            for libs_dir in libs_dirs:
-                tester.test_shared_libs(libs_dir)
-            tester.test_binary_dependents(Path(tesseract))
-            compiler.spawn([tesseract, '--version'])
+        compiler = ccompiler.new_compiler()
+        tester = tester(compiler)
+        libs_dirs = data['libdirs']
+        for libs_dir in libs_dirs:
+            tester.test_shared_libs(libs_dir)
+        tester.test_binary_dependents(Path(tesseract))
+        compiler.spawn([tesseract, '--version'])
 
     def run(self):
         # self.reinitialize_command("build_ext")
