@@ -119,6 +119,7 @@ def get_compiler_version():
         platform.python_compiler()
     ).groups()[0]
     compiler_name = get_compiler_name()
+    print(f"compiler_name = {compiler_name}")
     if compiler_name == "msvc":
         # MSVC compiler uses versions like 1916 but conan wants it as 191
         return full_version[:3]
