@@ -127,7 +127,7 @@ def get_compiler_version():
     elif compiler_name == "apple-clang":
         return get_clang_version()
 
-    parsed_version = re.findall("(\d+)(?:[.]?)", full_version)
+    parsed_version = re.findall("([0-9]+)(?:[.]?)", full_version)
     if len(parsed_version) <= 2:
         return full_version
     return f"{parsed_version[0]}.{parsed_version[1]}"
