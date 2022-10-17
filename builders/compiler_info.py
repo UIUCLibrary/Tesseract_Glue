@@ -1,6 +1,13 @@
 import platform
 import re
 import sys
+from builders.errors import PlatformError, ExecError
+import subprocess
+import os
+__all__ = [
+    'get_compiler_version',
+    'get_compiler_name'
+]
 
 
 def get_compiler_name() -> str:
@@ -16,7 +23,6 @@ def get_compiler_name() -> str:
             return 'gcc'
         elif groups[1] in ['MSVC', 'MSC']:
             return 'Visual Studio'
-            # return 'msvc'
         else:
             return groups[1]
     except TypeError:
@@ -25,6 +31,11 @@ def get_compiler_name() -> str:
             file=sys.stderr
         )
         raise
+
+
+if sys.platform == 'darwin':
+    _cfg_target = None
+    _cfg_target_split = None
 
 
 def get_visual_studio_version():
@@ -47,6 +58,54 @@ def get_visual_studio_version():
     return sorted_values[-1].split(".")[0]
 
 
+def get_clang_version():
+    cmd = ['cc', '--version']
+
+    env = None
+    if sys.platform == 'darwin':
+        global _cfg_target, _cfg_target_split
+        if _cfg_target is None:
+            from distutils import sysconfig
+            _cfg_target = sysconfig.get_config_var(
+                'MACOSX_DEPLOYMENT_TARGET') or ''
+            if _cfg_target:
+                _cfg_target_split = [int(x) for x in _cfg_target.split('.')]
+        if _cfg_target:
+            # Ensure that the deployment target of the build process is not
+            # less than 10.3 if the interpreter was built for 10.3 or later.
+            # This ensures extension modules are built with correct
+            # compatibility values, specifically LDSHARED which can use
+            # '-undefined dynamic_lookup' which only works on >= 10.3.
+            cur_target = os.environ.get('MACOSX_DEPLOYMENT_TARGET', _cfg_target)
+            cur_target_split = [int(x) for x in cur_target.split('.')]
+            if _cfg_target_split[:2] >= [10, 3] and cur_target_split[:2] < [10,
+                                                                            3]:
+                my_msg = ('$MACOSX_DEPLOYMENT_TARGET mismatch: '
+                          'now "%s" but "%s" during configure;'
+                          'must use 10.3 or later'
+                          % (cur_target, _cfg_target))
+                raise PlatformError(my_msg)
+            env = dict(os.environ,
+                       MACOSX_DEPLOYMENT_TARGET=cur_target)
+
+    try:
+        proc = subprocess.Popen(cmd, env=env, stdout=subprocess.PIPE)
+        proc.wait()
+        exitcode = proc.returncode
+        clang_version_regex = re.compile(
+            r'(?<=Apple clang version )((\d+[.]){1,2}\d+)')
+        env_version = clang_version_regex.search(
+            proc.stdout.read().decode('utf-8')
+        )[0]
+        parts = env_version.split('.')
+        if exitcode:
+            raise ExecError(f"command {cmd} failed with exit code {exitcode}")
+
+        return f"{parts[0]}.{parts[1]}"
+    except OSError as exc:
+        raise ExecError("command %r failed: %s" % (cmd, exc.args[-1])) from exc
+
+
 def get_compiler_version():
     """
     Examples of compiler data:
@@ -56,20 +115,19 @@ def get_compiler_version():
         Clang 13.1.6 (clang-1316.0.21.2)
     """
     full_version = re.search(
-        r"^(?:[A-Za-z]+ )(?:v[.])?(([0-9]+[.]?)+)",
+        r"^(?:[A-Za-z]+ )(?:v[.])?(\d+[.]?)+",
         platform.python_compiler()
     ).groups()[0]
-    if get_compiler_name() == "msvc":
+    compiler_name = get_compiler_name()
+    if compiler_name == "msvc":
         # MSVC compiler uses versions like 1916 but conan wants it as 191
         return full_version[:3]
-    elif get_compiler_name() == "Visual Studio":
+    elif compiler_name == "Visual Studio":
         return get_visual_studio_version()
-    print(full_version)
-    # exit(1)
-    parsed_version = re.findall(
-        "([0-9]+)(?:[.]?)",
-        full_version
-    )
+    elif compiler_name == "apple-clang":
+        return get_clang_version()
+
+    parsed_version = re.findall("(\d+)(?:[.]?)", full_version)
     if len(parsed_version) <= 2:
         return full_version
     return f"{parsed_version[0]}.{parsed_version[1]}"
