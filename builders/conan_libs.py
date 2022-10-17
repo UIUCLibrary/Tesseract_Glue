@@ -205,7 +205,8 @@ class BuildConan(setuptools.Command):
         if self.compiler_version is None:
             self.compiler_version = \
                 os.getenv("CONAN_COMPILER_VERSION", get_compiler_version())
-
+            self.announce(f"self.compiler_version = {self.compiler_version}",
+                          level=5)
     def getConanBuildInfo(self, root_dir):
         for root, dirs, files in os.walk(root_dir):
             for f in files:
