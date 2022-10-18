@@ -189,7 +189,7 @@ class BuildConan(setuptools.Command):
 
     def __init__(self, dist, **kw):
         super().__init__(dist, **kw)
-        self.output_library_name = "tesseract"
+        # self.output_library_name = "tesseract"
 
     def finalize_options(self):
         if self.conan_cache is None:
@@ -232,17 +232,17 @@ class BuildConan(setuptools.Command):
             5)
 
         libs = []
-        if self.output_library_name in libs:
-            libs.remove(self.output_library_name)
+        # if self.output_library_name in libs:
+        #     libs.remove(self.output_library_name)
 
         for extension in build_ext_cmd.extensions:
             # fixme
-            if sys.platform == "win32":
-                if self.output_library_name in extension.libraries:
-                    extension.libraries.remove(self.output_library_name)
+            # if sys.platform == "win32":
+                # if self.output_library_name in extension.libraries:
+                #     extension.libraries.remove(self.output_library_name)
             for lib in metadata['libs']:
-                if lib == self.output_library_name:
-                    continue
+                # if lib == self.output_library_name:
+                #     continue
                 if lib not in extension.libraries:
                     extension.libraries.append(lib)
     def run(self):
