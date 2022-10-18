@@ -84,3 +84,5 @@ before-all = [
 CONAN_USER_HOME="/tmp/conan"
 CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
 
+[localbuilder.win32]
+conan_options = ['tesseract:shared=True']

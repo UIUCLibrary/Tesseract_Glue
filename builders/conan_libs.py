@@ -173,6 +173,18 @@ def update_extension2(extension, text_md):
     extension.define_macros = define_macros + extension.define_macros
 
 
+def get_conan_options():
+    pyproject_toml_data = get_pyproject_toml_data()
+    if not 'localbuilder' in pyproject_toml_data:
+        return []
+
+    local_builder_settings = pyproject_toml_data['localbuilder']
+    platform_settings = local_builder_settings.get(sys.platform)
+    if platform_settings is None:
+        return []
+    return platform_settings.get('conan_options', [])
+
+
 class BuildConan(setuptools.Command):
     user_options = [
         ('conan-cache=', None, 'conan cache directory'),
@@ -231,7 +243,7 @@ class BuildConan(setuptools.Command):
             f"Added the following paths to library path {', '.join(metadata['lib_paths'])} ",
             5)
 
-        libs = []
+        # libs = []
         # if self.output_library_name in libs:
         #     libs.remove(self.output_library_name)
 
@@ -257,13 +269,12 @@ class BuildConan(setuptools.Command):
         self.mkpath(build_dir_full_path)
         self.mkpath(os.path.join(build_dir_full_path, "lib"))
         self.announce(f"Using {conan_cache} for conan cache", 5)
-
-        # self._get_deps(conan_cache=conan_cache)
         build_deps_with_conan(
-            self.get_finalized_command("build_clib").build_temp,
+            build_dir,
             compiler_libcxx=self.compiler_libcxx,
             compiler_version=self.compiler_version,
-            conan_cache = conan_cache,
+            conan_options=get_conan_options(),
+            conan_cache=conan_cache,
         )
         conaninfotext = os.path.join(build_dir, "conaninfo.txt")
         if os.path.exists(conaninfotext):
@@ -318,7 +329,11 @@ class ConanBuildMetadata:
         deps = self._data['dependencies']
         return [d for d in deps if d['name'] == dep][0]
 
-
+def get_pyproject_toml_data():
+    import toml
+    pyproj_toml = Path('pyproject.toml')
+    with open(pyproj_toml) as f:
+        return toml.load(f)
 def test_tesseract(build_file: str):
     with open(build_file, "r") as f:
         parser = ConanBuildInfoParser(f)
@@ -349,15 +364,11 @@ def build_deps_with_conan(
         compiler_libcxx: str,
         compiler_version: str,
         conan_cache: Optional[str] = None,
+        conan_options: Optional[List[str]] = None,
         debug: bool = False
 ):
         from conans.client import conan_api, conf
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-        if sys.platform == "win32":
-            conan_options = ['tesseract:shared=True']
-        else:
-            conan_options = []
-
         settings = []
         logger = logging.Logger(__name__)
         conan_profile_cache = os.path.join(build_dir, "profiles")

@@ -21,4 +21,4 @@ def prepare_metadata_for_build_wheel(metadata_directory, config_settings=None):
 
 
 def get_requires_for_build_wheel(config_settings=None):
-    return ['pybind11>=2.5']
+    return ["wheel >= 0.25", "setuptools", 'pybind11>=2.5', 'toml']
