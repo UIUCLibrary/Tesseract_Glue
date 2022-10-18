@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11>=2.5', "wheel", "cmake", "conan>=1.51"]
+requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11>=2.5', "wheel", "cmake", "conan>=1.53"]
 build-backend = "builders.local_backend"
 backend-path = ["."]
 
@@ -54,9 +54,9 @@ CONAN_USER_HOME="$TEMP/conan"
 
 [tool.cibuildwheel.macos]
 before-all = [
-    "pip3 install conan cmake ninja",
-    "conan profile new default --detect --force",
-    "conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default",
+    "pip3 install 'conan>=1.53' cmake ninja",
+    "conan profile new $ENVTMPDIR/conan/.conan/profiles/default --detect --force",
+    "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",
     "conan install ./ --build missing"
 ]
 environment-pass = ["CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
@@ -66,8 +66,9 @@ repair-wheel-command = [
 ]
 
 [tool.cibuildwheel.macos.environment]
-CONAN_USER_HOME="/tmp/conan"
-CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
+ENVTMPDIR="/tmp/conan"
+CONAN_USER_HOME="$ENVTMPDIR/conan"
+CONAN_DEFAULT_PROFILE_PATH="$ENVTMPDIR/conan/.conan/profiles/default"
 
 
 [tool.cibuildwheel.linux]

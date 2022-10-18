@@ -94,9 +94,17 @@ def get_clang_version():
         exitcode = proc.returncode
         clang_version_regex = re.compile(
             r'(?<=Apple clang version )((\d+[.]){1,2}\d+)')
-        env_version = clang_version_regex.search(
-            proc.stdout.read().decode('utf-8')
-        )[0]
+        compiler_response = proc.stdout.read().decode('utf-8')
+        try:
+            env_version = clang_version_regex.search(
+                compiler_response
+            )[0]
+        except TypeError as result_error:
+            print(compiler_response, file=sys.stderr)
+            raise TypeError(
+                "Unable to parse compiler version response"
+            ) from result_error
+
         parts = env_version.split('.')
         if exitcode:
             raise ExecError(f"command {cmd} failed with exit code {exitcode}")

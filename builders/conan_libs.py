@@ -3,7 +3,7 @@ import os
 import sys
 import shutil
 import abc
-from typing import Iterable, Any, Dict, List, Union
+from typing import Iterable, Any, Dict, List, Union, Optional
 import setuptools
 import platform
 from distutils import ccompiler
@@ -172,6 +172,7 @@ def update_extension2(extension, text_md):
     extension.library_dirs = library_dirs + extension.library_dirs
     extension.define_macros = define_macros + extension.define_macros
 
+
 class BuildConan(setuptools.Command):
     user_options = [
         ('conan-cache=', None, 'conan cache directory'),
@@ -205,77 +206,13 @@ class BuildConan(setuptools.Command):
         if self.compiler_version is None:
             self.compiler_version = \
                 os.getenv("CONAN_COMPILER_VERSION", get_compiler_version())
+
     def getConanBuildInfo(self, root_dir):
         for root, dirs, files in os.walk(root_dir):
             for f in files:
                 if f == "conanbuildinfo.json":
                     return os.path.join(root, f)
         return None
-
-    def _get_deps(self, build_dir=None, conan_cache=None):
-        build_dir = build_dir or self.get_finalized_command("build_clib").build_temp
-        from conans.client import conan_api, conf
-        conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-        if sys.platform == "win32":
-            conan_options = ['tesseract:shared=True']
-        else:
-            conan_options = []
-
-        build_ext_cmd = self.get_finalized_command("build_ext")
-        settings = []
-        logger = logging.Logger(__name__)
-        conan_profile_cache = os.path.join(build_dir, "profiles")
-        build = ['outdated']
-        for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
-            settings.append(f"{name}={value}")
-        if build_ext_cmd.debug is not None:
-            settings.append("build_type=Debug")
-        else:
-            settings.append("build_type=Release")
-        try:
-            compiler_name = get_compiler_name()
-            settings.append(f"compiler={compiler_name}")
-            if self.compiler_libcxx is not None:
-                if 'compiler.libcxx=libstdc' in settings:
-                    settings.remove('compiler.libcxx=libstdc')
-                settings.append(f'compiler.libcxx={self.compiler_libcxx}')
-            settings.append(f"compiler.version={self.compiler_version}")
-            if compiler_name == 'gcc':
-                pass
-                # build.append("tesseract")
-            elif compiler_name == "msvc":
-                settings.append(f"compiler.cppstd=14")
-                settings.append(f"compiler.runtime=dynamic")
-            elif compiler_name == "Visual Studio":
-                settings.append(f"compiler.runtime=MD")
-                settings.append(f"compiler.toolset=v142")
-        except AttributeError:
-            print(
-                f"Unable to get compiler information "
-                f"for {platform.python_compiler()}"
-            )
-            raise
-
-        conanfile_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..")
-        )
-
-        build_dir_full_path = os.path.abspath(build_dir)
-        ninja = shutil.which("ninja")
-        env = []
-        if ninja:
-            env.append(f"NINJA={ninja}")
-
-        conan.install(
-            options=conan_options,
-            cwd=build_dir,
-            settings=settings,
-            build=build if len(build) > 0 else None,
-            path=conanfile_path,
-            env=env,
-            install_folder=build_dir_full_path,
-            # profile_build=profile
-        )
 
     def add_deps_to_compiler(self, metadata) -> None:
         build_ext_cmd = self.get_finalized_command("build_ext")
@@ -308,32 +245,6 @@ class BuildConan(setuptools.Command):
                     continue
                 if lib not in extension.libraries:
                     extension.libraries.append(lib)
-
-    def test_tesseract(self, build_file):
-        with open(build_file, "r") as f:
-            parser = ConanBuildInfoParser(f)
-            data = parser.parse()
-        path = data['bindirs_tesseract']
-        tesseract = shutil.which("tesseract", path=path[0])
-
-        tester = {
-            'darwin': MacResultTester,
-            'linux': LinuxResultTester,
-            'win32': WindowsResultTester
-        }.get(sys.platform)
-
-        if tester is None:
-            self.announce(f"unable to test for platform {sys.platform}", 5)
-            return
-
-        compiler = ccompiler.new_compiler()
-        tester = tester(compiler)
-        libs_dirs = data['libdirs']
-        for libs_dir in libs_dirs:
-            tester.test_shared_libs(libs_dir)
-        tester.test_binary_dependents(Path(tesseract))
-        compiler.spawn([tesseract, '--version'])
-
     def run(self):
         # self.reinitialize_command("build_ext")
         build_clib = self.get_finalized_command("build_clib")
@@ -347,7 +258,13 @@ class BuildConan(setuptools.Command):
         self.mkpath(os.path.join(build_dir_full_path, "lib"))
         self.announce(f"Using {conan_cache} for conan cache", 5)
 
-        self._get_deps(conan_cache=conan_cache)
+        # self._get_deps(conan_cache=conan_cache)
+        build_deps_with_conan(
+            self.get_finalized_command("build_clib").build_temp,
+            compiler_libcxx=self.compiler_libcxx,
+            compiler_version=self.compiler_version,
+            conan_cache = conan_cache,
+        )
         conaninfotext = os.path.join(build_dir, "conaninfo.txt")
         if os.path.exists(conaninfotext):
             with open(conaninfotext) as r:
@@ -355,7 +272,7 @@ class BuildConan(setuptools.Command):
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
-        self.test_tesseract(build_file=conanbuildinfotext)
+        test_tesseract(build_file=conanbuildinfotext)
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         build_ext_cmd = self.get_finalized_command("build_ext")
@@ -400,3 +317,97 @@ class ConanBuildMetadata:
     def dep(self, dep: str):
         deps = self._data['dependencies']
         return [d for d in deps if d['name'] == dep][0]
+
+
+def test_tesseract(build_file: str):
+    with open(build_file, "r") as f:
+        parser = ConanBuildInfoParser(f)
+        data = parser.parse()
+    path = data['bindirs_tesseract']
+    tesseract = shutil.which("tesseract", path=path[0])
+
+    tester = {
+        'darwin': MacResultTester,
+        'linux': LinuxResultTester,
+        'win32': WindowsResultTester
+    }.get(sys.platform)
+
+    if tester is None:
+        raise AttributeError(f"unable to test for platform {sys.platform}")
+
+    compiler = ccompiler.new_compiler()
+    tester = tester(compiler)
+    libs_dirs = data['libdirs']
+    for libs_dir in libs_dirs:
+        tester.test_shared_libs(libs_dir)
+    tester.test_binary_dependents(Path(tesseract))
+    compiler.spawn([tesseract, '--version'])
+
+
+def build_deps_with_conan(
+        build_dir: str,
+        compiler_libcxx: str,
+        compiler_version: str,
+        conan_cache: Optional[str] = None,
+        debug: bool = False
+):
+        from conans.client import conan_api, conf
+        conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
+        if sys.platform == "win32":
+            conan_options = ['tesseract:shared=True']
+        else:
+            conan_options = []
+
+        settings = []
+        logger = logging.Logger(__name__)
+        conan_profile_cache = os.path.join(build_dir, "profiles")
+        build = ['outdated']
+        for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
+            settings.append(f"{name}={value}")
+        if debug is True:
+            settings.append("build_type=Debug")
+        else:
+            settings.append("build_type=Release")
+        try:
+            compiler_name = get_compiler_name()
+            settings.append(f"compiler={compiler_name}")
+            if compiler_libcxx is not None:
+                if 'compiler.libcxx=libstdc' in settings:
+                    settings.remove('compiler.libcxx=libstdc')
+                settings.append(f'compiler.libcxx={compiler_libcxx}')
+            settings.append(f"compiler.version={compiler_version}")
+            if compiler_name == 'gcc':
+                pass
+            elif compiler_name == "msvc":
+                settings.append(f"compiler.cppstd=14")
+                settings.append(f"compiler.runtime=dynamic")
+            elif compiler_name == "Visual Studio":
+                settings.append(f"compiler.runtime=MD")
+                settings.append(f"compiler.toolset=v142")
+        except AttributeError:
+            print(
+                f"Unable to get compiler information "
+                f"for {platform.python_compiler()}"
+            )
+            raise
+
+        conanfile_path = os.path.abspath(
+            os.path.join(os.path.dirname(__file__), "..")
+        )
+
+        build_dir_full_path = os.path.abspath(build_dir)
+        ninja = shutil.which("ninja")
+        env = []
+        if ninja:
+            env.append(f"NINJA={ninja}")
+
+        conan.install(
+            options=conan_options,
+            cwd=build_dir,
+            settings=settings,
+            build=build if len(build) > 0 else None,
+            path=conanfile_path,
+            env=env,
+            install_folder=build_dir_full_path,
+            # profile_build=profile
+        )
