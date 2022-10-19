@@ -329,11 +329,14 @@ class ConanBuildMetadata:
         deps = self._data['dependencies']
         return [d for d in deps if d['name'] == dep][0]
 
+
 def get_pyproject_toml_data():
     import toml
     pyproj_toml = Path('pyproject.toml')
     with open(pyproj_toml) as f:
         return toml.load(f)
+
+
 def test_tesseract(build_file: str):
     with open(build_file, "r") as f:
         parser = ConanBuildInfoParser(f)
