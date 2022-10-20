@@ -1,6 +1,7 @@
 import abc
 from typing import Optional
 import pybind11
+from . import conan_libs
 from setuptools.command.build_ext import build_ext
 import os
 
@@ -40,10 +41,19 @@ class BuildPybind11Extension(build_ext):
                 compiler=self.compiler,
                 dirs=self.library_dirs + ext.library_dirs
             ),
-            UseConanFileBuildInfo(
-                path=self.get_finalized_command("build_clib").build_temp
-            )
         ]
+        conanfileinfo_locations = [
+            self.get_finalized_command("build_clib").build_temp
+        ]
+        conan_info_dir = os.environ.get('CONAN_BUILD_INFO_DIR')
+        if conan_info_dir:
+            conanfileinfo_locations.insert(0, conan_info_dir)
+        conanbuildinfo = conan_libs.locate_conanbuildinfo(conanfileinfo_locations)
+        if conanbuildinfo:
+            strategies.insert(
+                0,
+                UseConanFileBuildInfo(path=os.path.dirname(conanbuildinfo))
+            )
         missing_libs = set(ext.libraries)
         for lib in ext.libraries:
             for strategy in strategies:

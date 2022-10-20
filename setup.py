@@ -55,11 +55,20 @@ try:
                 self.announce(f"missing required deps [{', '.join(missing)}]. "
                               f"Trying to get them with conan", 5)
                 self.run_command("build_conan")
-            conanbuildinfo = os.path.join(self.build_temp, "conanbuildinfo.txt")
+
             # This test os needed because the conan version keeps silently
             # breaking the linking to openjp2 library.
-            if os.path.exists(conanbuildinfo):
-                test_tesseract(conanbuildinfo)
+            conanfileinfo_locations = [
+                self.build_temp
+            ]
+            conan_info_dir = os.environ.get('CONAN_BUILD_INFO_DIR')
+            if conan_info_dir:
+                conanfileinfo_locations.insert(0, conan_info_dir)
+            for location in conanfileinfo_locations:
+                conanbuildinfo = os.path.join(location, "conanbuildinfo.txt")
+                if os.path.exists(conanbuildinfo):
+                    test_tesseract(conanbuildinfo)
+                    break
             super().build_extension(ext)
 
         def run(self):
@@ -86,7 +95,7 @@ try:
                     for dep in deps:
                         dll = self.find_deps(dep)
                         if dll is None:
-                            raise FileNotFoundError("Missing for {}".format(dep))
+                            raise FileNotFoundError(f"Missing for {dep}")
                         shutil.copy(dll, dest)
 
     cmd_class["build_ext"] = BuildTesseractExt

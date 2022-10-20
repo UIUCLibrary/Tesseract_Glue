@@ -248,18 +248,8 @@ class BuildConan(setuptools.Command):
             f"Added the following paths to library path {', '.join(metadata['lib_paths'])} ",
             5)
 
-        # libs = []
-        # if self.output_library_name in libs:
-        #     libs.remove(self.output_library_name)
-
         for extension in build_ext_cmd.extensions:
-            # fixme
-            # if sys.platform == "win32":
-                # if self.output_library_name in extension.libraries:
-                #     extension.libraries.remove(self.output_library_name)
             for lib in metadata['libs']:
-                # if lib == self.output_library_name:
-                #     continue
                 if lib not in extension.libraries:
                     extension.libraries.append(lib)
     def run(self):
@@ -401,3 +391,8 @@ def build_deps_with_conan(
             install_folder=build_dir_full_path,
             # profile_build=profile
         )
+
+
+def locate_conanbuildinfo(search_locations):
+    for location in search_locations:
+        return os.path.join(location, "conanbuildinfo.txt")
