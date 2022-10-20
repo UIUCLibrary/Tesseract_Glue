@@ -1,5 +1,7 @@
 import os
 import sys
+from distutils import ccompiler
+from pathlib import Path
 
 import setuptools
 import shutil
@@ -10,13 +12,39 @@ from builders.deps import get_win_deps
 
 cmd_class = {}
 try:
-    from builders.conan_libs import BuildConan
-    cmd_class["build_conan"] = BuildConan
+    from builders import conan_libs
+    cmd_class["build_conan"] = conan_libs.BuildConan
 except ImportError:
     pass
 
 try:
     from builders.pybind11_builder import BuildPybind11Extension
+
+
+    def test_tesseract(build_file: str):
+        with open(build_file, "r") as f:
+            parser = conan_libs.ConanBuildInfoParser(f)
+            data = parser.parse()
+        path = data['bindirs_tesseract']
+        tesseract = shutil.which("tesseract", path=path[0])
+
+        tester = {
+            'darwin': conan_libs.MacResultTester,
+            'linux': conan_libs.LinuxResultTester,
+            'win32': conan_libs.WindowsResultTester
+        }.get(sys.platform)
+
+        if tester is None:
+            raise AttributeError(f"unable to test for platform {sys.platform}")
+
+        compiler = ccompiler.new_compiler()
+        tester = tester(compiler)
+        libs_dirs = data['libdirs']
+        for libs_dir in libs_dirs:
+            tester.test_shared_libs(libs_dir)
+        tester.test_binary_dependents(Path(tesseract))
+        compiler.spawn([tesseract, '--version'])
+
 
     class BuildTesseractExt(BuildPybind11Extension):
 
@@ -27,6 +55,11 @@ try:
                 self.announce(f"missing required deps [{', '.join(missing)}]. "
                               f"Trying to get them with conan", 5)
                 self.run_command("build_conan")
+            conanbuildinfo = os.path.join(self.build_temp, "conanbuildinfo.txt")
+            # This test os needed because the conan version keeps silently
+            # breaking the linking to openjp2 library.
+            if os.path.exists(conanbuildinfo):
+                test_tesseract(conanbuildinfo)
             super().build_extension(ext)
 
         def run(self):

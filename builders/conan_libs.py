@@ -93,11 +93,17 @@ class MacResultTester(AbsResultTester):
 class WindowsResultTester(AbsResultTester):
     def test_binary_dependents(self, file_path: Path):
         self.compiler.initialize()
-        deps = get_win_deps(str(file_path.resolve()), output_file="tesseract.depends", compiler=self.compiler)
-        path = os.getenv('PATH')
+
+        deps = get_win_deps(
+            str(file_path.resolve()),
+            output_file=f"{file_path.stem}.depends",
+            compiler=self.compiler
+        )
+
+        system_path = os.getenv('PATH')
         for dep in deps:
             print(f"{file_path} requires {dep}")
-            locations = list(filter(os.path.exists, path.split(";")))
+            locations = list(filter(os.path.exists, system_path.split(";")))
             for l in locations:
                 dep_path = os.path.join(l, dep)
                 if os.path.exists(dep_path):
@@ -201,7 +207,6 @@ class BuildConan(setuptools.Command):
 
     def __init__(self, dist, **kw):
         super().__init__(dist, **kw)
-        # self.output_library_name = "tesseract"
 
     def finalize_options(self):
         if self.conan_cache is None:
@@ -283,15 +288,11 @@ class BuildConan(setuptools.Command):
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
         assert os.path.exists(conanbuildinfotext)
-        test_tesseract(build_file=conanbuildinfotext)
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         build_ext_cmd = self.get_finalized_command("build_ext")
         conanbuildinfojson = os.path.join(build_dir, 'conanbuildinfo.json')
         conan_lib_metadata = ConanBuildMetadata(conanbuildinfojson)
-
-        # TODO: replace any library called by an extension with the libraries produced by conanbuildinfojson
-        #
         for extension in build_ext_cmd.extensions:
             if any(map(lambda s: s in conan_lib_metadata.deps(), extension.libraries)):
                 update_extension2(extension, text_md)
@@ -335,31 +336,6 @@ def get_pyproject_toml_data():
     pyproj_toml = Path('pyproject.toml')
     with open(pyproj_toml) as f:
         return toml.load(f)
-
-
-def test_tesseract(build_file: str):
-    with open(build_file, "r") as f:
-        parser = ConanBuildInfoParser(f)
-        data = parser.parse()
-    path = data['bindirs_tesseract']
-    tesseract = shutil.which("tesseract", path=path[0])
-
-    tester = {
-        'darwin': MacResultTester,
-        'linux': LinuxResultTester,
-        'win32': WindowsResultTester
-    }.get(sys.platform)
-
-    if tester is None:
-        raise AttributeError(f"unable to test for platform {sys.platform}")
-
-    compiler = ccompiler.new_compiler()
-    tester = tester(compiler)
-    libs_dirs = data['libdirs']
-    for libs_dir in libs_dirs:
-        tester.test_shared_libs(libs_dir)
-    tester.test_binary_dependents(Path(tesseract))
-    compiler.spawn([tesseract, '--version'])
 
 
 def build_deps_with_conan(
