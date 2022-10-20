@@ -53,6 +53,8 @@ class BuildPybind11Extension(build_ext):
         return list(missing_libs)
 
     def build_extension(self, ext):
+
+        self._add_conan_libs_to_ext(ext)
         if self.compiler.compiler_type == "unix":
             ext.extra_compile_args.append(f"-std=c++{self.cxx_standard}")
         else:
@@ -62,6 +64,30 @@ class BuildPybind11Extension(build_ext):
 
     def get_pybind11_include_path(self) -> str:
         return pybind11.get_include()
+
+    def _add_conan_libs_to_ext(self, ext):
+        conan_build_info = os.path.join(
+            self.get_finalized_command("build_clib").build_temp,
+            "conanbuildinfo.txt"
+        )
+        if not os.path.exists(conan_build_info):
+            return
+
+        defines = _parse_conan_build_info(conan_build_info, "defines")
+        if defines is not None:
+            ext.define_macros += [(d, None) for d in defines]
+
+        ext.include_dirs = \
+            list(_parse_conan_build_info(conan_build_info, "includedirs")) \
+            + ext.include_dirs
+
+        ext.libraries = \
+            list(_parse_conan_build_info(conan_build_info, "libs")) \
+            + ext.libraries
+
+        ext.library_dirs = \
+            list(_parse_conan_build_info(conan_build_info, "libdirs")) \
+            + ext.library_dirs
 
 
 class AbsFindLibrary(abc.ABC):
@@ -89,25 +115,25 @@ class UseConanFileBuildInfo(AbsFindLibrary):
         conan_build_info = os.path.join(self.path, "conanbuildinfo.txt")
         if not os.path.exists(conan_build_info):
             return None
-        libs = self._parse_file(conan_build_info)
-        return library_name in libs
+        libs = _parse_conan_build_info(conan_build_info, "libs")
+        return library_name if library_name in libs else None
 
-    @staticmethod
-    def _parse_file(conan_build_info):
-        libs = set()
-        with open(conan_build_info, encoding="utf-8") as f:
-            found = False
-            while True:
-                line = f.readline()
-                if not line:
-                    break
-                if line.strip() == "[libs]":
-                    found = True
+
+def _parse_conan_build_info(conan_build_info_file, section):
+    items = set()
+    with open(conan_build_info_file, encoding="utf-8") as f:
+        found = False
+        while True:
+            line = f.readline()
+            if not line:
+                break
+            if line.strip() == f"[{section}]":
+                found = True
+                continue
+            if found:
+                if line.strip() == "":
+                    found = False
                     continue
                 if found:
-                    if line.strip() == "":
-                        found = False
-                        continue
-                    if found:
-                        libs.add(line.strip())
-        return libs
+                    items.add(line.strip())
+    return items
