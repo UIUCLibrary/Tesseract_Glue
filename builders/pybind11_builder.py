@@ -1,9 +1,11 @@
 import abc
+import sys
 from typing import Optional
 import pybind11
 from . import conan_libs
 from setuptools.command.build_ext import build_ext
 import os
+from pprint import pprint
 
 
 class BuildPybind11Extension(build_ext):
@@ -69,8 +71,17 @@ class BuildPybind11Extension(build_ext):
             ext.extra_compile_args.append(f"-std=c++{self.cxx_standard}")
         else:
             ext.extra_compile_args.append(f"/std:c++{self.cxx_standard}")
-
+        pprint(ext.__dict__)
         super().build_extension(ext)
+        fullname = self.get_ext_fullname(ext.name)
+        created_extension = os.path.join(
+            self.build_lib,
+            self.get_ext_filename(fullname)
+        )
+        if sys.platform == "darwin":
+            self.spawn(['otool', "-L", created_extension])
+        if sys.platform == "linux":
+            self.spawn(['ldd', created_extension])
 
     def get_pybind11_include_path(self) -> str:
         return pybind11.get_include()

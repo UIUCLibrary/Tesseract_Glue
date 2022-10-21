@@ -77,16 +77,20 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-all = [
     "pip3 install conan cmake ninja",
     "conan profile new /tmp/conan/.conan/profiles/default --detect",
-    "conan install ./ --build missing --build tesseract"
+    "conan install ./ --build missing -o tesseract:shared=True"
+#    "conan install ./ --build missing --build tesseract"
 
 ]
 
 [tool.cibuildwheel.linux.environment]
 CONAN_USER_HOME="/tmp/conan"
 CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
+PYTHONFAULTHANDLER="True"
 
 [localbuilder]
 conanfile = 'conanfile.py'
 
+[localbuilder.linux]
+conan_options = ['tesseract:shared=True']
 [localbuilder.win32]
 conan_options = ['tesseract:shared=True']

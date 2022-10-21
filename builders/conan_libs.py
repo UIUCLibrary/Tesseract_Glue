@@ -77,7 +77,7 @@ class AbsResultTester(abc.ABC):
         for lib in os.scandir(libs_dir):
             if not lib.name.endswith(self.compiler.shared_lib_extension):
                 continue
-            self.test_binary_dependents(lib.path)
+            self.test_binary_dependents(Path(lib.path))
 
     @abc.abstractmethod
     def test_binary_dependents(self, file_path: Path):
@@ -181,7 +181,7 @@ def update_extension2(extension, text_md):
 
 def get_conan_options():
     pyproject_toml_data = get_pyproject_toml_data()
-    if not 'localbuilder' in pyproject_toml_data:
+    if 'localbuilder' not in pyproject_toml_data:
         return []
 
     local_builder_settings = pyproject_toml_data['localbuilder']
