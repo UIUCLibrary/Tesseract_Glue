@@ -115,7 +115,7 @@ def get_clang_version():
 
 
 def get_gcc_version():
-    cmd = ['cc', '-dumpversion']
+    cmd = ['cc', '-dumpfullversion', '-dumpversion']
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         proc.wait()
@@ -123,11 +123,14 @@ def get_gcc_version():
         compiler_response = proc.stdout.read().decode('utf-8')
         if exitcode:
             raise ExecError(f"command {cmd} failed with exit code {exitcode}")
-        return compiler_response.strip()
+        compiler_version = compiler_response.strip()
+        version_comps = compiler_version.split(".")
+
+        if len(version_comps) == 1:
+            return version_comps[0]
+        return f"{version_comps[0]}.{version_comps[1]}"
     except OSError as exc:
         raise ExecError("command %r failed: %s" % (cmd, exc.args[-1])) from exc
-
-    return "9"
 
 
 def get_compiler_version():
