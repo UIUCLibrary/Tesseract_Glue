@@ -40,5 +40,6 @@ jobs:
         run: cc --version &&  cc -dumpfullversion -dumpversion && tox -e py -vvv
         env:
           CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
+          CONAN_COMPILER_LIBCXX: "libstdc++11"
 
           
