@@ -30,6 +30,6 @@ jobs:
           CONAN_USER_HOME: "C:/Users/runneradmin"
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
-        run: tox -e py
+        run: cc --version && tox -e py
 
           

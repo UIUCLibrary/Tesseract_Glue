@@ -36,7 +36,7 @@ jobs:
            CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
       - name: Build wheels
         if: "!contains(matrix.os, 'windows')"
-        run: cc --version && python -m cibuildwheel --output-dir wheelhouse
+        run: python -m cibuildwheel --output-dir wheelhouse
         env:
            CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
         #   CIBW_SOME_OPTION: value
