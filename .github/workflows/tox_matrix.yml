@@ -12,6 +12,7 @@ jobs:
             compiler_version: 14
           - os: ubuntu-latest
             compiler_version: 9.4
+            compiler_libcxx: libstdc++11
           - os: windows-2019
             compiler_version: 16
       fail-fast: false
@@ -40,6 +41,6 @@ jobs:
         run: cc --version &&  cc -dumpfullversion -dumpversion && tox -e py -vvv
         env:
           CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
-          CONAN_COMPILER_LIBCXX: "libstdc++11"
+          CONAN_COMPILER_LIBCXX: ${{ matrix.compiler_libcxx }}
 
           
