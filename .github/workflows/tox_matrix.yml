@@ -10,6 +10,7 @@ jobs:
         include:
           - os: macos-latest
             compiler_version: 14
+            compiler_libcxx: libstdc++
           - os: ubuntu-latest
             compiler_version: 9.4
             compiler_libcxx: libstdc++11
