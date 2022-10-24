@@ -39,7 +39,7 @@ skip = [
     "*-manylinux_i686"
 ]
 build-verbosity = 1
-environment-pass = ["CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
+environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
 
 [tool.cibuildwheel.windows]
 before-all = [
@@ -47,7 +47,7 @@ before-all = [
     "pip install conan cmake ninja",
     "conan profile new default --detect --force",
     "conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% default",
-    "conan install ./ --build missing"
+    "conan install ./ --build missing",
 ]
 [tool.cibuildwheel.windows.environment]
 CONAN_USER_HOME="$TEMP/conan"
@@ -77,20 +77,23 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-all = [
     "pip3 install conan cmake ninja",
     "conan profile new /tmp/conan/.conan/profiles/default --detect",
-    "conan install ./ --build missing -o tesseract:shared=True"
-#    "conan install ./ --build missing --build tesseract"
+    "if [ -z \"$CONAN_COMPILER_LIBCXX\" ]; then : ; else conan profile update settings.compiler.libcxx=$CONAN_COMPILER_LIBCXX default; fi",
+    "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",
+    "conan profile show default",
+    "conan install ./ --build missing",
+    "./tesseract --version"
 
 ]
-
 [tool.cibuildwheel.linux.environment]
 CONAN_USER_HOME="/tmp/conan"
 CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
+CONAN_BUILD_INFO_DIR="/tmp/conan/build/"
 PYTHONFAULTHANDLER="True"
-
+#
 [localbuilder]
 conanfile = 'conanfile.py'
 
-[localbuilder.linux]
-conan_options = ['tesseract:shared=True']
+#[localbuilder.linux]
+#conan_options = ['tesseract:shared=True']
 [localbuilder.win32]
 conan_options = ['tesseract:shared=True']

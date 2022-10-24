@@ -114,6 +114,10 @@ def get_clang_version():
         raise ExecError("command %r failed: %s" % (cmd, exc.args[-1])) from exc
 
 
+def get_gcc_version():
+    return "10.2"
+
+
 def get_compiler_version():
     """
     Examples of compiler data:
@@ -134,6 +138,8 @@ def get_compiler_version():
         return get_visual_studio_version()
     elif compiler_name == "apple-clang":
         return get_clang_version()
+    elif compiler_name == "gcc":
+        return get_gcc_version()
 
     parsed_version = re.findall("([0-9]+)(?:[.]?)", full_version)
     if len(parsed_version) <= 2:

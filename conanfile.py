@@ -13,3 +13,4 @@ class Exiv2BindConan(ConanFile):
 
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")  # From bin to bin
+        self.copy("tesseract", dst=".", src="bin")  # From bin to bin
