@@ -129,7 +129,7 @@ def get_gcc_version():
     except OSError as exc:
         raise ExecError("command %r failed: %s" % (cmd, exc.args[-1])) from exc
 
-    return "10.2"
+    return "9"
 
 
 def get_compiler_version():
