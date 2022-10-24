@@ -124,6 +124,7 @@ def get_gcc_version():
             r'(?<=GCC version )((\d+[.]){1,2}\d+)')
         compiler_response = proc.stdout.read().decode('utf-8')
         print(compiler_response, file=sys.stderr)
+        raise Exception(f"compiler response {compiler_response}")
         if exitcode:
             raise ExecError(f"command {cmd} failed with exit code {exitcode}")
     except OSError as exc:
