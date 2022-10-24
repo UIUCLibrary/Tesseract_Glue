@@ -13,7 +13,7 @@ jobs:
             compiler_libcxx: libstdc++
           - os: ubuntu-latest
             compiler_version: 9.4
-            compiler_libcxx: libstdc++11
+            compiler_libcxx: libc++
           - os: windows-2019
             compiler_version: 16
       fail-fast: false
