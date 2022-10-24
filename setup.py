@@ -43,7 +43,9 @@ try:
         for libs_dir in libs_dirs:
             tester.test_shared_libs(libs_dir)
         tester.test_binary_dependents(Path(tesseract))
+        print("Testing Tesseract exec")
         compiler.spawn([tesseract, '--version'])
+        print("Testing Tesseract exec - Done")
 
 
     class BuildTesseractExt(BuildPybind11Extension):
