@@ -115,6 +115,20 @@ def get_clang_version():
 
 
 def get_gcc_version():
+    cmd = ['cc', '--version']
+    try:
+        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+        proc.wait()
+        exitcode = proc.returncode
+        gcc_version_regex = re.compile(
+            r'(?<=GCC version )((\d+[.]){1,2}\d+)')
+        compiler_response = proc.stdout.read().decode('utf-8')
+        print(compiler_response, file=sys.stderr)
+        if exitcode:
+            raise ExecError(f"command {cmd} failed with exit code {exitcode}")
+    except OSError as exc:
+        raise ExecError("command %r failed: %s" % (cmd, exc.args[-1])) from exc
+
     return "10.2"
 
 
