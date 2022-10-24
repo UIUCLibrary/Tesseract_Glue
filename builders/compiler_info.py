@@ -123,7 +123,7 @@ def get_gcc_version():
         compiler_response = proc.stdout.read().decode('utf-8')
         if exitcode:
             raise ExecError(f"command {cmd} failed with exit code {exitcode}")
-        return compiler_response
+        return compiler_response.strip()
     except OSError as exc:
         raise ExecError("command %r failed: %s" % (cmd, exc.args[-1])) from exc
 
