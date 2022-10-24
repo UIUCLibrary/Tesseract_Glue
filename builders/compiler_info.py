@@ -115,13 +115,11 @@ def get_clang_version():
 
 
 def get_gcc_version():
-    cmd = ['cc', '--version']
+    cmd = ['cc', '-dumpversion']
     try:
         proc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
         proc.wait()
         exitcode = proc.returncode
-        gcc_version_regex = re.compile(
-            r'(?<=GCC version )((\d+[.]){1,2}\d+)')
         compiler_response = proc.stdout.read().decode('utf-8')
         print(compiler_response, file=sys.stderr)
         raise Exception(f"compiler response {compiler_response}")
