@@ -37,7 +37,7 @@ jobs:
           CONAN_USER_HOME: "C:/Users/runneradmin"
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
-        run: cc --version &&  cc -dumpfullversion -dumpversion && tox -e py -vv
+        run: cc --version &&  cc -dumpfullversion -dumpversion && tox -e py -vvv
         env:
           CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
 
