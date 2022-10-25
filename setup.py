@@ -9,7 +9,10 @@ from distutils.version import StrictVersion
 
 sys.path.insert(0, os.path.dirname(__file__))
 from builders.deps import get_win_deps
-
+try:
+    from pybind11.setup_helpers import Pybind11Extension
+except ImportError:
+    from setuptools import Extension as Pybind11Extension
 cmd_class = {}
 try:
     from builders import conan_libs
@@ -79,7 +82,8 @@ try:
             if pybind11_include_path is None:
                 raise FileNotFoundError("Missing pybind11 include path")
 
-            self.include_dirs.append(pybind11_include_path)
+            # self.include_dirs.insert(0, pybind11_include_path)
+            # self.include_dirs.insert(0, "/usr/local/opt/python@3.10/Frameworks/Python.framework/Versions/3.10/include/python3.10")
             super().run()
 
             for e in self.extensions:
@@ -113,8 +117,8 @@ if StrictVersion(setuptools.__version__) < StrictVersion('30.3'):
           )
 
     sys.exit(1)
-
-tesseract_extension = setuptools.Extension(
+# tesseract_extension = setuptools.Extension(
+tesseract_extension = Pybind11Extension(
     "uiucprescon.ocr.tesseractwrap",
     sources=[
         'uiucprescon/ocr/Capabilities.cpp',
