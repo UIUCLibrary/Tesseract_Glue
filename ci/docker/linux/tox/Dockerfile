@@ -125,7 +125,8 @@ ENV CONAN_USER_HOME=/conan
 RUN conan config home
 
 RUN conan config init && \
-    conan config set general.revisions_enabled=1
+    conan config set general.revisions_enabled=1 && \
+    conan profile update settings.compiler.libcxx=libstdc++11 default
 
 ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
 RUN conan install /tmp --build  missing --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
