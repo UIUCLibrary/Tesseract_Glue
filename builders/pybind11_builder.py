@@ -93,22 +93,25 @@ class BuildPybind11Extension(build_ext):
         )
         if not os.path.exists(conan_build_info):
             return
+        # ext.library_dirs.append(os.path.abspath(os.path.join(self.build_temp, "lib")))
+        # ext.library_dirs = list(_parse_conan_build_info(conan_build_info, "libdirs")) + ext.library_dirs
+        # libs = [
+        #     lib for lib
+        #     in list(_parse_conan_build_info(conan_build_info, "libs"))
+        #     if lib not in ext.libraries
+        # ]
+        # libraries must retain order and put after existing libs
+        for lib in _parse_conan_build_info(conan_build_info, "libs"):
+            if lib not in ext.libraries:
+                ext.libraries.append(lib)
 
+        # ext.libraries = ext.libraries + libs
+        # ext.runtime_library_dirs.append("/src/build/temp.linux-x86_64-cpython-38/lib")
+        # ext.runtime_library_dirs = list(_parse_conan_build_info(conan_build_info, "bindirs")) + ext.runtime_library_dirs
+        ext.library_dirs = list(_parse_conan_build_info(conan_build_info, "libdirs")) + ext.library_dirs
+        ext.include_dirs = list(_parse_conan_build_info(conan_build_info, "includedirs")) + ext.include_dirs
         defines = _parse_conan_build_info(conan_build_info, "defines")
-        if defines is not None:
-            ext.define_macros += [(d, None) for d in defines]
-
-        ext.include_dirs = \
-            list(_parse_conan_build_info(conan_build_info, "includedirs")) \
-            + ext.include_dirs
-
-        ext.libraries = \
-            list(_parse_conan_build_info(conan_build_info, "libs")) \
-            + ext.libraries
-
-        ext.library_dirs = \
-            list(_parse_conan_build_info(conan_build_info, "libdirs")) \
-            + ext.library_dirs
+        ext.define_macros = [(d, None) for d in defines] + ext.define_macros
 
 
 class AbsFindLibrary(abc.ABC):
