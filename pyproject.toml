@@ -82,7 +82,6 @@ before-all = [
     "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",
     "conan profile show default",
     "conan install ./ --build missing",
-    "./tesseract --version"
 
 ]
 [tool.cibuildwheel.linux.environment]
