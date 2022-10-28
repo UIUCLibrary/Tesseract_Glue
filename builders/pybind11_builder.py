@@ -100,7 +100,8 @@ class BuildPybind11Extension(build_ext):
         lib_output = os.path.abspath(os.path.join(self.build_temp, "lib"))
 
         build_py = self.get_finalized_command("build_py")
-        self.copy_tree(lib_output, os.path.join(self.build_lib, build_py.get_package_dir(build_py.packages[0])))
+        if os.path.exists(lib_output):
+            self.copy_tree(lib_output, os.path.join(self.build_lib, build_py.get_package_dir(build_py.packages[0])))
         if sys.platform == "linux":
             ext.runtime_library_dirs.append("$ORIGIN")
         ext.library_dirs = list(_parse_conan_build_info(conan_build_info, "libdirs")) + ext.library_dirs
