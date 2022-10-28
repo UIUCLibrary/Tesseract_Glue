@@ -14,13 +14,16 @@ class BuildPybind11Extension(build_ext):
     ]
 
     def initialize_options(self):
-        super().initialize_options()
         self.cxx_standard = None
+        super().initialize_options()
 
     def finalize_options(self):
-
-        self.cxx_standard = self.cxx_standard or "14"
         super().finalize_options()
+
+        # self.inplace keeps getting reset by the time it is needed so
+        # capture it here
+        self._inplace = self.inplace
+        self.cxx_standard = self.cxx_standard or "14"
 
     def find_deps(self, lib, search_paths=None):
         search_paths = search_paths or os.environ['path'].split(";")
@@ -101,13 +104,12 @@ class BuildPybind11Extension(build_ext):
 
         build_py = self.get_finalized_command("build_py")
         package_path = build_py.get_package_dir(build_py.packages[0])
-        if os.path.exists(lib_output):
-            if not self.inplace:
-                dest = os.path.join(self.build_lib, package_path)
-                self.copy_tree(lib_output, dest)
+        if os.path.exists(lib_output) and not self._inplace:
+            dest = os.path.join(self.build_lib, package_path)
+            self.copy_tree(lib_output, dest)
 
         if sys.platform == "linux":
-            if not self.inplace :
+            if not self._inplace:
                 ext.runtime_library_dirs.append("$ORIGIN")
             else:
                 ext.runtime_library_dirs.append(os.path.abspath(lib_output))
