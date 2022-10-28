@@ -12,14 +12,16 @@ class Exiv2BindConan(ConanFile):
     default_options = {}
 
     def imports(self):
-        self.copy("*.dll", dst=".", src="bin")  # From bin to bin
-        self.copy("libtiff.so.*", dst="lib", src="lib")  # From bin to bin
-        self.copy("libtiff.so", dst="lib", src="lib")  # From bin to bin
-        self.copy("libiconv.so", dst="lib", src="lib")  # From bin to bin
-        self.copy("libiconv.so.*", dst="lib", src="lib")  # From bin to bin
-        self.copy("libcharset.so", dst="lib", src="lib")  # From bin to bin
-        self.copy("libcharset.so.*", dst="lib", src="lib")  # From bin to bin
-        self.copy("tesseract", dst="", src="bin", keep_path=True)  # From bin to bin
+        self.copy("*.dll", dst=".", src="bin")
+        self.copy("libtiff.so.*", dst="lib", src="lib")
+        self.copy("libtiff.so", dst="lib", src="lib")
+        self.copy("libtiffxx.so", dst="lib", src="lib")
+        self.copy("libtiffxx.so.*", dst="lib", src="lib")
+        self.copy("libiconv.so", dst="lib", src="lib")
+        self.copy("libiconv.so.*", dst="lib", src="lib")
+        self.copy("libcharset.so", dst="lib", src="lib")
+        self.copy("libcharset.so.*", dst="lib", src="lib")
+        self.copy("tesseract", dst="", src="bin", keep_path=True)
 
     def configure(self):
         if self.settings.os == "Linux":
