@@ -46,14 +46,11 @@ try:
         for libs_dir in libs_dirs:
             tester.test_shared_libs(libs_dir)
         tester.test_binary_dependents(Path(tesseract))
-        print("Testing Tesseract exec")
-        compiler.spawn([tesseract, '--version'])
-        print("Testing Tesseract exec - Done")
 
 
     class BuildTesseractExt(BuildPybind11Extension):
 
-        def build_extension(self, ext):
+        def build_extension(self, ext: Pybind11Extension):
             missing = self.find_missing_libraries(ext)
 
             if len(missing) > 0:
@@ -67,7 +64,7 @@ try:
                 self.build_temp
             ]
             conan_info_dir = os.environ.get('CONAN_BUILD_INFO_DIR')
-            if conan_info_dir:
+            if conan_info_dir is not None:
                 conanfileinfo_locations.insert(0, conan_info_dir)
             for location in conanfileinfo_locations:
                 conanbuildinfo = os.path.join(location, "conanbuildinfo.txt")
@@ -75,15 +72,17 @@ try:
                     test_tesseract(conanbuildinfo)
                     break
             super().build_extension(ext)
+            tester = {
+                'darwin': conan_libs.MacResultTester,
+                'linux': conan_libs.LinuxResultTester,
+                'win32': conan_libs.WindowsResultTester
+            }.get(sys.platform)
+            dll_name = \
+                os.path.join(self.build_lib, self.get_ext_filename(ext.name))
+
+            tester().test_binary_dependents(Path(dll_name))
 
         def run(self):
-            pybind11_include_path = self.get_pybind11_include_path()
-
-            if pybind11_include_path is None:
-                raise FileNotFoundError("Missing pybind11 include path")
-
-            # self.include_dirs.insert(0, pybind11_include_path)
-            # self.include_dirs.insert(0, "/usr/local/opt/python@3.10/Frameworks/Python.framework/Versions/3.10/include/python3.10")
             super().run()
 
             for e in self.extensions:

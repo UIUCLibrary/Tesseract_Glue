@@ -252,8 +252,9 @@ class BuildConan(setuptools.Command):
             for lib in metadata['libs']:
                 if lib not in extension.libraries:
                     extension.libraries.append(lib)
+
     def run(self):
-        # self.reinitialize_command("build_ext")
+
         build_clib = self.get_finalized_command("build_clib")
 
         build_dir = build_clib.build_temp
@@ -271,6 +272,11 @@ class BuildConan(setuptools.Command):
             conan_options=get_conan_options(),
             conan_cache=conan_cache,
         )
+        for root, dirs, files in os.walk(build_clib.build_temp):
+            if ".conan" in root:
+                continue
+            for f in files:
+                print(os.path.join(root, f))
         conaninfotext = os.path.join(build_dir, "conaninfo.txt")
         if os.path.exists(conaninfotext):
             with open(conaninfotext) as r:
@@ -389,7 +395,6 @@ def build_deps_with_conan(
             path=conanfile_path,
             env=env,
             install_folder=build_dir_full_path,
-            # profile_build=profile
         )
 
 

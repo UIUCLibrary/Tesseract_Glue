@@ -2,10 +2,10 @@ import abc
 import sys
 from typing import Optional
 import pybind11
+from pybind11.setup_helpers import Pybind11Extension, build_ext
 from . import conan_libs
-from setuptools.command.build_ext import build_ext
+from distutils.ccompiler import CCompiler
 import os
-from pprint import pprint
 
 
 class BuildPybind11Extension(build_ext):
@@ -64,14 +64,13 @@ class BuildPybind11Extension(build_ext):
                     break
         return list(missing_libs)
 
-    def build_extension(self, ext):
-
+    def build_extension(self, ext: Pybind11Extension):
         self._add_conan_libs_to_ext(ext)
+        self.compiler: CCompiler
         if self.compiler.compiler_type == "unix":
             ext.extra_compile_args.append(f"-std=c++{self.cxx_standard}")
         else:
             ext.extra_compile_args.append(f"/std:c++{self.cxx_standard}")
-        pprint(ext.__dict__)
         super().build_extension(ext)
         fullname = self.get_ext_fullname(ext.name)
         created_extension = os.path.join(
@@ -86,28 +85,24 @@ class BuildPybind11Extension(build_ext):
     def get_pybind11_include_path(self) -> str:
         return pybind11.get_include()
 
-    def _add_conan_libs_to_ext(self, ext):
+    def _add_conan_libs_to_ext(self, ext: Pybind11Extension):
         conan_build_info = os.path.join(
             self.get_finalized_command("build_clib").build_temp,
             "conanbuildinfo.txt"
         )
         if not os.path.exists(conan_build_info):
             return
-        # ext.library_dirs.append(os.path.abspath(os.path.join(self.build_temp, "lib")))
-        # ext.library_dirs = list(_parse_conan_build_info(conan_build_info, "libdirs")) + ext.library_dirs
-        # libs = [
-        #     lib for lib
-        #     in list(_parse_conan_build_info(conan_build_info, "libs"))
-        #     if lib not in ext.libraries
-        # ]
         # libraries must retain order and put after existing libs
         for lib in _parse_conan_build_info(conan_build_info, "libs"):
             if lib not in ext.libraries:
                 ext.libraries.append(lib)
 
-        # ext.libraries = ext.libraries + libs
-        # ext.runtime_library_dirs.append("/src/build/temp.linux-x86_64-cpython-38/lib")
-        # ext.runtime_library_dirs = list(_parse_conan_build_info(conan_build_info, "bindirs")) + ext.runtime_library_dirs
+        lib_output = os.path.abspath(os.path.join(self.build_temp, "lib"))
+
+        build_py = self.get_finalized_command("build_py")
+        self.copy_tree(lib_output, os.path.join(self.build_lib, build_py.get_package_dir(build_py.packages[0])))
+        if sys.platform == "linux":
+            ext.runtime_library_dirs.append("$ORIGIN")
         ext.library_dirs = list(_parse_conan_build_info(conan_build_info, "libdirs")) + ext.library_dirs
         ext.include_dirs = list(_parse_conan_build_info(conan_build_info, "includedirs")) + ext.include_dirs
         defines = _parse_conan_build_info(conan_build_info, "defines")
