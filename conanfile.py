@@ -18,5 +18,5 @@ class Exiv2BindConan(ConanFile):
         self.copy("tesseract", dst="", src="bin", keep_path=True)  # From bin to bin
 
     def configure(self):
-        if self.settings.os != "Windows":
+        if self.settings.os == "Linux":
             self.options["libtiff"].shared = True
