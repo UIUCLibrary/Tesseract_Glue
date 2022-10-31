@@ -426,4 +426,6 @@ def build_deps_with_conan(
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
-        return os.path.join(location, "conanbuildinfo.txt")
+        conanbuildinfo = os.path.join(location, "conanbuildinfo.txt")
+        if os.path.exists(conanbuildinfo):
+            return conanbuildinfo
