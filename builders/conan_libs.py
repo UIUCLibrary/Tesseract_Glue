@@ -295,17 +295,18 @@ class BuildConan(setuptools.Command):
         if os.path.exists(conaninfotext):
             with open(conaninfotext) as r:
                 self.announce(r.read(), 5)
-
-        conanbuildinfotext = locate_conanbuildinfo([
+        build_locations = [
             build_dir,
             os.path.join(build_dir, "Release")
-        ])
+        ]
+        conanbuildinfotext = locate_conanbuildinfo(build_locations)
         if conanbuildinfotext is None:
             raise AssertionError("Missing conanbuildinfo.txt")
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         build_ext_cmd = self.get_finalized_command("build_ext")
-        conanbuildinfojson = os.path.join(build_dir, 'conanbuildinfo.json')
+
+        conanbuildinfojson = locate_conanbuildinfo_json(build_locations)
         conan_lib_metadata = ConanBuildMetadata(conanbuildinfojson)
         for extension in build_ext_cmd.extensions:
             if build_ext._inplace:
@@ -427,5 +428,11 @@ def build_deps_with_conan(
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
         conanbuildinfo = os.path.join(location, "conanbuildinfo.txt")
+        if os.path.exists(conanbuildinfo):
+            return conanbuildinfo
+
+def locate_conanbuildinfo_json(search_locations):
+    for location in search_locations:
+        conanbuildinfo = os.path.join(location, "conanbuildinfo.json")
         if os.path.exists(conanbuildinfo):
             return conanbuildinfo
