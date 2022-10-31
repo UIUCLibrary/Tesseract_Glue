@@ -106,9 +106,11 @@ try:
                     dest = os.path.dirname(dll_name)
 
                     for dep in deps:
-                        dll = self.find_deps(dep)
+                        paths = os.environ['path'].split(";")
+                        paths.append(self.build_lib)
+                        dll = self.find_deps(dep, paths)
                         if dll is None:
-                            raise FileNotFoundError(f"Missing for {dep}")
+                            raise FileNotFoundError(f"Missing {dep}")
                         shutil.copy(dll, dest)
 
     cmd_class["build_ext"] = BuildTesseractExt
