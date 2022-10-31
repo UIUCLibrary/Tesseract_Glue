@@ -40,8 +40,8 @@ class BuildPybind11Extension(build_ext):
                 if f.name.lower() == lib.lower():
                     return f.path
 
-    def find_missing_libraries(self, ext):
-        strategies = [
+    def find_missing_libraries(self, ext, strategies=None):
+        strategies = strategies or [
             UseSetuptoolsCompilerFileLibrary(
                 compiler=self.compiler,
                 dirs=self.library_dirs + ext.library_dirs

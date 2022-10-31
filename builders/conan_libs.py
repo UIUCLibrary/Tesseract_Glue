@@ -206,6 +206,8 @@ class BuildConan(setuptools.Command):
         self.compiler_libcxx = None
 
     def __init__(self, dist, **kw):
+        self.install_libs = True
+        self.build_libs = ['outdated']
         super().__init__(dist, **kw)
 
     def finalize_options(self):
@@ -256,21 +258,30 @@ class BuildConan(setuptools.Command):
     def run(self):
 
         build_clib = self.get_finalized_command("build_clib")
-
+        build_ext = self.get_finalized_command("build_ext")
+        if self.install_libs:
+            build_py = self.get_finalized_command("build_py")
+            install_dir = os.path.abspath(
+                os.path.join(
+                    build_py.build_lib,
+                    build_py.get_package_dir(build_py.packages[0]))
+            )
+        else:
+            install_dir = build_ext.build_temp
         build_dir = build_clib.build_temp
-
         build_dir_full_path = os.path.abspath(build_dir)
         conan_cache = self.conan_cache
         self.mkpath(conan_cache)
         self.mkpath(build_dir_full_path)
-        self.mkpath(os.path.join(build_dir_full_path, "lib"))
         self.announce(f"Using {conan_cache} for conan cache", 5)
         build_deps_with_conan(
             build_dir,
+            install_dir=os.path.abspath(install_dir),
             compiler_libcxx=self.compiler_libcxx,
             compiler_version=self.compiler_version,
             conan_options=get_conan_options(),
             conan_cache=conan_cache,
+            install_libs=self.install_libs
         )
         for root, dirs, files in os.walk(build_clib.build_temp):
             if ".conan" in root:
@@ -295,10 +306,11 @@ class BuildConan(setuptools.Command):
                 # update_extension(extension, conan_lib_metadata)
 
 
-def build_conan(wheel_directory, config_settings=None, metadata_directory=None):
+def build_conan(wheel_directory, config_settings=None, metadata_directory=None, install_libs=True):
     dist = Distribution()
     dist.parse_config_files()
     command = BuildConan(dist)
+    command.install_libs = install_libs
     build_ext_cmd = command.get_finalized_command("build_ext")
     if config_settings:
         command.conan_cache = config_settings.get('conan_cache', os.path.join(build_ext_cmd.build_temp, ".conan"))
@@ -336,18 +348,21 @@ def get_pyproject_toml_data():
 
 def build_deps_with_conan(
         build_dir: str,
+        install_dir: str,
         compiler_libcxx: str,
         compiler_version: str,
         conan_cache: Optional[str] = None,
         conan_options: Optional[List[str]] = None,
-        debug: bool = False
+        debug: bool = False,
+        install_libs=True,
+        build=None
 ):
         from conans.client import conan_api, conf
         conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
         settings = []
         logger = logging.Logger(__name__)
         conan_profile_cache = os.path.join(build_dir, "profiles")
-        build = ['outdated']
+        build = build or ['outdated']
         for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
             settings.append(f"{name}={value}")
         if debug is True:
@@ -381,7 +396,6 @@ def build_deps_with_conan(
             os.path.join(os.path.dirname(__file__), "..")
         )
 
-        build_dir_full_path = os.path.abspath(build_dir)
         ninja = shutil.which("ninja")
         env = []
         if ninja:
@@ -394,9 +408,9 @@ def build_deps_with_conan(
             build=build if len(build) > 0 else None,
             path=conanfile_path,
             env=env,
-            install_folder=build_dir_full_path,
+            no_imports=not install_libs,
+            install_folder=install_dir,
         )
-
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:

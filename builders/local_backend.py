@@ -16,7 +16,12 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
     if config_settings and config_settings.get('conan_cache') is None:
         if "CONAN_USER_HOME" in os.environ:
             config_settings['conan_cache'] = os.path.join(os.environ["CONAN_USER_HOME"], ".conan")
-    conan_libs.build_conan(wheel_directory, config_settings, metadata_directory)
+    conan_libs.build_conan(
+        wheel_directory,
+        config_settings,
+        metadata_directory,
+        install_libs=False
+    )
     return setuptools.build_meta.build_wheel(wheel_directory, config_settings, metadata_directory)
 
 

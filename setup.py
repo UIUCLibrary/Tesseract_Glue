@@ -21,7 +21,7 @@ except ImportError:
     pass
 
 try:
-    from builders.pybind11_builder import BuildPybind11Extension
+    from builders.pybind11_builder import BuildPybind11Extension, UseSetuptoolsCompilerFileLibrary
 
 
     def test_tesseract(build_file: str):
@@ -51,13 +51,20 @@ try:
     class BuildTesseractExt(BuildPybind11Extension):
 
         def build_extension(self, ext: Pybind11Extension):
-            missing = self.find_missing_libraries(ext)
-
+            missing = self.find_missing_libraries(ext, strategies=[
+                UseSetuptoolsCompilerFileLibrary(
+                    compiler=self.compiler,
+                    dirs=self.library_dirs + ext.library_dirs
+                ),
+            ])
+            build_conan = self.get_finalized_command("build_conan")
             if len(missing) > 0:
                 self.announce(f"missing required deps [{', '.join(missing)}]. "
                               f"Trying to get them with conan", 5)
-                self.run_command("build_conan")
-
+                build_conan.build_libs = ['outdated']
+            else:
+                build_conan.build_libs = []
+            build_conan.run()
             # This test os needed because the conan version keeps silently
             # breaking the linking to openjp2 library.
             conanfileinfo_locations = [
