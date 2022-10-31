@@ -296,13 +296,12 @@ class BuildConan(setuptools.Command):
             with open(conaninfotext) as r:
                 self.announce(r.read(), 5)
 
-        conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
-        if not os.path.exists(conanbuildinfotext):
-            items_found = [i.path for i in os.scandir(build_dir)]
-            # print(f"Found the following items in {build_dir} {items_found}", file=sys.stderr)
-            # for i in os.scandir(build_dir):
-            #     print(i.path)
-            raise AssertionError(f"Missing conanbuildinfo.txt from {build_dir}, Found {items_found} ")
+        conanbuildinfotext = locate_conanbuildinfo([
+            build_dir,
+            os.path.join(build_dir, "Release")
+        ])
+        if conanbuildinfotext is None or not os.path.exists(conanbuildinfotext):
+            raise AssertionError(f"Missing conanbuildinfo.txt")
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         build_ext_cmd = self.get_finalized_command("build_ext")
@@ -420,10 +419,10 @@ def build_deps_with_conan(
             no_imports=not install_libs,
             install_folder=install_dir,
         )
-        print(f"settings {settings}")
-        print(f"install_libs {install_libs}")
-        print(f"install_dir {install_dir}")
-        print(f"Conan directory is {build_dir}")
+        # print(f"settings {settings}")
+        # print(f"install_libs {install_libs}")
+        # print(f"install_dir {install_dir}")
+        # print(f"Conan directory is {build_dir}")
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
