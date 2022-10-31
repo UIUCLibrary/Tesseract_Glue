@@ -17,4 +17,5 @@ pytest-bdd<4.0
 pytest-runner
 sphinx
 tox
+toml
 twine
