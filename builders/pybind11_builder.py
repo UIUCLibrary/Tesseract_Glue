@@ -113,6 +113,7 @@ class BuildPybind11Extension(build_ext):
                 ext.runtime_library_dirs.append("$ORIGIN")
             else:
                 ext.runtime_library_dirs.append(os.path.abspath(lib_output))
+                ext.library_dirs.insert(0, os.path.abspath(lib_output))
         ext.library_dirs = list(_parse_conan_build_info(conan_build_info, "libdirs")) + ext.library_dirs
         ext.include_dirs = list(_parse_conan_build_info(conan_build_info, "includedirs")) + ext.include_dirs
         defines = _parse_conan_build_info(conan_build_info, "defines")
