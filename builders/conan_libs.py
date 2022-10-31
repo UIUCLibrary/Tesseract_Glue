@@ -104,6 +104,7 @@ class WindowsResultTester(AbsResultTester):
         for dep in deps:
             print(f"{file_path} requires {dep}")
             locations = list(filter(os.path.exists, system_path.split(";")))
+            locations.append(str(file_path.parent.absolute()))
             for l in locations:
                 dep_path = os.path.join(l, dep)
                 if os.path.exists(dep_path):
