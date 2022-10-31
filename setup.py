@@ -92,6 +92,10 @@ try:
 
         def run(self):
             super().run()
+            def locate(dep, location):
+                for f in os.scandir(dest):
+                    if f.name.lower() == dep.lower():
+                        return f.path
 
             for e in self.extensions:
 
@@ -106,8 +110,11 @@ try:
                     dest = os.path.dirname(dll_name)
 
                     for dep in deps:
+                        expected_output = f"{dep}.dll"
+                        if os.path.exists(os.path.join(dest, expected_output)):
+                            print(f"Package already has {expected_output}")
+                            continue
                         paths = os.environ['path'].split(";")
-                        paths.append(self.build_lib)
                         dll = self.find_deps(dep, paths)
                         if dll is None:
                             raise FileNotFoundError(f"Missing {dep}. Searched {paths}")
