@@ -420,6 +420,7 @@ def build_deps_with_conan(
             no_imports=not install_libs,
             install_folder=install_dir,
         )
+        print(f"Conan directory is {build_dir}")
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
