@@ -260,12 +260,15 @@ class BuildConan(setuptools.Command):
         build_clib = self.get_finalized_command("build_clib")
         build_ext = self.get_finalized_command("build_ext")
         if self.install_libs:
-            build_py = self.get_finalized_command("build_py")
-            install_dir = os.path.abspath(
-                os.path.join(
-                    build_py.build_lib,
-                    build_py.get_package_dir(build_py.packages[0]))
-            )
+            if build_ext._inplace:
+                install_dir = os.path.abspath(build_ext.build_temp)
+            else:
+                build_py = self.get_finalized_command("build_py")
+                install_dir = os.path.abspath(
+                    os.path.join(
+                        build_py.build_lib,
+                        build_py.get_package_dir(build_py.packages[0]))
+                )
         else:
             install_dir = build_ext.build_temp
         build_dir = build_clib.build_temp
@@ -404,7 +407,6 @@ def build_deps_with_conan(
         env = []
         if ninja:
             env.append(f"NINJA={ninja}")
-
         conan.install(
             options=conan_options,
             cwd=build_dir,
