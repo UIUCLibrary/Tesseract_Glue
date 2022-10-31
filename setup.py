@@ -110,13 +110,14 @@ try:
                     dest = os.path.dirname(dll_name)
 
                     for dep in deps:
-                        expected_output = f"{dep}.dll"
-                        if os.path.exists(os.path.join(dest, expected_output)):
-                            print(f"Package already has {expected_output}")
+                        if os.path.exists(os.path.join(dest, dep)):
+                            print(f"Package already has {dep}")
                             continue
                         paths = os.environ['path'].split(";")
                         dll = self.find_deps(dep, paths)
                         if dll is None:
+                            for i in os.scandir(dest):
+                                print(i.path)
                             raise FileNotFoundError(f"Missing {dep}. Searched {paths}")
                         shutil.copy(dll, dest)
 
