@@ -420,10 +420,10 @@ def build_deps_with_conan(
             no_imports=not install_libs,
             install_folder=install_dir,
         )
-        # print(f"settings {settings}")
-        # print(f"install_libs {install_libs}")
-        # print(f"install_dir {install_dir}")
-        # print(f"Conan directory is {build_dir}")
+        if install_libs:
+            for i in os.scandir(install_dir):
+                print(f"Installed file: {i.path}")
+
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
