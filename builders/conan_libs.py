@@ -294,7 +294,11 @@ class BuildConan(setuptools.Command):
                 self.announce(r.read(), 5)
 
         conanbuildinfotext = os.path.join(build_dir, "conanbuildinfo.txt")
-        assert os.path.exists(conanbuildinfotext)
+        if not os.path.exists(conanbuildinfotext):
+            print(f"Found the following items in {build_dir}")
+            for i in os.scandir(build_dir):
+                print(i.path)
+            raise AssertionError(f"Missing conanbuildinfo.txt from {build_dir}")
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         build_ext_cmd = self.get_finalized_command("build_ext")
