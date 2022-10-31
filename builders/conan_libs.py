@@ -308,6 +308,8 @@ class BuildConan(setuptools.Command):
         conanbuildinfojson = os.path.join(build_dir, 'conanbuildinfo.json')
         conan_lib_metadata = ConanBuildMetadata(conanbuildinfojson)
         for extension in build_ext_cmd.extensions:
+            if build_ext._inplace:
+                extension.runtime_library_dirs.append(os.path.abspath(install_dir))
             if any(map(lambda s: s in conan_lib_metadata.deps(), extension.libraries)):
                 update_extension2(extension, text_md)
                 # update_extension(extension, conan_lib_metadata)
