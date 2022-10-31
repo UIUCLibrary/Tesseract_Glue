@@ -300,8 +300,8 @@ class BuildConan(setuptools.Command):
             build_dir,
             os.path.join(build_dir, "Release")
         ])
-        if conanbuildinfotext is None or not os.path.exists(conanbuildinfotext):
-            raise AssertionError(f"Missing conanbuildinfo.txt")
+        if conanbuildinfotext is None:
+            raise AssertionError("Missing conanbuildinfo.txt")
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         build_ext_cmd = self.get_finalized_command("build_ext")
