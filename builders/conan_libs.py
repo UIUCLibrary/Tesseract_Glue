@@ -409,7 +409,7 @@ def build_deps_with_conan(
         )
 
         ninja = shutil.which("ninja")
-        env = ["LD_LIBRARY_PATH=$ORIGIN"]
+        env = []
         if ninja:
             env.append(f"NINJA={ninja}")
         conan.install(
