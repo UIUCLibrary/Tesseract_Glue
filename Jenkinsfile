@@ -289,7 +289,8 @@ def build_wheels(){
                                )
                              findFiles(glob: 'dist/*.whl').each{
                                     sh(label: 'Fixing up wheel',
-                                       script: """./venv/bin/delocate-listdeps --depending ${it.path}
+                                       script: """./venv/bin/pip list
+                                                  ./venv/bin/delocate-listdeps --depending ${it.path}
                                                   ./venv/bin/delocate-wheel -w fixed_wheels --require-archs x86_64 --verbose ${it.path}
                                                """
                                  )
