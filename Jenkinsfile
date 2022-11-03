@@ -281,12 +281,21 @@ def build_wheels(){
                         ]){
                              sh(label: 'Building wheel',
                                 script: """python${pythonVersion} -m venv venv
-                                           ./venv/bin/python -m pip install --upgrade pip
-                                           ./venv/bin/pip install wheel
-                                           ./venv/bin/pip install build delocate
-                                           ./venv/bin/python -m build --wheel
+                                           . ./venv/bin/activate
+                                           python -m pip install --upgrade pip
+                                           pip install wheel
+                                           pip install build delocate
+                                           python -m build --wheel
                                            """
                                )
+//                                                             sh(label: 'Building wheel',
+//                                 script: """python${pythonVersion} -m venv venv
+//                                            ./venv/bin/python -m pip install --upgrade pip
+//                                            ./venv/bin/pip install wheel
+//                                            ./venv/bin/pip install build delocate
+//                                            ./venv/bin/python -m build --wheel
+//                                            """
+//                                )
                              findFiles(glob: 'dist/*.whl').each{
                                     sh(label: 'Fixing up wheel',
                                        script: """./venv/bin/pip list
