@@ -333,10 +333,11 @@ def build_wheels(){
                             ]) {
                              sh(label: 'Building wheel',
                                 script: """python${pythonVersion} -m venv venv
-                                           ./venv/bin/python -m pip install --upgrade pip
-                                           ./venv/bin/pip install wheel
-                                           ./venv/bin/pip install build delocate
-                                           ./venv/bin/python -m build --wheel
+                                           . ./venv/bin/activate
+                                           pip install --upgrade pip
+                                           pip install wheel~=0.37
+                                           pip install build delocate
+                                           python -m build --wheel
                                            """
                                )
                              findFiles(glob: 'dist/*.whl').each{
