@@ -5,6 +5,7 @@ from conan import ConanFile
 class Exiv2BindConan(ConanFile):
     requires = [
         "tesseract/4.1.1",
+        "zlib/1.2.13",
     ]
     settings = "os", "arch", "compiler", "build_type"
 
