@@ -288,19 +288,12 @@ def build_wheels(){
                                            python -m build --wheel
                                            """
                                )
-//                                                             sh(label: 'Building wheel',
-//                                 script: """python${pythonVersion} -m venv venv
-//                                            ./venv/bin/python -m pip install --upgrade pip
-//                                            ./venv/bin/pip install wheel
-//                                            ./venv/bin/pip install build delocate
-//                                            ./venv/bin/python -m build --wheel
-//                                            """
-//                                )
                              findFiles(glob: 'dist/*.whl').each{
                                     sh(label: 'Fixing up wheel',
-                                       script: """./venv/bin/pip list
-                                                  ./venv/bin/delocate-listdeps --depending ${it.path}
-                                                  ./venv/bin/delocate-wheel -w fixed_wheels --require-archs x86_64 --verbose ${it.path}
+                                       script: """. ./venv/bin/activate
+                                                  pip list
+                                                  delocate-listdeps --depending ${it.path}
+                                                  delocate-wheel -w fixed_wheels --require-archs x86_64 --verbose ${it.path}
                                                """
                                  )
                              }
