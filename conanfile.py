@@ -24,7 +24,3 @@ class Exiv2BindConan(ConanFile):
         self.copy("libcharset.so.*", src="lib")
         self.copy("tesseract", dst="", src="bin", keep_path=True)
 
-    def configure(self):
-        if self.settings.os == "Linux":
-            self.options["libtiff"].shared = True
-            self.options["libiconv"].shared = True
