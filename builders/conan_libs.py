@@ -1,5 +1,6 @@
 import logging
 import os
+import subprocess
 import sys
 import shutil
 import abc
@@ -408,7 +409,7 @@ def build_deps_with_conan(
         )
 
         ninja = shutil.which("ninja")
-        env = []
+        env = ["LD_LIBRARY_PATH=$ORIGIN"]
         if ninja:
             env.append(f"NINJA={ninja}")
         conan.install(
@@ -423,8 +424,12 @@ def build_deps_with_conan(
         )
         if install_libs:
             for i in os.scandir(install_dir):
-                print(f"Installed file: {i.path}")
-
+                if ".so" in i.name:
+                    print(f"Installed file: {i.path}")
+                    patchelf = shutil.which("patchelf")
+                    if patchelf:
+                        print(f"Fixing up: {i.path}")
+                        subprocess.check_output([patchelf, "--set-rpath", '$ORIGIN', i.path])
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
