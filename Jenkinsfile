@@ -283,7 +283,7 @@ def build_wheels(){
                                 script: """python${pythonVersion} -m venv venv
                                            . ./venv/bin/activate
                                            python -m pip install --upgrade pip
-                                           pip install wheel
+                                           pip install wheel~=0.37
                                            pip install build delocate
                                            python -m build --wheel
                                            """
