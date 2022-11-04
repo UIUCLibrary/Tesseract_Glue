@@ -97,13 +97,12 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     }; `
     Write-Host "Finished install packages with Chocolatey"
 
-ARG PYTHON_36_VERSION=3.6.8
 ARG PYTHON_37_VERSION=3.7.9
 ARG PYTHON_38_VERSION=3.8.10
-ARG PYTHON_39_VERSION=3.9.9
-ARG PYTHON_310_VERSION=3.10.1
+ARG PYTHON_39_VERSION=3.9.13
+ARG PYTHON_310_VERSION=3.10.8
 
-RUN $PYTHON_VERSIONS = @(${Env:PYTHON_36_VERSION}, ${Env:PYTHON_37_VERSION}, ${Env:PYTHON_38_VERSION}, ${Env:PYTHON_39_VERSION}, ${Env:PYTHON_310_VERSION}) ; `
+RUN $PYTHON_VERSIONS = @(${Env:PYTHON_37_VERSION}, ${Env:PYTHON_38_VERSION}, ${Env:PYTHON_39_VERSION}, ${Env:PYTHON_310_VERSION}) ; `
     foreach( $PYTHON_VERSION in $PYTHON_VERSIONS ){ `
         Write-Host "Installing Python $PYTHON_VERSION with Chocolatey" ; `
         $process = start-process -NoNewWindow -PassThru -FilePath C:\ProgramData\chocolatey\bin\choco.exe -ArgumentList 'install -y --stoponfirstfailure --no-progress --verbose python3', "--version=$PYTHON_VERSION", "-my" -Wait ;`
@@ -117,26 +116,12 @@ RUN $PYTHON_VERSIONS = @(${Env:PYTHON_36_VERSION}, ${Env:PYTHON_37_VERSION}, ${E
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
     py --list ;`
-    py -3.6 --version ; `
     py -3.7 --version ; `
     py -3.8 --version ; `
     py -3.9 --version ; `
     py -3.10 --version ; `
     Write-Host "Installing Python with Chocolatey - Done"
 
-# ==============================================================================
-
-FROM CHOCOLATEY_BASE as WHEEL_BUilDER_PY36
-SHELL ["cmd", "/S", "/C" ]
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-ENV PY_PYTHON=3.6
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY37
@@ -164,18 +149,6 @@ RUN py -m pip install --upgrade pip && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 
-#FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
-#ARG PYTHON_38_VERSION
-#ARG CHOCOLATEY_SOURCE
-#RUN choco install -y --stoponfirstfailure --no-progress --verbose python3 --version=${Env:PYTHON_38_VERSION}
-#SHELL ["cmd", "/S", "/C" ]
-#COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-#ARG PIP_EXTRA_INDEX_URL
-#ARG PIP_INDEX_URL
-#ENV PIP_NO_CACHE_DIR=off
-#RUN pip install --upgrade pip wheel && `
-#    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-#    pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
 SHELL ["cmd", "/S", "/C" ]
@@ -223,7 +196,6 @@ RUN conan install c:/temp/ --build missing --no-import; `
 
 FROM CHOCOLATEY_BASE
 
-COPY --from=WHEEL_BUILDER_PY36 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY37 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
