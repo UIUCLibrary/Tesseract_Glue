@@ -7,6 +7,15 @@ jobs:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-2019]
         python-version: ['3.7', '3.8' ,'3.9', '3.10']
+        include:
+          - os: macos-latest
+            compiler_version: 14
+            compiler_libcxx: libc++
+          - os: ubuntu-latest
+            compiler_version: 11.3
+            compiler_libcxx: libstdc++11
+          - os: windows-2019
+            compiler_version: 16
       fail-fast: false
     name: Python ${{ matrix.python-version }} ${{ matrix.os }} build
     steps:
@@ -30,6 +39,9 @@ jobs:
           CONAN_USER_HOME: "C:/Users/runneradmin"
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
-        run: tox -e py
+        run: cc --version &&  cc -dumpfullversion -dumpversion && tox -e py -vvv
+        env:
+          CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
+          CONAN_COMPILER_LIBCXX: ${{ matrix.compiler_libcxx }}
 
           

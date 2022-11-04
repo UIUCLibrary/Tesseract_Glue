@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11>=2.5', "wheel", "cmake", "conan>=1.51"]
+requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11~=2.6.1', "wheel", "cmake", "conan>=1.53"]
 build-backend = "builders.local_backend"
 backend-path = ["."]
 
@@ -39,7 +39,7 @@ skip = [
     "*-manylinux_i686"
 ]
 build-verbosity = 1
-environment-pass = ["CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
+environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
 
 [tool.cibuildwheel.windows]
 before-all = [
@@ -47,17 +47,17 @@ before-all = [
     "pip install conan cmake ninja",
     "conan profile new default --detect --force",
     "conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% default",
-    "conan install ./ --build missing"
+    "conan install ./ --build missing",
 ]
 [tool.cibuildwheel.windows.environment]
 CONAN_USER_HOME="$TEMP/conan"
 
 [tool.cibuildwheel.macos]
 before-all = [
-    "pip3 install conan cmake ninja",
-    "conan profile new default --detect --force",
-    "conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default",
-    "conan install ./ --build missing"
+    "pip3 install 'conan>=1.53' cmake ninja",
+    "conan profile new $ENVTMPDIR/.conan/profiles/default --detect --force",
+    "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",
+    "conan install ./ --build missing --install-folder=$CONAN_BUILD_INFO_DIR"
 ]
 environment-pass = ["CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
 repair-wheel-command = [
@@ -66,20 +66,34 @@ repair-wheel-command = [
 ]
 
 [tool.cibuildwheel.macos.environment]
+ENVTMPDIR="/tmp/conan"
 CONAN_USER_HOME="/tmp/conan"
 CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
+CONAN_BUILD_INFO_DIR="/tmp/conan/build/"
 
 
 [tool.cibuildwheel.linux]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-all = [
+    "cc --version", "cc -dumpfullversion -dumpversion",
     "pip3 install conan cmake ninja",
     "conan profile new /tmp/conan/.conan/profiles/default --detect",
-    "conan install ./ --build missing --build tesseract"
+    "if [ -z \"$CONAN_COMPILER_LIBCXX\" ]; then : ; else conan profile update settings.compiler.libcxx=$CONAN_COMPILER_LIBCXX default; fi",
+    "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",
+    "conan profile show default",
+    "conan install ./ --build missing",
 
 ]
-
 [tool.cibuildwheel.linux.environment]
 CONAN_USER_HOME="/tmp/conan"
 CONAN_DEFAULT_PROFILE_PATH="/tmp/conan/.conan/profiles/default"
+CONAN_BUILD_INFO_DIR="/tmp/conan/build/"
+PYTHONFAULTHANDLER="True"
+#
+[localbuilder]
+conanfile = 'conanfile.py'
 
+#[localbuilder.linux]
+#conan_options = ['tesseract:shared=True']
+[localbuilder.win32]
+conan_options = ['tesseract:shared=True']

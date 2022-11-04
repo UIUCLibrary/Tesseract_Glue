@@ -1,3 +1,4 @@
+ARG SONAR_SCANNER_VERSION=4.7.0.2747
 ARG PYTHON_VERSION=3.8
 FROM python:${PYTHON_VERSION} as base_python
 RUN apt update -y && apt install -y ca-certificates
@@ -73,7 +74,7 @@ FROM base_python as SONAR_BUILDER
 RUN apt-get update && \
     apt-get install -y unzip
 
-ENV SONAR_SCANNER_VERSION=4.6.2.2472
+ARG SONAR_SCANNER_VERSION
 ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
 ENV SONAR_USER_HOME=/opt/sonar/.sonar
 
@@ -99,7 +100,7 @@ RUN apt update && apt install -y clang-tidy
 
 COPY --from=SONAR_BUILDER /opt/sonar /opt/sonar/
 COPY --from=SONAR_BUILDER /opt/build-wrapper-linux-x86 /opt/build-wrapper-linux-x86/
-ENV SONAR_SCANNER_VERSION=4.6.2.2472
+ARG SONAR_SCANNER_VERSION
 ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
 ENV SONAR_USER_HOME=/opt/sonar/.sonar
 
