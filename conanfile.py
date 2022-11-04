@@ -14,6 +14,7 @@ class Exiv2BindConan(ConanFile):
 
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")
+        self.copy("*.dylib", dst=".", src="lib")
         self.copy("libtiff.so.*", src="lib")
         self.copy("libtiff.so", src="lib")
         self.copy("libtiffxx.so", src="lib")

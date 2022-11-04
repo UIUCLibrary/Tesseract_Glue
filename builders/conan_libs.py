@@ -273,7 +273,7 @@ class BuildConan(setuptools.Command):
                 )
         else:
             install_dir = build_ext.build_temp
-        build_dir = build_clib.build_temp
+        build_dir = os.path.join(build_clib.build_temp, "conan")
         build_dir_full_path = os.path.abspath(build_dir)
         conan_cache = self.conan_cache
         self.mkpath(conan_cache)
@@ -288,11 +288,6 @@ class BuildConan(setuptools.Command):
             conan_cache=conan_cache,
             install_libs=self.install_libs
         )
-        for root, dirs, files in os.walk(build_clib.build_temp):
-            if ".conan" in root:
-                continue
-            for f in files:
-                print(os.path.join(root, f))
         conaninfotext = os.path.join(build_dir, "conaninfo.txt")
         if os.path.exists(conaninfotext):
             with open(conaninfotext) as r:
@@ -315,7 +310,10 @@ class BuildConan(setuptools.Command):
                 extension.runtime_library_dirs.append(os.path.abspath(install_dir))
             if any(map(lambda s: s in conan_lib_metadata.deps(), extension.libraries)):
                 update_extension2(extension, text_md)
-                # update_extension(extension, conan_lib_metadata)
+                if sys.platform == "darwin":
+                    extension.runtime_library_dirs.append("@loader_path")
+                elif sys.platform == "linux":
+                    extension.runtime_library_dirs.append("$ORIGIN")
 
 
 def build_conan(wheel_directory, config_settings=None, metadata_directory=None, install_libs=True):
@@ -420,16 +418,27 @@ def build_deps_with_conan(
             path=conanfile_path,
             env=env,
             no_imports=not install_libs,
-            install_folder=install_dir,
         )
         if install_libs:
-            for i in os.scandir(install_dir):
-                if ".so" in i.name:
-                    print(f"Installed file: {i.path}")
-                    patchelf = shutil.which("patchelf")
-                    if patchelf:
-                        print(f"Fixing up: {i.path}")
-                        subprocess.check_output([patchelf, "--set-rpath", '$ORIGIN', i.path])
+            import_manifest = os.path.join(build_dir, 'conan_imports_manifest.txt')
+            add_conan_imports(import_manifest, path=build_dir, dest=install_dir)
+
+
+def add_conan_imports(import_manifest_file: str, path: str, dest: str):
+    with open(import_manifest_file, "r", encoding="utf8") as f:
+        for line in f.readlines():
+            if ":" not in line:
+                continue
+            file_name, hash_value = line.strip().split(":")
+            file_path = Path(os.path.join(path, file_name))
+            if not file_path.exists():
+                raise FileNotFoundError(f"Missing {file_name}")
+            output = Path(os.path.join(dest, file_path.name))
+            if output.exists():
+                output.unlink()
+            shutil.copy(file_path, dest, follow_symlinks=False)
+            if file_path.is_symlink():
+                continue
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
