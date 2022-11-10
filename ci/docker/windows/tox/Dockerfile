@@ -116,7 +116,7 @@ RUN $PYTHON_VERSIONS = @(${Env:PYTHON_37_VERSION}, ${Env:PYTHON_38_VERSION}, ${E
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     Remove-Item -Force -Recurse ${Env:TEMP}\* ; `
     py --list ;`
-    py -3.7 --version ; `
+    py -3.7 --version ;  `
     py -3.8 --version ; `
     py -3.9 --version ; `
     py -3.10 --version ; `
