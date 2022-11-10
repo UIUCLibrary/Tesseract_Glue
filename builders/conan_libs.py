@@ -302,19 +302,15 @@ class BuildConan(setuptools.Command):
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
         build_ext_cmd = self.get_finalized_command("build_ext")
-
-        conanbuildinfojson = locate_conanbuildinfo_json(build_locations)
-        conan_lib_metadata = ConanBuildMetadata(conanbuildinfojson)
         for extension in build_ext_cmd.extensions:
             if build_ext._inplace:
                 extension.runtime_library_dirs.append(os.path.abspath(install_dir))
-            if any(map(lambda s: s in conan_lib_metadata.deps(), extension.libraries)):
+            if any(map(lambda s: s in text_md["libs"], extension.libraries)):
                 update_extension2(extension, text_md)
                 if sys.platform == "darwin":
                     extension.runtime_library_dirs.append("@loader_path")
                 elif sys.platform == "linux":
                     extension.runtime_library_dirs.append("$ORIGIN")
-
 
 def build_conan(wheel_directory, config_settings=None, metadata_directory=None, install_libs=True):
     dist = Distribution()
@@ -421,7 +417,8 @@ def build_deps_with_conan(
         )
         if install_libs:
             import_manifest = os.path.join(build_dir, 'conan_imports_manifest.txt')
-            add_conan_imports(import_manifest, path=build_dir, dest=install_dir)
+            if os.path.exists(import_manifest):
+                add_conan_imports(import_manifest, path=build_dir, dest=install_dir)
 
 
 def add_conan_imports(import_manifest_file: str, path: str, dest: str):
