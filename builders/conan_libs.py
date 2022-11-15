@@ -175,10 +175,13 @@ def update_extension2(extension, text_md):
     include_dirs = text_md['include_paths']
     library_dirs = text_md['lib_paths']
     define_macros = [(d, None) for d in text_md.get('definitions', [])]
-    extension.libraries = text_md['libs']
+    for lib in text_md['libs']:
+        if lib not in extension.libraries:
+            extension.libraries.append(lib)
     extension.include_dirs = include_dirs + extension.include_dirs
     extension.library_dirs = library_dirs + extension.library_dirs
     extension.define_macros = define_macros + extension.define_macros
+    print(extension.__dict__)
 
 
 def get_conan_options():
