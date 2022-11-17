@@ -641,6 +641,71 @@ pipeline {
                                 }
                             }
                         }
+
+                    }
+                }
+            }
+            post{
+                cleanup{
+                    cleanWs(
+                        patterns: [
+                                [pattern: 'dist/', type: 'INCLUDE'],
+                                [pattern: 'build/', type: 'INCLUDE'],
+                                [pattern: 'logs/', type: 'INCLUDE'],
+                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
+                            ],
+                        notFailBuild: true,
+                        deleteDirs: true
+                        )
+                }
+            }
+        }
+        stage('Checks'){
+            when{
+                equals expected: true, actual: params.RUN_CHECKS
+            }
+            stages{
+                stage('Code Quality') {
+                    agent {
+                        dockerfile {
+                            filename 'ci/docker/linux/build/Dockerfile'
+                            label 'linux && docker && x86'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
+                        }
+                    }
+                    stages{
+                        stage('Setting up Tests'){
+                            parallel{
+                                stage('Setting Up C++ Tests'){
+                                    steps{
+                                        sh(
+                                            label: 'Building C++ project for metrics',
+                                            script: '''conan install . -if build/cpp -g cmake_find_package
+                                                       cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                                       make -C build/cpp clean tester
+                                                       '''
+                                        )
+                                    }
+                                }
+                                stage('Setting Up Python Tests'){
+                                    steps{
+                                        timeout(10){
+                                            sh(
+                                                label: 'Build python package',
+                                                script: '''mkdir -p build/python
+                                                           mkdir -p logs
+                                                           mkdir -p reports
+                                                           CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory  python setup.py build -b build/python --build-lib build/python/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug
+                                                           '''
+                                            )
+                                            unstash 'DOCS_ARCHIVE'
+                                        }
+                                    }
+                                }
+                            }
+                        }
                         stage('Running Tests'){
                             parallel {
                                 stage('Run Pytest Unit Tests'){
