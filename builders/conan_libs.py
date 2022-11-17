@@ -367,40 +367,43 @@ def build_deps_with_conan(
         install_libs=True,
         build=None
 ):
-        from conans.client import conan_api, conf
-        conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
-        settings = []
-        logger = logging.Logger(__name__)
-        conan_profile_cache = os.path.join(build_dir, "profiles")
-        build = build or ['outdated']
-        for name, value in conf.detect.detect_defaults_settings(logger, conan_profile_cache):
-            settings.append(f"{name}={value}")
-        if debug is True:
-            settings.append("build_type=Debug")
-        else:
-            settings.append("build_type=Release")
-        try:
-            compiler_name = get_compiler_name()
-            settings.append(f"compiler={compiler_name}")
-            if compiler_libcxx is not None:
-                if 'compiler.libcxx=libstdc' in settings:
-                    settings.remove('compiler.libcxx=libstdc')
-                settings.append(f'compiler.libcxx={compiler_libcxx}')
-            settings.append(f"compiler.version={compiler_version}")
-            if compiler_name == 'gcc':
-                pass
-            elif compiler_name == "msvc":
-                settings.append(f"compiler.cppstd=14")
-                settings.append(f"compiler.runtime=dynamic")
-            elif compiler_name == "Visual Studio":
-                settings.append(f"compiler.runtime=MD")
-                settings.append(f"compiler.toolset=v142")
-        except AttributeError:
-            print(
-                f"Unable to get compiler information "
-                f"for {platform.python_compiler()}"
-            )
-            raise
+    from conans.client import conan_api, conf
+    conan = conan_api.Conan(cache_folder=os.path.abspath(conan_cache))
+    settings = []
+    logger = logging.Logger(__name__)
+    conan_profile_cache = os.path.join(build_dir, "profiles")
+    build = build or ['outdated']
+    for name, value in conf.detect.detect_defaults_settings(
+            logger,
+            conan_profile_cache
+    ):
+        settings.append(f"{name}={value}")
+    if debug is True:
+        settings.append("build_type=Debug")
+    else:
+        settings.append("build_type=Release")
+    try:
+        compiler_name = get_compiler_name()
+        settings.append(f"compiler={compiler_name}")
+        if compiler_libcxx is not None:
+            if 'compiler.libcxx=libstdc' in settings:
+                settings.remove('compiler.libcxx=libstdc')
+            settings.append(f'compiler.libcxx={compiler_libcxx}')
+        settings.append(f"compiler.version={compiler_version}")
+        if compiler_name == 'gcc':
+            pass
+        elif compiler_name == "msvc":
+            settings.append("compiler.cppstd=14")
+            settings.append("compiler.runtime=dynamic")
+        elif compiler_name == "Visual Studio":
+            settings.append("compiler.runtime=MD")
+            settings.append("compiler.toolset=v142")
+    except AttributeError:
+        print(
+            f"Unable to get compiler information "
+            f"for {platform.python_compiler()}"
+        )
+        raise
 
         conanfile_path = os.path.abspath(
             os.path.join(os.path.dirname(__file__), "..")
