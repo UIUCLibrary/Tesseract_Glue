@@ -314,6 +314,7 @@ class BuildConan(setuptools.Command):
                     extension.runtime_library_dirs.append("@loader_path")
                 elif sys.platform == "linux":
                     extension.runtime_library_dirs.append("$ORIGIN")
+            print(extension.__dict__)
 
 def build_conan(wheel_directory, config_settings=None, metadata_directory=None, install_libs=True):
     dist = Distribution()
