@@ -609,6 +609,7 @@ pipeline {
                             equals expected: true, actual: params.RUN_CHECKS
                             equals expected: true, actual: params.DEPLOY_DEVPI
                         }
+                        beforeAgent true
                     }
                     stages{
                         stage('Building Python Package'){
