@@ -663,6 +663,7 @@ pipeline {
                             }
                             when{
                                 equals expected: true, actual: params.RUN_CHECKS
+                                beforeAgent true
                             }
                             stages{
                                 stage('Setting up Tests'){
