@@ -644,9 +644,6 @@ pipeline {
                     }
                 }
                 stage('Checks'){
-                    when{
-                        equals expected: true, actual: params.RUN_CHECKS
-                    }
                     stages{
                         stage('Code Quality') {
                             agent {
@@ -656,6 +653,9 @@ pipeline {
                                     additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                     args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                                 }
+                            }
+                            when{
+                                equals expected: true, actual: params.RUN_CHECKS
                             }
                             stages{
                                 stage('Setting up Tests'){
