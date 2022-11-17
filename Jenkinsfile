@@ -604,6 +604,12 @@ pipeline {
                             additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL '
                         }
                     }
+                    when{
+                        anyOf{
+                            equals expected: true, actual: params.RUN_CHECKS
+                            equals expected: true, actual: params.DEPLOY_DEVPI
+                        }
+                    }
                     stages{
                         stage('Building Python Package'){
                             steps {
