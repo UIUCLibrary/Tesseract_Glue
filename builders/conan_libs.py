@@ -332,7 +332,8 @@ class BuildConan(setuptools.Command):
                     if "$ORIGIN" not in extension.runtime_library_dirs:
                         extension.runtime_library_dirs.append("$ORIGIN")
             else:
-                raise Exception("nope")
+                pprint(text_md)
+                raise Exception(text_md)
             # if sys.platform == "Windows":
 
 
