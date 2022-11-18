@@ -2,6 +2,7 @@ import os
 import sys
 from distutils import ccompiler
 from pathlib import Path
+from pprint import pprint
 
 import setuptools
 import shutil
@@ -79,6 +80,7 @@ try:
                 if os.path.exists(conanbuildinfo):
                     test_tesseract(conanbuildinfo)
                     break
+            pprint(ext.__dict__)
             super().build_extension(ext)
             tester = {
                 'darwin': conan_libs.MacResultTester,
