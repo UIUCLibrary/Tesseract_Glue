@@ -167,7 +167,7 @@ tesseract_extension = Pybind11Extension(
         "tesseract",
     ],
     language='c++',
-
+    cxx_std=14
 
 )
 

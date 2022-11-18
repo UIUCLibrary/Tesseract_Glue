@@ -5,7 +5,6 @@ import subprocess
 import sys
 import shutil
 import abc
-from pprint import pprint
 from typing import Iterable, Any, Dict, List, Union, Optional
 import setuptools
 import platform
@@ -215,7 +214,10 @@ def update_extension2(extension, text_md):
     libs = extension.libraries.copy()
 
     for original_lib_name in extension.libraries:
-        conan_libs = text_md['metadata'][original_lib_name]["libs"]
+        metadata = text_md['metadata']
+        if original_lib_name not in metadata:
+            continue
+        conan_libs = metadata[original_lib_name]["libs"]
         index = libs.index(original_lib_name)
         libs[index:index+1] = conan_libs
 

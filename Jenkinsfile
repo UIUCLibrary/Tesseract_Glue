@@ -209,52 +209,9 @@ def getMacDevpiTestStages(packageName, packageVersion, pythonVersions, devpiServ
     }
     return macPackageStages;
 }
-// def get_sonarqube_unresolved_issues(report_task_file){
-//     script{
-//
-//         def props = readProperties  file: '.scannerwork/report-task.txt'
-//         def response = httpRequest url : props['serverUrl'] + "/api/issues/search?componentKeys=" + props['projectKey'] + "&resolved=no"
-//         def outstandingIssues = readJSON text: response.content
-//         return outstandingIssues
-//     }
-// }
-//
-// def sonarcloudSubmit(metadataFile, outputJson, sonarCredentials){
-//     def props = readProperties interpolate: true, file: metadataFile
-//     withSonarQubeEnv(installationName:'sonarcloud', credentialsId: sonarCredentials) {
-//         if (env.CHANGE_ID){
-//             sh(
-//                 label: 'Running Sonar Scanner',
-//                 script:"sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
-//                 )
-//         } else {
-//             sh(
-//                 label: 'Running Sonar Scanner',
-//                 script: "sonar-scanner -Dsonar.projectVersion=${props.Version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
-//                 )
-//         }
-//     }
-//      timeout(time: 1, unit: 'HOURS') {
-//          def sonarqube_result = waitForQualityGate(abortPipeline: false)
-//          if (sonarqube_result.status != 'OK') {
-//              unstable "SonarQube quality gate: ${sonarqube_result.status}"
-//          }
-//          def outstandingIssues = get_sonarqube_unresolved_issues('.scannerwork/report-task.txt')
-//          writeJSON file: outputJson, json: outstandingIssues
-//      }
-// }
+
 
 wheelStashes = []
-
-def getMacDevpiName(pythonVersion, format){
-    if(format == 'wheel'){
-        return "(${pythonVersion.replace('.','')}).*(-*macosx_*).*(x86_64\\.whl)"
-    } else if(format == 'sdist'){
-        return 'tar.gz'
-    } else{
-        error "unknown format ${format}"
-    }
-}
 
 defaultParameterValues = [
     USE_SONARQUBE: false
@@ -441,23 +398,28 @@ def build_wheels(){
         def linuxBuildStages = [:]
         if(params.BUILD_MANYLINUX_PACKAGES){
             SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
-                linuxBuildStages["Linux - Python ${pythonVersion}: wheel"] = {
+                linuxBuildStages["Linux x86_64 - Python ${pythonVersion}: wheel"] = {
                     packages.buildPkg(
                         agent: [
                             dockerfile: [
                                 label: 'linux && docker && x86',
                                 filename: 'ci/docker/linux/package/Dockerfile',
-                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                additionalBuildArgs: '--build-arg TARGETARCH=amd64  --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=quay.io/pypa/manylinux2014_x86_64'
                             ]
                         ],
                         buildCmd: {
-                            sh(label: 'Building python wheel',
-                               script:"""python${pythonVersion} -m build --wheel "--config-setting=conan_cache=/conan" "--config-setting=conan_compiler_version=10"  "--config-setting=conan_compiler_libcxx=libstdc++11"
-                                         auditwheel show ./dist/*.whl
-                                         auditwheel -v repair ./dist/*.whl -w ./dist
-                                         auditwheel show ./dist/*manylinux*.whl
-                                         """
-                               )
+                            try {
+                                sh(label: 'Building python wheel',
+                                   script:"""python${pythonVersion} -m build --wheel "--config-setting=conan_cache=/conan/.conan"
+                                             auditwheel -v repair ./dist/*.whl -w ./dist
+                                             auditwheel show ./dist/*manylinux*.whl
+                                             """
+                                   )
+                            }
+                            catch(e) {
+                                sh(label: 'Getting info on wheel', script: "auditwheel show ./dist/*.whl")
+                                throw e
+                           }
                         },
                         post:[
                             cleanup: {
@@ -471,11 +433,49 @@ def build_wheels(){
                                 )
                             },
                             success: {
-                                stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux wheel"
-                                wheelStashes << "python${pythonVersion} linux wheel"
+                                stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux x86_64 wheel"
+                                wheelStashes << "python${pythonVersion} linux x86_64 wheel"
                             }
                         ]
                     )
+                }
+                if(params.INCLUDE_ARM == true){
+                    linuxBuildStages["Linux arm64 - Python ${pythonVersion}: wheel"] = {
+                        packages.buildPkg(
+                            agent: [
+                                dockerfile: [
+                                    label: 'linux && docker && arm64',
+                                    filename: 'ci/docker/linux/package/Dockerfile',
+                                    additionalBuildArgs: '--build-arg TARGETARCH=arm64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=quay.io/pypa/manylinux2014_aarch64'
+                                ]
+                            ],
+                            buildCmd: {
+                                sh(label: 'Building python wheel',
+                                   script:"""python${pythonVersion} -m build --wheel "--config-setting=conan_cache=/conan/.conan" "--config-setting=conan_compiler_version=10.2"  "--config-setting=conan_compiler_libcxx=libstdc++11"
+                                             auditwheel show ./dist/*.whl
+                                             auditwheel -v repair ./dist/*.whl -w ./dist
+                                             auditwheel show ./dist/*manylinux*.whl
+                                             """
+                                   )
+                            },
+                            post:[
+                                cleanup: {
+                                    cleanWs(
+                                        patterns: [
+                                                [pattern: 'dist/', type: 'INCLUDE'],
+                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                            ],
+                                        notFailBuild: true,
+                                        deleteDirs: true
+                                    )
+                                },
+                                success: {
+                                    stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux arm64 wheel"
+                                    wheelStashes << "python${pythonVersion} linux arm64 wheel"
+                                }
+                            ]
+                        )
+                    }
                 }
             }
         }
@@ -573,13 +573,17 @@ pipeline {
         timeout(time: 1, unit: 'DAYS')
     }
     parameters {
-        booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'Run checks on code')
+//         todo: set default to true
+        booleanParam(name: 'RUN_CHECKS', defaultValue: false, description: 'Run checks on code')
         booleanParam(name: 'TEST_RUN_TOX', defaultValue: false, description: 'Run Tox Tests')
         booleanParam(name: 'USE_SONARQUBE', defaultValue: defaultParameterValues.USE_SONARQUBE, description: 'Send data test data to SonarQube')
-        booleanParam(name: 'BUILD_PACKAGES', defaultValue: false, description: 'Build Python packages')
+//         todo: set default to false
+        booleanParam(name: 'BUILD_PACKAGES', defaultValue: true, description: 'Build Python packages')
         booleanParam(name: 'BUILD_MAC_PACKAGES', defaultValue: false, description: 'Test Python packages on Mac')
-        booleanParam(name: 'INCLUDE_ARM', defaultValue: false, description: 'Include ARM architecture')
-        booleanParam(name: 'BUILD_MANYLINUX_PACKAGES', defaultValue: false, description: 'Manylinux Python packages')
+        //         todo: set default to false
+        booleanParam(name: 'INCLUDE_ARM', defaultValue: true, description: 'Include ARM architecture')
+        //         todo: set default to false
+        booleanParam(name: 'BUILD_MANYLINUX_PACKAGES', defaultValue: true, description: 'Manylinux Python packages')
         booleanParam(name: 'TEST_PACKAGES', defaultValue: true, description: 'Test Python packages by installing them and running tests on the installed package')
         booleanParam(name: 'DEPLOY_DEVPI', defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
         booleanParam(name: 'DEPLOY_DEVPI_PRODUCTION', defaultValue: false, description: 'Deploy to https://devpi.library.illinois.edu/production/release')
@@ -650,7 +654,7 @@ pipeline {
                         }
                     }
                 }
-                stage('Checks'){
+                stage('Testing'){
                     stages{
                         stage('Code Quality') {
                             agent {
@@ -1166,7 +1170,7 @@ pipeline {
                             def linuxTestStages = [:]
                             SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
                                 if(params.BUILD_MANYLINUX_PACKAGES){
-                                    linuxTestStages["Linux - Python ${pythonVersion}: wheel"] = {
+                                    linuxTestStages["Linux x86_64 - Python ${pythonVersion}: wheel"] = {
                                         packages.testPkg2(
                                             agent: [
                                                 dockerfile: [
@@ -1177,7 +1181,7 @@ pipeline {
                                             ],
                                             testSetup: {
                                                 checkout scm
-                                                unstash "python${pythonVersion} linux wheel"
+                                                unstash "python${pythonVersion} linux x86_64 wheel"
                                             },
                                             testCommand: {
                                                 findFiles(glob: 'dist/*.whl').each{
@@ -1243,6 +1247,46 @@ pipeline {
                                     )
                                 }
                                 if(params.INCLUDE_ARM == true){
+                                    linuxTestStages["Linux arm64 - Python ${pythonVersion}: wheel"] = {
+                                        packages.testPkg2(
+                                            agent: [
+                                                dockerfile: [
+                                                    label: 'linux && docker && arm64',
+                                                    filename: 'ci/docker/linux/tox/Dockerfile',
+                                                    additionalBuildArgs: '--build-arg TARGETARCH=arm64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                ]
+                                            ],
+                                            testSetup: {
+                                                checkout scm
+                                                unstash "python${pythonVersion} linux arm64 wheel"
+                                            },
+                                            testCommand: {
+                                                findFiles(glob: 'dist/*.whl').each{
+                                                    timeout(5){
+                                                        sh(
+                                                            label: 'Running Tox',
+                                                            script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                            )
+                                                    }
+                                                }
+                                            },
+                                            post:[
+                                                cleanup: {
+                                                    cleanWs(
+                                                        patterns: [
+                                                                [pattern: 'dist/', type: 'INCLUDE'],
+                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                            ],
+                                                        notFailBuild: true,
+                                                        deleteDirs: true
+                                                    )
+                                                },
+                                                success: {
+                                                    archiveArtifacts artifacts: 'dist/*.whl'
+                                                },
+                                            ]
+                                        )
+                                    }
                                     linuxTestStages["Linux - Python ${pythonVersion} - arm64: sdist"] = {
                                         packages.testPkg2(
                                             agent: [
