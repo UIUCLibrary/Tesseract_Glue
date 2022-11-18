@@ -88,8 +88,11 @@ try:
                     f"Searched locations {*conanfileinfo_locations,}"
                 )
             self.announce(f"Using data from {conanbuildinfo}", level=5)
-            pprint(ext.__dict__)
-            super().build_extension(ext)
+            try:
+                super().build_extension(ext)
+            except Exception:
+                pprint(ext.__dict__)
+                raise
             tester = {
                 'darwin': conan_libs.MacResultTester,
                 'linux': conan_libs.LinuxResultTester,
