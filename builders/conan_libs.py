@@ -219,8 +219,12 @@ def update_extension2(extension, text_md):
         index = libs.index(original_lib_name)
         libs[index:index+1] = conan_libs
 
-    extension.include_dirs = include_dirs + extension.include_dirs
     extension.libraries = libs
+    for lib in text_md['libs']:
+        if lib not in extension.libraries:
+            extension.libraries.append(lib)
+
+    extension.include_dirs = include_dirs + extension.include_dirs
     extension.library_dirs = library_dirs + extension.library_dirs
     extension.define_macros = define_macros + extension.define_macros
 

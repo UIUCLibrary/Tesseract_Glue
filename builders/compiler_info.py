@@ -54,7 +54,6 @@ def get_visual_studio_version():
         except Exception as e:
             pass
     sorted_values = sorted(installed_versions, key=lambda value: float(value))
-    print(sorted_values)
     return sorted_values[-1].split(".")[0]
 
 
