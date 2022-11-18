@@ -26,4 +26,6 @@ class Exiv2BindConan(ConanFile):
         self.copy("libcharset.so", src="lib")
         self.copy("libcharset.so.*", src="lib")
         self.copy("tesseract", dst="", src="bin", keep_path=True)
-
+    def configure(self):
+        if self.settings.os == "Windows":
+            self.options['leptonica'].shared = True
