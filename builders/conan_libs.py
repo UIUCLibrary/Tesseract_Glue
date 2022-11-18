@@ -315,6 +315,7 @@ class BuildConan(setuptools.Command):
             raise AssertionError("Missing conanbuildinfo.txt")
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
+        pprint(text_md)
         build_ext_cmd = self.get_finalized_command("build_ext")
         for extension in build_ext_cmd.extensions:
             if build_ext._inplace:
