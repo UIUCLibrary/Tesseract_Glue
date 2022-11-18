@@ -80,6 +80,11 @@ try:
                 if os.path.exists(conanbuildinfo):
                     test_tesseract(conanbuildinfo)
                     break
+            else:
+                raise FileNotFoundError(
+                    f"Missing file conanbuildinfo.txt. "
+                    f"Searched locations {*conanfileinfo_locations,}"
+                )
             pprint(ext.__dict__)
             super().build_extension(ext)
             tester = {
