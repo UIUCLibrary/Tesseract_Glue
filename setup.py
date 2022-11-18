@@ -87,6 +87,7 @@ try:
                     f"Missing file conanbuildinfo.txt. "
                     f"Searched locations {*conanfileinfo_locations,}"
                 )
+            self.announce(f"Using data from {conanbuildinfo}", level=5)
             pprint(ext.__dict__)
             super().build_extension(ext)
             tester = {
