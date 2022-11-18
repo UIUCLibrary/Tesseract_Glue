@@ -60,13 +60,45 @@ class ConanBuildInfoTXT(AbsConanBuildInfo):
             lib_paths = data['libdirs']
             bin_paths = data['bindirs']
             libs = data['libs']
-
+            names = []
+            for value in data.keys():
+                if not value.startswith("name_"):
+                    continue
+                names.append(value.replace("name_", ""))
+            # print(names)
+            libsmetadata = {}
+            for library_name in names:
+                version = data.get(f"version_{library_name}", None)
+                libsmetadata[library_name] = {
+                    "libs": data.get(f"libs_{library_name}", []),
+                    "includedirs": data.get(f"includedirs_{library_name}", []),
+                    "libdirs": data.get(f"libdirs_{library_name}", []),
+                    "bindirs": data.get(f"bindirs_{library_name}", []),
+                    "resdirs": data.get(f"resdirs_{library_name}", []),
+                    "builddirs": data.get(f"builddirs_{library_name}", []),
+                    "system_libs": data.get(f"system_libs_{library_name}", []),
+                    "defines": data.get(f"defines_{library_name}", []),
+                    "cppflags": data.get(f"cppflags_{library_name}", []),
+                    "cxxflags": data.get(f"cxxflags_{library_name}", []),
+                    "cflags": data.get(f"cflags_{library_name}", []),
+                    "sharedlinkflags": data.get(f"sharedlinkflags_{library_name}", []),
+                    "exelinkflags": data.get(f"exelinkflags_{library_name}", []),
+                    "sysroot": data.get(f"sysroot_{library_name}", []),
+                    "frameworks": data.get(f"frameworks_{library_name}", []),
+                    "frameworkdirs": data.get(f"frameworkdirs_{library_name}", []),
+                    "rootpath": data.get(f"rootpath_{library_name}", []),
+                    "name": library_name,
+                    "version": version[0] if version else None,
+                    "generatornames": data.get(f"generatornames_{library_name}", []),
+                    "generatorfilenames": data.get(f"generatorfilenames_{library_name}", []),
+                }
         return {
             "definitions": definitions,
             "include_paths": list(include_paths),
             "lib_paths": list(lib_paths),
             "bin_paths": list(bin_paths),
             "libs": list(libs),
+            "metadata": libsmetadata
 
         }
 
@@ -180,10 +212,15 @@ def update_extension2(extension, text_md):
     include_dirs = text_md['include_paths']
     library_dirs = text_md['lib_paths']
     define_macros = [(d, None) for d in text_md.get('definitions', [])]
-    for lib in text_md['libs']:
-        if lib not in extension.libraries:
-            extension.libraries.append(lib)
+    libs = extension.libraries.copy()
+
+    for original_lib_name in extension.libraries:
+        conan_libs = text_md['metadata'][original_lib_name]["libs"]
+        index = libs.index(original_lib_name)
+        libs[index:index+1] = conan_libs
+
     extension.include_dirs = include_dirs + extension.include_dirs
+    extension.libraries = libs
     extension.library_dirs = library_dirs + extension.library_dirs
     extension.define_macros = define_macros + extension.define_macros
 
@@ -321,10 +358,7 @@ class BuildConan(setuptools.Command):
                 extension.runtime_library_dirs.append(
                     os.path.abspath(install_dir)
                 )
-            # if any(map(lambda s: s in text_md["libs"], extension.libraries)):
-            #     pprint(text_md)
             update_extension2(extension, text_md)
-            pprint(extension.__dict__)
             extension.library_dirs.insert(0, install_dir)
             if sys.platform == "darwin":
                 extension.runtime_library_dirs.append("@loader_path")
