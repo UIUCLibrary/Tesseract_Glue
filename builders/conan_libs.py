@@ -5,6 +5,7 @@ import subprocess
 import sys
 import shutil
 import abc
+from pprint import pprint
 from typing import Iterable, Any, Dict, List, Union, Optional
 import setuptools
 import platform
@@ -326,10 +327,10 @@ class BuildConan(setuptools.Command):
                 if sys.platform == "darwin":
                     extension.runtime_library_dirs.append("@loader_path")
                 elif sys.platform == "linux":
-                    extension.runtime_library_dirs.append("/src/build/lib.linux-x86_64-cpython-38/pykdu_compress")
-                    pass
-                    # if "$ORIGIN" not in extension.runtime_library_dirs:
-                    #     extension.runtime_library_dirs.append("$ORIGIN")
+                    if "$ORIGIN" not in extension.runtime_library_dirs:
+                        extension.runtime_library_dirs.append("$ORIGIN")
+            # if sys.platform == "Windows":
+            pprint(extension.__dict__)
 
 
 def build_conan(
