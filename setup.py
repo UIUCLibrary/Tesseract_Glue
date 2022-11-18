@@ -68,11 +68,11 @@ try:
             build_conan.run()
             # This test os needed because the conan version keeps silently
             # breaking the linking to openjp2 library.
+            build_clib = self.get_finalized_command("build_clib")
             conanfileinfo_locations = [
                 self.build_temp,
                 os.path.join(self.build_temp, "Release"),
-                build_conan.build_temp,
-                os.path.join(build_conan.build_temp, "Release"),
+                os.path.join(build_clib.build_temp, "conan"),
             ]
             conan_info_dir = os.environ.get('CONAN_BUILD_INFO_DIR')
             if conan_info_dir is not None:
