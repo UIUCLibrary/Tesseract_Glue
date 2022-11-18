@@ -1,5 +1,6 @@
 import logging
 import os
+import re
 import subprocess
 import sys
 import shutil
@@ -106,8 +107,8 @@ class WindowsResultTester(AbsResultTester):
             print(f"{file_path} requires {dep}")
             locations = list(filter(os.path.exists, system_path.split(";")))
             locations.append(str(file_path.parent.absolute()))
-            for l in locations:
-                dep_path = os.path.join(l, dep)
+            for location in locations:
+                dep_path = os.path.join(location, dep)
                 if os.path.exists(dep_path):
                     print("Found requirement: {}".format(dep_path))
                     break
@@ -134,7 +135,8 @@ class CompilerInfoAdder:
     def add_libs(self, libs: List[str]):
         extension_deps = set()
         for lib in reversed(libs):
-            if lib not in self._place_to_add.libraries and lib not in extension_deps:
+            if lib not in self._place_to_add.libraries and \
+                    lib not in extension_deps:
                 self._place_to_add.libraries.insert(0, lib)
 
     def add_lib_dirs(self, lib_dirs: List[str]):
@@ -162,7 +164,9 @@ def update_extension(extension, metadata):
             updated_libs += dep_metadata.get('libs', [])
             include_dirs += dep_metadata.get('include_paths', [])
             library_dirs += dep_metadata.get('lib_paths', [])
-            define_macros += [(d, None) for d in dep_metadata.get('definitions', [])]
+            define_macros += [
+                (d, None) for d in dep_metadata.get('definitions', [])
+            ]
         else:
             updated_libs.append(extension_lib)
     extension.libraries = updated_libs
@@ -181,7 +185,6 @@ def update_extension2(extension, text_md):
     extension.include_dirs = include_dirs + extension.include_dirs
     extension.library_dirs = library_dirs + extension.library_dirs
     extension.define_macros = define_macros + extension.define_macros
-    print(extension.__dict__)
 
 
 def get_conan_options():
@@ -245,15 +248,19 @@ class BuildConan(setuptools.Command):
         include_dirs = metadata['include_paths']
         compiler_adder.add_include_dirs(include_dirs)
         self.announce(
-            f"Added the following paths to include path {', '.join(include_dirs)} ",
-            5)
+            f"Added the following paths to include "
+            f"path {', '.join(include_dirs)} ",
+            5
+        )
 
         lib_paths = metadata['lib_paths']
 
         compiler_adder.add_lib_dirs(lib_paths)
         self.announce(
-            f"Added the following paths to library path {', '.join(metadata['lib_paths'])} ",
-            5)
+            f"Added the following paths to library "
+            f"path {', '.join(metadata['lib_paths'])} ",
+            5
+        )
 
         for extension in build_ext_cmd.extensions:
             for lib in metadata['libs']:
@@ -279,8 +286,11 @@ class BuildConan(setuptools.Command):
         build_dir = os.path.join(build_clib.build_temp, "conan")
         build_dir_full_path = os.path.abspath(build_dir)
         conan_cache = self.conan_cache
-        self.mkpath(conan_cache)
-        self.mkpath(build_dir_full_path)
+        if not os.path.exists(conan_cache):
+            self.mkpath(conan_cache)
+            self.announce(f"Created {conan_cache} for conan cache", 5)
+        if not os.path.exists(build_dir_full_path):
+            self.mkpath(build_dir_full_path)
         self.announce(f"Using {conan_cache} for conan cache", 5)
         build_deps_with_conan(
             build_dir,
@@ -307,25 +317,42 @@ class BuildConan(setuptools.Command):
         build_ext_cmd = self.get_finalized_command("build_ext")
         for extension in build_ext_cmd.extensions:
             if build_ext._inplace:
-                extension.runtime_library_dirs.append(os.path.abspath(install_dir))
+                extension.runtime_library_dirs.append(
+                    os.path.abspath(install_dir)
+                )
             if any(map(lambda s: s in text_md["libs"], extension.libraries)):
                 update_extension2(extension, text_md)
+                extension.library_dirs.insert(0, install_dir)
                 if sys.platform == "darwin":
                     extension.runtime_library_dirs.append("@loader_path")
                 elif sys.platform == "linux":
-                    extension.runtime_library_dirs.append("$ORIGIN")
-            print(extension.__dict__)
+                    extension.runtime_library_dirs.append("/src/build/lib.linux-x86_64-cpython-38/pykdu_compress")
+                    pass
+                    # if "$ORIGIN" not in extension.runtime_library_dirs:
+                    #     extension.runtime_library_dirs.append("$ORIGIN")
 
-def build_conan(wheel_directory, config_settings=None, metadata_directory=None, install_libs=True):
+
+def build_conan(
+        wheel_directory,
+        config_settings=None,
+        metadata_directory=None,
+        install_libs=True
+):
     dist = Distribution()
     dist.parse_config_files()
     command = BuildConan(dist)
     command.install_libs = install_libs
     build_ext_cmd = command.get_finalized_command("build_ext")
     if config_settings:
-        command.conan_cache = config_settings.get('conan_cache', os.path.join(build_ext_cmd.build_temp, ".conan"))
+        command.conan_cache = config_settings.get(
+            'conan_cache',
+            os.path.join(build_ext_cmd.build_temp, ".conan")
+        )
         command.compiler_libcxx = config_settings.get('conan_compiler_libcxx')
-        command.compiler_version = config_settings.get('conan_compiler_version', get_compiler_version())
+        command.compiler_version = config_settings.get(
+            'conan_compiler_version',
+            get_compiler_version()
+        )
     else:
         command.conan_cache = \
             os.path.join(build_ext_cmd.build_temp, ".conan")
@@ -405,50 +432,113 @@ def build_deps_with_conan(
         )
         raise
 
-        conanfile_path = os.path.abspath(
-            os.path.join(os.path.dirname(__file__), "..")
-        )
+    conanfile_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..")
+    )
 
-        ninja = shutil.which("ninja")
-        env = []
-        if ninja:
-            env.append(f"NINJA={ninja}")
-        conan.install(
-            options=conan_options,
-            cwd=build_dir,
-            settings=settings,
-            build=build if len(build) > 0 else None,
-            path=conanfile_path,
-            env=env,
-            no_imports=not install_libs,
+    ninja = shutil.which("ninja")
+    env = []
+    if ninja:
+        env.append(f"NINJA={ninja}")
+    conan.install(
+        options=conan_options,
+        cwd=os.path.abspath(build_dir),
+        settings=settings,
+        build=build if len(build) > 0 else None,
+        path=conanfile_path,
+        env=env,
+        no_imports=not install_libs,
+    )
+    if install_libs:
+        import_manifest = os.path.join(
+            build_dir,
+            'conan_imports_manifest.txt'
         )
-        if install_libs:
-            import_manifest = os.path.join(build_dir, 'conan_imports_manifest.txt')
-            if os.path.exists(import_manifest):
-                add_conan_imports(import_manifest, path=build_dir, dest=install_dir)
+        if os.path.exists(import_manifest):
+            add_conan_imports(
+                import_manifest,
+                path=build_dir,
+                dest=install_dir
+            )
+
+
+def fixup_library(shared_library):
+    if sys.platform == "darwin":
+        otool = shutil.which("otool")
+        install_name_tool = shutil.which('install_name_tool')
+        if not all([otool, install_name_tool]):
+            raise FileNotFoundError(
+                "Unable to fixed up because required tools are missing. "
+                "Make sure that otool and install_name_tool are on "
+                "the PATH."
+            )
+        dylib_regex = re.compile(
+            r'^(?P<path>([@a-zA-Z./_])+)'
+            r'/'
+            r'(?P<file>lib[a-zA-Z/.0-9]+\.dylib)'
+        )
+        for line in subprocess.check_output(
+                [otool, "-L", shared_library],
+                encoding="utf8"
+        ).split("\n"):
+            if any(
+                [
+                    line.strip() == "",  # it's an empty line
+                    str(shared_library) in line,  # it's the same library
+                    "/usr/lib/" in line,  # it's a system library
+
+                ]
+            ):
+                continue
+            value = dylib_regex.match(line.strip())
+            try:
+                original_path = value.group("path")
+                library_name = value.group("file").strip()
+            except AttributeError as e:
+                raise ValueError(f"unable to parse {line}") from e
+            command = [
+                install_name_tool,
+                "-change",
+                os.path.join(original_path, library_name),
+                os.path.join("@loader_path", library_name),
+                str(shared_library)
+            ]
+            subprocess.check_call(command)
 
 
 def add_conan_imports(import_manifest_file: str, path: str, dest: str):
+    libs = []
     with open(import_manifest_file, "r", encoding="utf8") as f:
         for line in f.readlines():
             if ":" not in line:
                 continue
-            file_name, hash_value = line.strip().split(":")
-            file_path = Path(os.path.join(path, file_name))
-            if not file_path.exists():
-                raise FileNotFoundError(f"Missing {file_name}")
-            output = Path(os.path.join(dest, file_path.name))
-            if output.exists():
-                output.unlink()
-            shutil.copy(file_path, dest, follow_symlinks=False)
-            if file_path.is_symlink():
-                continue
+
+            try:
+                file_name, hash_value = line.strip().split(": ")
+            except ValueError:
+                print(f"Failed to parse: {line.strip()}")
+                raise
+            libs.append(file_name)
+    for file_name in libs:
+        file_path = Path(os.path.join(path, file_name))
+        if not file_path.exists():
+            raise FileNotFoundError(f"Missing {file_name}")
+        lib = str(file_path)
+        fixup_library(lib)
+        output = Path(os.path.join(dest, file_path.name))
+        if output.exists():
+            output.unlink()
+        shutil.copy(file_path, dest, follow_symlinks=False)
+        if file_path.is_symlink():
+            continue
+
 
 def locate_conanbuildinfo(search_locations):
     for location in search_locations:
         conanbuildinfo = os.path.join(location, "conanbuildinfo.txt")
         if os.path.exists(conanbuildinfo):
             return conanbuildinfo
+
 
 def locate_conanbuildinfo_json(search_locations):
     for location in search_locations:
