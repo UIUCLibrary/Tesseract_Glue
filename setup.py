@@ -71,6 +71,8 @@ try:
             conanfileinfo_locations = [
                 self.build_temp,
                 os.path.join(self.build_temp, "Release"),
+                build_conan.build_temp,
+                os.path.join(build_conan.build_temp, "Release"),
             ]
             conan_info_dir = os.environ.get('CONAN_BUILD_INFO_DIR')
             if conan_info_dir is not None:
