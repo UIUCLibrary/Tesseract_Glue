@@ -321,19 +321,19 @@ class BuildConan(setuptools.Command):
                 extension.runtime_library_dirs.append(
                     os.path.abspath(install_dir)
                 )
-            if any(map(lambda s: s in text_md["libs"], extension.libraries)):
-                pprint(text_md)
-                update_extension2(extension, text_md)
-                pprint(extension.__dict__)
-                extension.library_dirs.insert(0, install_dir)
-                if sys.platform == "darwin":
-                    extension.runtime_library_dirs.append("@loader_path")
-                elif sys.platform == "linux":
-                    if "$ORIGIN" not in extension.runtime_library_dirs:
-                        extension.runtime_library_dirs.append("$ORIGIN")
-            else:
-                pprint(text_md)
-                raise Exception(text_md)
+            # if any(map(lambda s: s in text_md["libs"], extension.libraries)):
+            #     pprint(text_md)
+            update_extension2(extension, text_md)
+            pprint(extension.__dict__)
+            extension.library_dirs.insert(0, install_dir)
+            if sys.platform == "darwin":
+                extension.runtime_library_dirs.append("@loader_path")
+            elif sys.platform == "linux":
+                if "$ORIGIN" not in extension.runtime_library_dirs:
+                    extension.runtime_library_dirs.append("$ORIGIN")
+            # else:
+            #     pprint(text_md)
+            #     raise Exception(text_md)
             # if sys.platform == "Windows":
 
 
