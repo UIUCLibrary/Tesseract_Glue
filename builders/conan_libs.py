@@ -315,7 +315,6 @@ class BuildConan(setuptools.Command):
             raise AssertionError("Missing conanbuildinfo.txt")
         metadata_strategy = ConanBuildInfoTXT()
         text_md = metadata_strategy.parse(conanbuildinfotext)
-        pprint(text_md)
         build_ext_cmd = self.get_finalized_command("build_ext")
         for extension in build_ext_cmd.extensions:
             if build_ext._inplace:
@@ -323,7 +322,9 @@ class BuildConan(setuptools.Command):
                     os.path.abspath(install_dir)
                 )
             if any(map(lambda s: s in text_md["libs"], extension.libraries)):
+                pprint(text_md)
                 update_extension2(extension, text_md)
+                pprint(extension.__dict__)
                 extension.library_dirs.insert(0, install_dir)
                 if sys.platform == "darwin":
                     extension.runtime_library_dirs.append("@loader_path")
@@ -331,7 +332,6 @@ class BuildConan(setuptools.Command):
                     if "$ORIGIN" not in extension.runtime_library_dirs:
                         extension.runtime_library_dirs.append("$ORIGIN")
             # if sys.platform == "Windows":
-            pprint(extension.__dict__)
 
 
 def build_conan(
