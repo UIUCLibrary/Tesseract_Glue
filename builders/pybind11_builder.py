@@ -14,7 +14,6 @@ class BuildPybind11Extension(build_ext):
     ]
 
     def initialize_options(self):
-        self.cxx_standard = None
         super().initialize_options()
 
     def finalize_options(self):
@@ -23,7 +22,6 @@ class BuildPybind11Extension(build_ext):
         # self.inplace keeps getting reset by the time it is needed so
         # capture it here
         self._inplace = self.inplace
-        self.cxx_standard = self.cxx_standard or "14"
 
     def find_deps(self, lib, search_paths=None):
         search_paths = search_paths or os.environ['path'].split(";")
@@ -70,10 +68,6 @@ class BuildPybind11Extension(build_ext):
     def build_extension(self, ext: Pybind11Extension):
         self._add_conan_libs_to_ext(ext)
         self.compiler: CCompiler
-        if self.compiler.compiler_type == "unix":
-            ext.extra_compile_args.append(f"-std=c++{self.cxx_standard}")
-        else:
-            ext.extra_compile_args.append(f"/std:c++{self.cxx_standard}")
         super().build_extension(ext)
         fullname = self.get_ext_fullname(ext.name)
         created_extension = os.path.join(

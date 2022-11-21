@@ -2,6 +2,7 @@ import os
 import sys
 from distutils import ccompiler
 from pathlib import Path
+from pprint import pprint
 
 import setuptools
 import shutil
@@ -67,9 +68,11 @@ try:
             build_conan.run()
             # This test os needed because the conan version keeps silently
             # breaking the linking to openjp2 library.
+            build_clib = self.get_finalized_command("build_clib")
             conanfileinfo_locations = [
                 self.build_temp,
                 os.path.join(self.build_temp, "Release"),
+                os.path.join(build_clib.build_temp, "conan"),
             ]
             conan_info_dir = os.environ.get('CONAN_BUILD_INFO_DIR')
             if conan_info_dir is not None:
@@ -79,7 +82,17 @@ try:
                 if os.path.exists(conanbuildinfo):
                     test_tesseract(conanbuildinfo)
                     break
-            super().build_extension(ext)
+            else:
+                raise FileNotFoundError(
+                    f"Missing file conanbuildinfo.txt. "
+                    f"Searched locations {*conanfileinfo_locations,}"
+                )
+            self.announce(f"Using data from {conanbuildinfo}", level=5)
+            try:
+                super().build_extension(ext)
+            except Exception:
+                pprint(ext.__dict__)
+                raise
             tester = {
                 'darwin': conan_libs.MacResultTester,
                 'linux': conan_libs.LinuxResultTester,
@@ -154,7 +167,7 @@ tesseract_extension = Pybind11Extension(
         "tesseract",
     ],
     language='c++',
-
+    cxx_std=14
 
 )
 
