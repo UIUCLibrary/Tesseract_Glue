@@ -41,7 +41,7 @@
 
 ARG manylinux_image=quay.io/pypa/manylinux2014_x86_64
 FROM ${manylinux_image} as base_python
-ENV PATH=/opt/python/cp39-cp39/bin:/opt/python/cp38-cp38/bin:/opt/python/cp37-cp37m/bin:/opt/python/cp36-cp36m/bin:/opt/python/cp35-cp35m/bin:$PATH
+ENV PATH=/opt/python/cp311-cp311/bin:/opt/python/cp310-cp310/bin:/opt/python/cp39-cp39/bin:/opt/python/cp38-cp38/bin:/opt/python/cp37-cp37m/bin:/opt/python/cp36-cp36m/bin:/opt/python/cp35-cp35m/bin:$PATH
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 ARG PIP_EXTRA_INDEX_URL
