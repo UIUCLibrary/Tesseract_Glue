@@ -53,7 +53,11 @@ COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
 RUN conan config home
-RUN conan install /tmp --build  missing --no-import  && \
+WORKDIR /conantest
+RUN conan install /tmp --build missing --build tesseract && \
+    LD_LIBRARY_PATH=/conantest/lib && $(conan info /tmp/conanfile.py --paths --package-filter="tesseract/*" | grep package_folder: | sed -e 's/[ \t]*package_folder: //' -e "s/$/\/bin\/tesseract/") --version > /tmp/results.txt && \
+    cat /tmp/results.txt && \
+    if grep -q libopenjp2 /tmp/results.txt; then echo "found it"; else >&2 echo "Tesseract was not built with openjpeg " ; exit 1; fi && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 /conan
