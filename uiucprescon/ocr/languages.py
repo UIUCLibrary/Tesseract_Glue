@@ -281,7 +281,7 @@ def download_language_pack(tesseract_version: str, destination: str,
     """
     base_url = "https://codeload.github.com/tesseract-ocr/tessdata/zip"
 
-    url = "{}/{}".format(base_url, tesseract_version)
+    url = f"{base_url}/{tesseract_version}"
     language_pack_archive = _download_language(url, destination, md5_hash)
     _extract_language_pack(language_pack_archive, destination)
 
@@ -289,5 +289,5 @@ def download_language_pack(tesseract_version: str, destination: str,
 def _extract_language_pack(language_pack: str, destination: str) -> None:
     with zipfile.ZipFile(language_pack) as archive:
         for compressed_file in archive.namelist():
-            print("Extracting {}".format(compressed_file))
+            print(f"Extracting {compressed_file}")
             archive.extract(compressed_file, destination)
