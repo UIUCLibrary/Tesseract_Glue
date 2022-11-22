@@ -22,7 +22,16 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
         metadata_directory,
         install_libs=False
     )
-    return setuptools.build_meta.build_wheel(wheel_directory, config_settings, metadata_directory)
+    original_conan_user_home = os.getenv("CONAN_USER_HOME")
+    try:
+        if "conan_cache" in config_settings:
+            os.environ["CONAN_USER_HOME"] = config_settings['conan_cache']
+        return setuptools.build_meta.build_wheel(wheel_directory, config_settings, metadata_directory)
+    finally:
+        if original_conan_user_home:
+            os.environ["CONAN_USER_HOME"] = original_conan_user_home
+        else:
+            os.unsetenv("CONAN_USER_HOME")
 
 
 def get_requires_for_build_sdist(config_settings=None):
