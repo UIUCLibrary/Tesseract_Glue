@@ -417,7 +417,9 @@ def build_wheels(){
                                    )
                             }
                             catch(e) {
-                                sh(label: 'Getting info on wheel', script: "auditwheel show ./dist/*.whl")
+                                findFiles(glob: 'dist/*.whl').each{
+                                    sh(label: 'Getting info on wheel', script: "auditwheel show ${it.path}")
+                                }
                                 throw e
                            }
                         },
@@ -459,7 +461,9 @@ def build_wheels(){
                                        )
                                 }
                                 catch(e) {
-                                    sh(label: 'Getting info on wheel', script: "auditwheel show ./dist/*.whl")
+                                    findFiles(glob: 'dist/*.whl').each{
+                                        sh(label: 'Getting info on wheel', script: "auditwheel show ${it.path}")
+                                    }
                                     throw e
                                }
                             },
