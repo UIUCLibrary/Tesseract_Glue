@@ -27,7 +27,6 @@ def build_wheel(wheel_directory, config_settings=None, metadata_directory=None):
 
     try:
         if config_settings is not None and "conan_cache" in config_settings:
-            # os.environ["CONAN_USER_HOME"] = config_settings['conan_cache']
             os.environ["CONAN_USER_HOME"] = os.path.normpath(os.path.join(config_settings['conan_cache'], ".."))
         return setuptools.build_meta.build_wheel(wheel_directory, config_settings, metadata_directory)
     finally:
