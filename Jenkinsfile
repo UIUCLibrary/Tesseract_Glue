@@ -1229,7 +1229,7 @@ pipeline {
                                             findFiles(glob: 'dist/*.tar.gz').each{
                                                 sh(
                                                     label: 'Running Tox',
-                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')} -vv"
                                                     )
                                             }
                                         },
@@ -1305,7 +1305,7 @@ pipeline {
                                                 findFiles(glob: 'dist/*.tar.gz').each{
                                                     sh(
                                                         label: 'Running Tox',
-                                                        script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                        script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')} -vv"
                                                         )
                                                 }
                                             },
