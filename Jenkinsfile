@@ -882,7 +882,11 @@ pipeline {
                                         unstash 'FLAKE8_REPORT'
                                         unstash 'DIST-INFO'
                                         script{
-                                            load('ci/jenkins/scripts/sonarqube.groovy').sonarcloudSubmit('uiucprescon.ocr.dist-info/METADATA', 'reports/sonar-report.json', 'sonarcloud-uiucprescon.ocr')
+                                            load('ci/jenkins/scripts/sonarqube.groovy').sonarcloudSubmit(
+                                                findFiles(excludes: '', glob: '*.dist-info/METADATA')[0].path,
+                                                'reports/sonar-report.json',
+                                                'sonarcloud-uiucprescon.ocr'
+                                                )
                                         }
                                     }
                                     post {
