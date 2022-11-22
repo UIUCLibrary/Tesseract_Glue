@@ -1497,7 +1497,7 @@ pipeline {
                                                     package:[
                                                         name: props.Name,
                                                         version: props.Version,
-                                                        selector: "(${pythonVersion.replace('.','')}).*(manylinux).*(\\.whl)"
+                                                        selector: "(${pythonVersion.replace('.','')}).+(manylinux).+x86"
                                                     ],
                                                     test:[
                                                         toxEnv: "py${pythonVersion}".replace('.',''),
