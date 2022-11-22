@@ -98,3 +98,6 @@ conanfile = 'conanfile.py'
 #conan_options = ['tesseract:shared=True']
 [localbuilder.win32]
 conan_options = ['tesseract:shared=True']
+
+[tool.pylint]
+extension-pkg-allow-list="uiucprescon.ocr.tesseractwrap"
