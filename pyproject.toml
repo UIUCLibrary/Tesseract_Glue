@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11~=2.10.1', "wheel", "cmake", "conan>=1.53"]
+requires = ["setuptools>=40.8.0,!=51.1.0.post20201221", 'pybind11~=2.10.1', "wheel", "cmake", "conan>=1.53,!=1.55.0"]
 build-backend = "builders.local_backend"
 backend-path = ["."]
 
@@ -77,7 +77,7 @@ CONAN_BUILD_INFO_DIR="/tmp/ciwheelbuilder/uiucprescon_ocr/build/"
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-all = [
     "cc --version", "cc -dumpfullversion -dumpversion",
-    "pip3 install conan cmake ninja",
+    'pip3 install "conan>=1.53,!=1.55.0" cmake ninja',
     "conan profile new /tmp/ciwheelbuilder/uiucprescon_ocr/.conan/profiles/default --detect",
     "if [ -z \"$CONAN_COMPILER_LIBCXX\" ]; then : ; else conan profile update settings.compiler.libcxx=$CONAN_COMPILER_LIBCXX default; fi",
     "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",

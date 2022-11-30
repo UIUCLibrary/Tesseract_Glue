@@ -80,7 +80,7 @@ RUN $PYTHON -m ensurepip --upgrade && \
 # ==============================================================================
 
 FROM wheel_builder_base as conan_builder
-RUN pip3 install conan cmake ninja
+RUN pip3 install "conan>=1.53,!=1.55.0" cmake ninja
 COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
 ARG TARGETARCH
 COPY --chown=user:user ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
@@ -112,7 +112,7 @@ COPY --from=wheel_builder_py310 /wheels/* /wheels/
 
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox conan cmake "devpi-client<6.0" build twine
+RUN pip3 install tox "conan>=1.53,!=1.55.0" cmake "devpi-client<6.0" build twine
 
 
 COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
