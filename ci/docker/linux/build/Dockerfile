@@ -42,7 +42,7 @@ RUN mkdir -p /.cache/pip && \
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
     pip install wheel cmake && \
-    pip install "conan>=1.51"
+    pip install "conan>=1.53,!=1.55.0"
 
 ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
 
