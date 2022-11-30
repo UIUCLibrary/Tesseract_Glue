@@ -1,5 +1,5 @@
 build
-conan>=1.51
+conan>=1.53,!=1.55.0
 cmake
 devpi-client<6.0
 flake8

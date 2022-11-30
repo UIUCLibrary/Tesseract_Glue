@@ -5,7 +5,7 @@ RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN python3 --version && python3 -m pip install conan
+RUN python3 --version && python3 -m pip install "conan>=1.53,!=1.55.0"
 ARG TARGETARCH
 COPY ci/docker/linux/package/conan/$TARGETARCH/profile.ini  /conan/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
