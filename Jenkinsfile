@@ -1,12 +1,3 @@
-def getDevPiStagingIndex(){
-
-    if (env.TAG_NAME?.trim()){
-        return 'tag_staging'
-    } else{
-        return "${env.BRANCH_NAME}_staging"
-    }
-}
-
 SONARQUBE_CREDENTIAL_ID = 'sonarcloud-uiucprescon.ocr'
 SUPPORTED_MAC_VERSIONS = ['3.8', '3.9', '3.10']
 SUPPORTED_LINUX_VERSIONS = ['3.7', '3.8', '3.9', '3.10']
@@ -1393,7 +1384,7 @@ pipeline {
                             load('ci/jenkins/scripts/devpi.groovy').upload(
                                 server: 'https://devpi.library.illinois.edu',
                                 credentialsId: 'DS_devpi',
-                                index: getDevPiStagingIndex(),
+                                index: DEVPI_CONFIG.stagingIndex,
                                 clientDir: './devpi'
                             )
                         }
@@ -1566,7 +1557,7 @@ pipeline {
                                 pkgName: props.Name,
                                 pkgVersion: props.Version,
                                 server: 'https://devpi.library.illinois.edu',
-                                indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                indexSource: "DS_Jenkins/${DEVPI_CONFIG.stagingIndex}",
                                 indexDestination: 'production/release',
                                 credentialsId: 'DS_devpi'
                             )
@@ -1585,7 +1576,7 @@ pipeline {
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
                                         server: 'https://devpi.library.illinois.edu',
-                                        indexSource: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                        indexSource: "DS_Jenkins/${DEVPI_CONFIG.stagingIndex}",
                                         indexDestination: "DS_Jenkins/${env.BRANCH_NAME}",
                                         credentialsId: 'DS_devpi'
                                     )
@@ -1602,7 +1593,7 @@ pipeline {
                                 load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
-                                    index: "DS_Jenkins/${getDevPiStagingIndex()}",
+                                    index: "DS_Jenkins/${DEVPI_CONFIG.stagingIndex}",
                                     server: 'https://devpi.library.illinois.edu',
                                     credentialsId: 'DS_devpi',
 
