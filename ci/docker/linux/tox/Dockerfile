@@ -128,6 +128,6 @@ RUN conan install /tmp --build  missing --no-import -s compiler.version=$COMPILE
     conan remove --locks && \
     chmod -R 777 /conan
 
-
+ENV CONAN_USER_HOME=${CONAN_USER_HOME}
 WORKDIR /src
 CMD tox --workdir /tmp/tox/  -p=auto --parallel--safe-build --recreate
