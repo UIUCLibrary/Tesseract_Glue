@@ -126,7 +126,7 @@ ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
 RUN conan install /tmp --build  missing --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
-    chmod -R 777 /conan
+    chmod -R 777 ${CONAN_USER_HOME}
 
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}
 WORKDIR /src
