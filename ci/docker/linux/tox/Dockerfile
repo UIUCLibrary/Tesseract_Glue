@@ -1,4 +1,4 @@
-ARG TARGETARCH=x86
+ARG TARGETARCH=amd64
 ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES=9.4
 FROM ubuntu:20.04 as wheel_builder_base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
@@ -30,6 +30,8 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
+COPY requirements /tmp/requirements
+
 ENV PYTHON=python3.7
 RUN $PYTHON -m pip install pip --upgrade pip && \
     $PYTHON -m pip install wheel && \
@@ -43,6 +45,8 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
+COPY requirements /tmp/requirements
+
 ENV PYTHON=python3.8
 RUN $PYTHON -m pip install pip --upgrade pip && \
     $PYTHON -m pip install wheel && \
@@ -56,6 +60,8 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
+COPY requirements /tmp/requirements
+
 ENV PYTHON=python3.9
 RUN $PYTHON -m pip install pip --upgrade pip && \
     $PYTHON -m pip install wheel && \
@@ -70,6 +76,8 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
+COPY requirements /tmp/requirements
+
 ENV PYTHON=python3.10
 RUN $PYTHON -m ensurepip --upgrade && \
     $PYTHON -m pip install pip --upgrade pip && \
@@ -112,7 +120,8 @@ COPY --from=wheel_builder_py310 /wheels/* /wheels/
 
 RUN chmod -R 777 /wheels
 ENV PIP_FIND_LINKS=/wheels
-RUN pip3 install tox "conan>=1.53,!=1.55.0" cmake "devpi-client<6.0" build twine
+COPY requirements/ /tmp/requirements
+RUN pip3 install -r /tmp/requirements/requirements_tox.txt "conan>=1.53,!=1.55.0" cmake "devpi-client<6.0" build twine
 
 
 COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
@@ -122,7 +131,6 @@ COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/defa
 COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 ENV CONAN_USER_HOME=/conan
-RUN conan config home
 
 RUN conan config init && \
     conan config set general.revisions_enabled=1 && \

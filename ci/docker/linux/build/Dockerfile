@@ -18,26 +18,7 @@ RUN if id $USER_ID ; then \
 
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
-#
-#ENV SONAR_SCANNER_VERSION=4.6.2.2472
-#ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
-#ENV SONAR_USER_HOME=/opt/sonar/.sonar
-#ENV SONAR_SCANNER_OPTS="-server"
-#RUN curl --create-dirs -sSLo /tmp/sonar-scanner.zip \
-#        https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip && \
-#    unzip -o /tmp/sonar-scanner.zip -d /opt/sonar/ && \
-#    rm /tmp/sonar-scanner.zip && \
-#    mkdir -p $SONAR_USER_HOME/cache && \
-#    chmod -R 777 "${SONAR_USER_HOME}" &&\
-#    mkdir -p /home/user/.sonar/cache && \
-#    chown user:user /home/user/.sonar/cache && \
-#    ln -s /opt/sonar/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner && \
-#    sonar-scanner --version
-#
-#RUN curl --create-dirs -sSLo /tmp/build-wrapper-linux-x86.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip && \
-#    unzip -o /tmp/build-wrapper-linux-x86.zip -d /opt/ &&\
-#    ln -s /opt/build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/build-wrapper-linux-x86-64 && \
-#    which build-wrapper-linux-x86-64
+
 
 RUN python -m pip install --upgrade pip &&  \
     pip install setuptools && \
@@ -45,6 +26,7 @@ RUN python -m pip install --upgrade pip &&  \
     pip install "conan>=1.53,!=1.55.0"
 
 ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
+COPY requirements/ /requirements/requirements/
 
 FROM base_python as wheel_builder
 ARG PIP_EXTRA_INDEX_URL

@@ -68,6 +68,8 @@ ARG PIP_INDEX_URL
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY37
 SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+COPY requirements c:/requirements/requirements
+
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ENV PY_PYTHON=3.7
@@ -81,6 +83,8 @@ RUN py -m pip install --upgrade pip && `
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
 SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+COPY requirements c:/requirements/requirements
+
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ENV PY_PYTHON=3.8
@@ -94,6 +98,8 @@ RUN py -m pip install --upgrade pip && `
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
 SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+COPY requirements c:/requirements/requirements
+
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ENV PY_PYTHON=3.9
@@ -107,6 +113,8 @@ RUN py -m pip install --upgrade pip && `
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY310
 SHELL ["cmd", "/S", "/C" ]
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
+COPY requirements c:/requirements/requirements
+
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ENV PY_PYTHON=3.10
@@ -122,7 +130,10 @@ COPY --from=WHEEL_BUILDER_PY37 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
 COPY --from=WHEEL_BUILDER_PY310 C:/wheels/ c:/wheels/
-RUN python -m pip install pip --upgrade ; pip install tox devpi_client
+
 ENV PIP_FIND_LINKS=c:\wheels
+COPY requirements c:/requirements/requirements
+RUN python -m pip install pip --upgrade ; pip install install -r c:/requirements/requirements/requirements_tox.txt devpi_client
+
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate

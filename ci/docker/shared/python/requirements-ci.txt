@@ -16,6 +16,6 @@ pytest-cov
 pytest-bdd<4.0
 pytest-runner
 sphinx
-tox
+-r requirements/requirements_tox.txt
 toml
 twine
