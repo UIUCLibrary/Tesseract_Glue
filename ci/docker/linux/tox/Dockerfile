@@ -1,5 +1,6 @@
 ARG TARGETARCH=amd64
 ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES=9.4
+ARG CONAN_USER_HOME=/conan
 FROM ubuntu:20.04 as wheel_builder_base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 RUN apt update && \
@@ -10,22 +11,8 @@ RUN apt update && \
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
-ARG USER_ID=1000
-ARG GROUP_ID=1000
-
-RUN if id $USER_ID ; then \
-        echo 'Existing user id found: Creating an alias' ;\
-        groupadd --non-unique --gid $GROUP_ID user ; \
-        useradd  --non-unique --uid $USER_ID -s /bin/sh -m -d /home/user -g user user  ; \
-    else \
-        groupadd -g $GROUP_ID user ; \
-        useradd  -u $USER_ID -s /bin/sh -m -d /home/user -g user user ;\
-    fi
-
-
 # ==============================================================================
 FROM wheel_builder_base as wheel_builder_py37
-
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
@@ -88,19 +75,18 @@ RUN $PYTHON -m ensurepip --upgrade && \
 # ==============================================================================
 
 FROM wheel_builder_base as conan_builder
+ARG CONAN_USER_HOME
 RUN pip3 install "conan>=1.53,!=1.55.0" cmake ninja
-COPY --chown=user:user ci/docker/shared/conan/remotes.json  /home/user/.conan/remotes.json
+COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 ARG TARGETARCH
-COPY --chown=user:user ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
-USER user
-WORKDIR /home/user
+COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
     conan config set general.revisions_enabled=1
 
 COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
 ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
-RUN python3 /tmp/update_conan_compiler.py /home/user/.conan/settings.yml gcc $COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
+RUN python3 /tmp/update_conan_compiler.py ${CONAN_USER_HOME}/.conan/settings.yml gcc $COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
 
 RUN conan install /tmp --build outdated --build=openjpeg --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES  && \
     conan remove "*" -b --src -f && \
@@ -109,7 +95,7 @@ RUN conan install /tmp --build outdated --build=openjpeg --no-import -s compiler
 # ==============================================================================
 
 FROM wheel_builder_base
-
+ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
@@ -124,13 +110,13 @@ COPY requirements/ /tmp/requirements
 RUN pip3 install -r /tmp/requirements/requirements_tox.txt "conan>=1.53,!=1.55.0" cmake "devpi-client<6.0" build twine
 
 
-COPY --from=conan_builder --chown=user:user /home/user/.conan/ /conan/.conan/
-COPY --from=conan_builder /home/user/.conan/settings.yml  /conan/.conan/settings.yml
+COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
+COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/settings.yml  ${CONAN_USER_HOME}/settings.yml
 ARG TARGETARCH
-COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  /home/user/profiles/default
-COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+
+COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
+COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
-ENV CONAN_USER_HOME=/conan
 
 RUN conan config init && \
     conan config set general.revisions_enabled=1 && \
