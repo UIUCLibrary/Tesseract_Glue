@@ -90,12 +90,14 @@ def getMacDevpiTestStages(packageName, packageVersion, pythonVersions, devpiServ
                     ],
                     test:[
                         setup: {
+                            checkout scm
                             sh(
                                 label:'Installing Devpi client',
                                 script: '''python3 -m venv venv
-                                            venv/bin/python -m pip install pip --upgrade
-                                            venv/bin/python -m pip install devpi_client -r requirements/requirements_tox.txt
-                                            '''
+                                           . ./venv/bin/activate
+                                           python -m pip install pip --upgrade
+                                           python -m pip install devpi_client -r requirements/requirements_tox.txt
+                                       '''
                             )
                         },
                         toxEnv: "py${pythonVersion}".replace('.',''),
@@ -125,12 +127,14 @@ def getMacDevpiTestStages(packageName, packageVersion, pythonVersions, devpiServ
                     ],
                     test:[
                         setup: {
+                            checkout scm
                             sh(
                                 label:'Installing Devpi client',
                                 script: '''python3 -m venv venv
-                                            venv/bin/python -m pip install pip --upgrade
-                                            venv/bin/python -m pip install devpi_client -r requirements/requirements_tox.txt
-                                            '''
+                                           . ./venv/bin/activate
+                                           python -m pip install pip --upgrade
+                                           python -m pip install devpi_client -r requirements/requirements_tox.txt
+                                        '''
                             )
                         },
                         toxEnv: "py${pythonVersion}".replace('.',''),
@@ -160,12 +164,14 @@ def getMacDevpiTestStages(packageName, packageVersion, pythonVersions, devpiServ
                     ],
                     test:[
                         setup: {
+                            checkout scm
                             sh(
                                 label:'Installing Devpi client',
                                 script: '''python3 -m venv venv
-                                            venv/bin/python -m pip install pip --upgrade
-                                            venv/bin/python -m pip install devpi_client -r requirements/requirements_tox.txt
-                                            '''
+                                           . ./venv/bin/activate
+                                           python -m pip install pip --upgrade
+                                           python -m pip install devpi_client -r requirements/requirements_tox.txt
+                                        '''
                             )
                         },
                         toxEnv: "py${pythonVersion}".replace('.',''),
@@ -195,12 +201,14 @@ def getMacDevpiTestStages(packageName, packageVersion, pythonVersions, devpiServ
                     ],
                     test:[
                         setup: {
+                            checkout scm
                             sh(
                                 label:'Installing Devpi client',
                                 script: '''python3 -m venv venv
-                                            venv/bin/python -m pip install pip --upgrade
-                                            venv/bin/python -m pip install devpi_client -r requirements/requirements_tox.txt
-                                            '''
+                                           . ./venv/bin/activate
+                                           python -m pip install pip --upgrade
+                                           python -m pip install devpi_client -r requirements/requirements_tox.txt
+                                        '''
                             )
                         },
                         toxEnv: "py${pythonVersion}".replace('.',''),
@@ -595,8 +603,8 @@ pipeline {
         booleanParam(name: 'INCLUDE_ARM', defaultValue: false, description: 'Include ARM architecture')
         booleanParam(name: 'BUILD_MANYLINUX_PACKAGES', defaultValue: false, description: 'Manylinux Python packages')
         booleanParam(name: 'TEST_PACKAGES', defaultValue: true, description: 'Test Python packages by installing them and running tests on the installed package')
-        booleanParam(name: 'DEPLOY_DEVPI', defaultValue: false, description: "Deploy to devpi on http://devpy.library.illinois.edu/DS_Jenkins/${env.BRANCH_NAME}")
-        booleanParam(name: 'DEPLOY_DEVPI_PRODUCTION', defaultValue: false, description: 'Deploy to https://devpi.library.illinois.edu/production/release')
+        booleanParam(name: 'DEPLOY_DEVPI', defaultValue: false, description: "Deploy to devpi on ${DEVPI_CONFIG.server}/${DEVPI_CONFIG.devpiUserName}/${env.BRANCH_NAME}")
+        booleanParam(name: 'DEPLOY_DEVPI_PRODUCTION', defaultValue: false, description: "Deploy to ${DEVPI_CONFIG.server}/production/release")
         booleanParam(name: 'DEPLOY_PYPI', defaultValue: false, description: 'Deploy to pypi')
         booleanParam(name: 'DEPLOY_DOCS', defaultValue: false, description: 'Update online documentation')
     }
@@ -1385,7 +1393,7 @@ pipeline {
                                 unstash it
                             }
                             load('ci/jenkins/scripts/devpi.groovy').upload(
-                                server: 'https://devpi.library.illinois.edu',
+                                server: DEVPI_CONFIG.server,
                                 credentialsId: 'DS_devpi',
                                 index: DEVPI_CONFIG.stagingIndex,
                                 clientDir: './devpi'
@@ -1559,10 +1567,10 @@ pipeline {
                             load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                 pkgName: props.Name,
                                 pkgVersion: props.Version,
-                                server: 'https://devpi.library.illinois.edu',
-                                indexSource: "DS_Jenkins/${DEVPI_CONFIG.stagingIndex}",
+                                server: DEVPI_CONFIG.server,
+                                indexSource: "${DEVPI_CONFIG.devpiUserName}/${DEVPI_CONFIG.stagingIndex}",
                                 indexDestination: 'production/release',
-                                credentialsId: 'DS_devpi'
+                                credentialsId: DEVPI_CONFIG.credentialsId
                             )
                         }
                     }
@@ -1578,10 +1586,10 @@ pipeline {
                                     load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
-                                        server: 'https://devpi.library.illinois.edu',
-                                        indexSource: "DS_Jenkins/${DEVPI_CONFIG.stagingIndex}",
-                                        indexDestination: "DS_Jenkins/${env.BRANCH_NAME}",
-                                        credentialsId: 'DS_devpi'
+                                        server: DEVPI_CONFIG.server,
+                                        indexSource: "${DEVPI_CONFIG.devpiUserName}/${DEVPI_CONFIG.stagingIndex}",
+                                        indexDestination: "${DEVPI_CONFIG.devpiUserName}/${env.BRANCH_NAME}",
+                                        credentialsId: DEVPI_CONFIG.credentialsId
                                     )
                                 }
                             }
@@ -1596,9 +1604,9 @@ pipeline {
                                 load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
-                                    index: "DS_Jenkins/${DEVPI_CONFIG.stagingIndex}",
-                                    server: 'https://devpi.library.illinois.edu',
-                                    credentialsId: 'DS_devpi',
+                                    index: "${DEVPI_CONFIG.devpiUserName}/${DEVPI_CONFIG.stagingIndex}",
+                                    server: DEVPI_CONFIG.server,
+                                    credentialsId: DEVPI_CONFIG.credentialsId,
 
                                 )
                             }
