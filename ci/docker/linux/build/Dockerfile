@@ -1,7 +1,7 @@
 ARG SONAR_SCANNER_VERSION=4.7.0.2747
 ARG PYTHON_VERSION=3.8
 FROM python:${PYTHON_VERSION} as base_python
-RUN apt update -y && apt install -y ca-certificates
+RUN apt update -y && apt install -y ca-certificates git
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 

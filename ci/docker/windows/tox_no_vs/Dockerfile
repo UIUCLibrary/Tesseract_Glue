@@ -78,8 +78,9 @@ ENV PY_PYTHON=3.7
 ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+    py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements-ci.txt `
+      -r c:/requirements/requirements-extras.txt
 
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
@@ -93,8 +94,9 @@ ENV PY_PYTHON=3.8
 ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+    py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements-ci.txt `
+      -r c:/requirements/requirements-extras.txt
 
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
@@ -108,8 +110,9 @@ ENV PY_PYTHON=3.9
 ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+    py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements-ci.txt `
+      -r c:/requirements/requirements-extras.txt
 
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY310
@@ -123,8 +126,10 @@ ENV PY_PYTHON=3.10
 ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+    py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements-ci.txt `
+      -r c:/requirements/requirements-extras.txt
+
 # ==============================================================================
 FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY311
 SHELL ["cmd", "/S", "/C" ]
@@ -137,8 +142,9 @@ ENV PY_PYTHON=3.11
 ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-ci.txt && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir -r c:/requirements/requirements-extras.txt
+    py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements-ci.txt `
+      -r c:/requirements/requirements-extras.txt
 
 # ==============================================================================
 FROM CHOCOLATEY_BASE
