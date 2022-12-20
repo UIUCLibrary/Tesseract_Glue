@@ -8,21 +8,22 @@ import setuptools
 import shutil
 from distutils.version import StrictVersion
 
-sys.path.insert(0, os.path.dirname(__file__))
-from builders.deps import get_win_deps
+# sys.path.insert(0, os.path.dirname(__file__))
 try:
     from pybind11.setup_helpers import Pybind11Extension
 except ImportError:
     from setuptools import Extension as Pybind11Extension
 cmd_class = {}
 try:
-    from builders import conan_libs
+    # from builders import conan_libs
+    from uiucprescon.build import conan_libs
     cmd_class["build_conan"] = conan_libs.BuildConan
 except ImportError:
     pass
 
 try:
-    from builders.pybind11_builder import BuildPybind11Extension, UseSetuptoolsCompilerFileLibrary
+    from uiucprescon.build.pybind11_builder import BuildPybind11Extension, UseSetuptoolsCompilerFileLibrary
+    # from builders.pybind11_builder import BuildPybind11Extension, UseSetuptoolsCompilerFileLibrary
 
 
     def test_tesseract(build_file: str):
@@ -104,6 +105,7 @@ try:
             tester().test_binary_dependents(Path(dll_name))
 
         def run(self):
+            from uiucprescon.build.deps import get_win_deps
             super().run()
             def locate(dep, location):
                 for f in os.scandir(dest):
