@@ -1,5 +1,6 @@
 ARG SONAR_SCANNER_VERSION=4.7.0.2747
 ARG PYTHON_VERSION=3.8
+ARG CONAN_USER_HOME=/conan
 FROM python:${PYTHON_VERSION} as base_python
 RUN apt update -y && apt install -y ca-certificates git
 ARG PIP_EXTRA_INDEX_URL
@@ -24,13 +25,13 @@ RUN pip wheel -r /requirements/requirements-ci.txt --no-cache --wheel-dir /wheel
     pip wheel -r /requirements/requirements-extras.txt --no-cache --wheel-dir /wheels/
 
 FROM base_python as conan_builder
+ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install "conan>=1.51"
 ARG TARGETARCH
-COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  /conan/.conan/profiles/default
-COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
-ENV CONAN_USER_HOME=/conan
+COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
+COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
     conan config set general.revisions_enabled=1
@@ -91,21 +92,20 @@ ENV SONAR_SCANNER_OPTS="-server"
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 COPY --from=wheel_builder /wheels/* /wheels/
-
-COPY --from=conan_builder /conan/.conan/ /conan/.conan/
-COPY ci/docker/shared/conan/remotes.json  /conan/.conan/remotes.json
+ARG CONAN_USER_HOME
+COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
 ARG TARGETARCH
-COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  /conan/.conan/profiles/default
+COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
 ADD conanfile.py /tmp/conanfile.py
 
-ENV CONAN_USER_HOME=/conan
+ENV CONAN_USER_HOME=${CONAN_USER_HOME}
 RUN conan config init && \
     conan config set general.revisions_enabled=1
 
 RUN conan install /tmp --build  missing --no-import && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
-    chmod -R 777 /conan
+    chmod -R 777 ${CONAN_USER_HOME}
 
 USER root
 RUN pip install --no-index --find-links=/wheels/ \
