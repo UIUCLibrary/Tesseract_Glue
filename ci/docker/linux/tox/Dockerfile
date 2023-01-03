@@ -126,10 +126,9 @@ RUN pip3 install -r /tmp/requirements/requirements_tox.txt "conan>=1.53,!=1.55.0
 
 
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
-COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/settings.yml  ${CONAN_USER_HOME}/settings.yml
 ARG TARGETARCH
 
-COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
+COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 

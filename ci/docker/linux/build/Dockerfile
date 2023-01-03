@@ -30,7 +30,7 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install "conan>=1.51"
 ARG TARGETARCH
-COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
+COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
