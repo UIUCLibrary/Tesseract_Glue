@@ -1,5 +1,5 @@
 ARG SONAR_SCANNER_VERSION=4.7.0.2747
-ARG PYTHON_VERSION=3.8
+ARG PYTHON_VERSION=3.10
 ARG CONAN_USER_HOME=/conan
 FROM python:${PYTHON_VERSION} as base_python
 RUN apt update -y && apt install -y ca-certificates git
@@ -35,8 +35,8 @@ COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
     conan config set general.revisions_enabled=1
-RUN conan install /tmp --build outdated --build=openjpeg --no-import  && \
-    conan install /tmp --build outdated --build=openjpeg --no-import  -s build_type=Debug && \
+RUN conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=default && \
+    conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=default -s build_type=Debug && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 

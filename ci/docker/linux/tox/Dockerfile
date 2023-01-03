@@ -138,7 +138,7 @@ RUN conan config init && \
     conan profile update settings.compiler.libcxx=libstdc++11 default
 
 ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
-RUN conan install /tmp --build  missing --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
+RUN conan install /tmp --build  missing --no-import -pr:b=default -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 ${CONAN_USER_HOME}
