@@ -187,7 +187,6 @@ setuptools.setup(
         'pytest',
         'pytest-bdd'
     ],
-    namespace_packages=["uiucprescon"],
     ext_modules=[
         tesseract_extension
     ],
