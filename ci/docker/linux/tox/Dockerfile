@@ -126,10 +126,9 @@ RUN pip3 install -r /tmp/requirements/requirements_tox.txt "conan>=1.53,!=1.55.0
 
 
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
-COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/settings.yml  ${CONAN_USER_HOME}/settings.yml
 ARG TARGETARCH
 
-COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
+COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 ADD conanfile.py /tmp/conanfile.py
 
@@ -138,7 +137,7 @@ RUN conan config init && \
     conan profile update settings.compiler.libcxx=libstdc++11 default
 
 ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES
-RUN conan install /tmp --build  missing --no-import -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
+RUN conan install /tmp --build  missing --no-import -pr:b=default -s compiler.version=$COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
     chmod -R 777 ${CONAN_USER_HOME}
