@@ -399,7 +399,7 @@ def build_wheels(){
                         ]
                     )
                 }
-                if(params.INCLUDE_ARM == true){
+                if(params.INCLUDE_ARM_LINUX == true){
                     linuxBuildStages["Linux arm64 - Python ${pythonVersion}: wheel"] = {
                         packages.buildPkg(
                             agent: [
@@ -543,8 +543,8 @@ pipeline {
         booleanParam(name: 'BUILD_PACKAGES', defaultValue: false, description: 'Build Python packages')
         booleanParam(name: 'INCLUDE_ARM_MACOS', defaultValue: false, description: 'Include ARM(m1) architecture for Mac')
         booleanParam(name: 'INCLUDE_X86_64_MACOS', defaultValue: false, description: 'Include x86_64 architecture for Mac')
-        booleanParam(name: 'INCLUDE_ARM', defaultValue: false, description: 'Include ARM architecture')
         booleanParam(name: 'BUILD_MANYLINUX_PACKAGES', defaultValue: false, description: 'Manylinux Python packages')
+        booleanParam(name: 'INCLUDE_ARM_LINUX', defaultValue: false, description: 'Include ARM architecture for Linux')
         booleanParam(name: 'TEST_PACKAGES', defaultValue: true, description: 'Test Python packages by installing them and running tests on the installed package')
         booleanParam(name: 'DEPLOY_DEVPI', defaultValue: false, description: "Deploy to devpi on ${DEVPI_CONFIG.server}/${DEVPI_CONFIG.devpiUserName}/${env.BRANCH_NAME}")
         booleanParam(name: 'DEPLOY_DEVPI_PRODUCTION', defaultValue: false, description: "Deploy to ${DEVPI_CONFIG.server}/production/release")
@@ -1147,7 +1147,7 @@ pipeline {
                                         ]
                                     )
                                 }
-                                if(params.INCLUDE_ARM == true){
+                                if(params.INCLUDE_ARM_LINUX == true){
                                     linuxTestStages["Linux arm64 - Python ${pythonVersion}: wheel"] = {
                                         packages.testPkg2(
                                             agent: [
