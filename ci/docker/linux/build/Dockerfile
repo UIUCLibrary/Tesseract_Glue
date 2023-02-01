@@ -2,7 +2,11 @@ ARG SONAR_SCANNER_VERSION=4.7.0.2747
 ARG PYTHON_VERSION=3.10
 ARG CONAN_USER_HOME=/conan
 FROM python:${PYTHON_VERSION} as base_python
-RUN apt update -y && apt install -y ca-certificates git
+RUN apt-get update -y &&  \
+    apt-get install -y --no-install-recommends ca-certificates git && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
@@ -10,12 +14,12 @@ RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
 
-RUN python -m pip install --upgrade pip &&  \
-    pip install setuptools && \
-    pip install wheel cmake && \
-    pip install "conan>=1.53,!=1.55.0"
+RUN python -m pip --no-cache-dir  install --upgrade pip &&  \
+    pip install --no-cache-dir wheel cmake && \
+    pip install --no-cache-dir setuptools && \
+    pip install --no-cache-dir "conan>=1.53,!=1.55.0"
 
-ADD ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
+COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
 COPY requirements/ /requirements/requirements/
 
 FROM base_python as wheel_builder
@@ -28,7 +32,7 @@ FROM base_python as conan_builder
 ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN pip install "conan>=1.51"
+RUN pip install --no-cache-dir "conan>=1.51"
 ARG TARGETARCH
 COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
@@ -44,7 +48,9 @@ RUN conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=defau
 
 FROM base_python as SONAR_BUILDER
 RUN apt-get update && \
-    apt-get install -y unzip
+    apt-get install  -y --no-install-recommends unzip && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 ARG SONAR_SCANNER_VERSION
 ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
@@ -68,7 +74,10 @@ RUN curl --create-dirs -sSLo /tmp/build-wrapper-linux-x86.zip https://sonarcloud
 # ==============================================================================
 FROM base_python
 
-RUN apt update && apt install -y clang-tidy
+RUN apt-get update &&  \
+    apt-get install -y --no-install-recommends clang-tidy && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY --from=SONAR_BUILDER /opt/sonar /opt/sonar/
 COPY --from=SONAR_BUILDER /opt/build-wrapper-linux-x86 /opt/build-wrapper-linux-x86/
@@ -96,7 +105,7 @@ ARG CONAN_USER_HOME
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
 ARG TARGETARCH
 COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
-ADD conanfile.py /tmp/conanfile.py
+COPY conanfile.py /tmp/conanfile.py
 
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}
 RUN conan config init && \
@@ -107,6 +116,5 @@ RUN conan install /tmp --build  missing --no-import && \
     conan remove --locks && \
     chmod -R 777 ${CONAN_USER_HOME}
 
-USER root
-RUN pip install --no-index --find-links=/wheels/ \
+RUN pip install  --no-cache-dir  --no-index --find-links=/wheels/ \
          -r /requirements/requirements-ci.txt

@@ -6,14 +6,16 @@ RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN python3 --version && python3 -m pip install "conan>=1.53,!=1.55.0"
+RUN python3 --version && python3 -m pip install --no-cache-dir "conan>=1.53,!=1.55.0"
 ARG TARGETARCH
 ARG CONAN_USER_HOME
 COPY ci/docker/linux/package/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
-ADD conanfile.py /tmp/conanfile.py
-RUN conan config home
+COPY conanfile.py /tmp/conanfile.py
+RUN conan config init && \
+    conan config set general.revisions_enabled=1
 WORKDIR /conantest
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN conan install /tmp --build missing --build tesseract && \
     LD_LIBRARY_PATH=/conantest/lib && $(conan info /tmp/conanfile.py --paths --package-filter="tesseract/*" | grep package_folder: | sed -e 's/[ \t]*package_folder: //' -e "s/$/\/bin\/tesseract/") --version > /tmp/results.txt && \
     cat /tmp/results.txt && \
@@ -22,4 +24,4 @@ RUN conan install /tmp --build missing --build tesseract && \
     conan remove --locks && \
     chmod -R 777 ${CONAN_USER_HOME}
 
-RUN python3 -m pip install build
+RUN python3 -m pip install --no-cache-dir build
