@@ -34,7 +34,7 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 RUN pip install --no-cache-dir "conan>=1.51"
 ARG TARGETARCH
-COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
+COPY ci/docker/linux/jenkins/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
@@ -104,7 +104,7 @@ COPY --from=wheel_builder /wheels/* /wheels/
 ARG CONAN_USER_HOME
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
 ARG TARGETARCH
-COPY ci/docker/linux/build/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
+COPY ci/docker/linux/jenkins/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
 COPY conanfile.py /tmp/conanfile.py
 
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}
