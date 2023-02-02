@@ -567,7 +567,7 @@ pipeline {
                 stage('Building') {
                     agent {
                         dockerfile {
-                            filename 'ci/docker/linux/build/Dockerfile'
+                            filename 'ci/docker/linux/jenkins/Dockerfile'
                             label 'linux && docker && x86'
                             additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL '
                         }
@@ -623,7 +623,7 @@ pipeline {
                         stage('Code Quality') {
                             agent {
                                 dockerfile {
-                                    filename 'ci/docker/linux/build/Dockerfile'
+                                    filename 'ci/docker/linux/jenkins/Dockerfile'
                                     label 'linux && docker && x86'
                                     additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                                     args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
@@ -1491,7 +1491,7 @@ pipeline {
                 stage('Deploy to pypi') {
                     agent {
                         dockerfile {
-                            filename 'ci/docker/linux/build/Dockerfile'
+                            filename 'ci/docker/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                             additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
                         }
@@ -1556,7 +1556,7 @@ pipeline {
                     }
                     agent {
                         dockerfile {
-                            filename 'ci/docker/linux/build/Dockerfile'
+                            filename 'ci/docker/linux/jenkins/Dockerfile'
                             label 'linux && docker'
                         }
                     }
