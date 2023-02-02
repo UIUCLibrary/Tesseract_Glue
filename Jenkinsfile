@@ -680,7 +680,6 @@ pipeline {
                                             post {
                                                 always {
                                                     junit 'reports/pytest/junit-pytest.xml'
-                                                    stash includes: 'reports/pytest/junit-pytest.xml', name: 'PYTEST_REPORT'
 
                                                 }
                                             }
@@ -757,7 +756,6 @@ pipeline {
                                             }
                                             post {
                                                 always {
-                                                    stash includes: 'logs/flake8.log', name: 'FLAKE8_REPORT'
                                                     recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
                                                 }
                                             }
@@ -799,7 +797,6 @@ pipeline {
                                             post{
                                                 always{
                                                     recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
-                                                    stash includes: 'reports/pylint_issues.txt,reports/pylint.txt', name: 'PYLINT_REPORT'
                                                 }
                                             }
                                         }
@@ -815,7 +812,6 @@ pipeline {
                                                           gcovr --filter uiucprescon/ocr --print-summary --keep
                                                           '''
                                                 )
-                                            stash includes: 'reports/coverage*.xml', name: 'COVERAGE_REPORT'
                                             publishCoverage(
                                                 adapters: [
                                                     coberturaAdapter(mergeToOneReport: true, path: 'reports/coverage*.xml')
@@ -831,18 +827,12 @@ pipeline {
                                     }
                                     when{
                                         equals expected: true, actual: params.USE_SONARQUBE
-                                        beforeAgent true
                                         beforeOptions true
                                     }
                                     steps{
-                                        unstash 'COVERAGE_REPORT'
-                                        unstash 'PYTEST_REPORT'
-                                        unstash 'PYLINT_REPORT'
-                                        unstash 'FLAKE8_REPORT'
-                                        unstash 'DIST-INFO'
                                         script{
                                             load('ci/jenkins/scripts/sonarqube.groovy').sonarcloudSubmit(
-                                                findFiles(excludes: '', glob: '*.dist-info/METADATA')[0].path,
+                                                props,
                                                 'reports/sonar-report.json',
                                                 'sonarcloud-uiucprescon.ocr'
                                                 )
