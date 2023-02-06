@@ -45,11 +45,13 @@ environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION", "CONAN_US
 
 [tool.cibuildwheel.windows]
 before-all = [
-    "pip install wheel",
-    "pip install conan cmake ninja",
-    "conan profile new default --detect --force",
-    "conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% default",
-    "conan install ./ --build missing",
+    'pip install wheel',
+    'pip install conan cmake ninja',
+    'conan profile new default --detect --force',
+    'conan config init',
+    'conan config set general.revisions_enabled=1',
+    'conan profile update settings.compiler.version=%CONAN_COMPILER_VERSION% default',
+    'conan install ./ --build missing',
 ]
 [tool.cibuildwheel.windows.environment]
 CONAN_USER_HOME="$TEMP/conan"
@@ -57,9 +59,12 @@ CONAN_USER_HOME="$TEMP/conan"
 [tool.cibuildwheel.macos]
 before-all = [
     "pip3 install 'conan>=1.53' cmake ninja",
-    "conan profile new $ENVTMPDIR/.conan/profiles/default --detect --force",
-    "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",
-    "conan install ./ --build missing --install-folder=$CONAN_BUILD_INFO_DIR"
+    'conan profile new $ENVTMPDIR/.conan/profiles/default --detect --force',
+    'conan config init',
+    'conan config set general.revisions_enabled=1',
+    'if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi',
+    'mkdir -p $CONAN_BUILD_INFO_DIR',
+    'conan install ./ --build missing --install-folder=$CONAN_BUILD_INFO_DIR'
 ]
 environment-pass = ["CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
 repair-wheel-command = [
@@ -78,11 +83,12 @@ CONAN_BUILD_INFO_DIR="/tmp/ciwheelbuilder/uiucprescon_ocr/build/"
 [tool.cibuildwheel.linux]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-all = [
-    "cc --version", "cc -dumpfullversion -dumpversion",
+    'cc --version', 'cc -dumpfullversion -dumpversion',
     'pip3 install "conan>=1.53,!=1.55.0" cmake ninja',
-    "conan profile new /tmp/ciwheelbuilder/uiucprescon_ocr/.conan/profiles/default --detect",
-    "if [ -z \"$CONAN_COMPILER_LIBCXX\" ]; then : ; else conan profile update settings.compiler.libcxx=$CONAN_COMPILER_LIBCXX default; fi",
-    "if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi",
+    'conan profile new /tmp/ciwheelbuilder/uiucprescon_ocr/.conan/profiles/default --detect',
+    'conan config set general.revisions_enabled=1',
+    'if [ -z \"$CONAN_COMPILER_LIBCXX\" ]; then : ; else conan profile update settings.compiler.libcxx=$CONAN_COMPILER_LIBCXX default; fi',
+    'if [ -z \"$CONAN_COMPILER_VERSION\" ]; then : ; else conan profile update settings.compiler.version=$CONAN_COMPILER_VERSION default; fi',
     "conan profile show default",
     "conan install ./ --build missing",
 
@@ -92,6 +98,7 @@ CONAN_USER_HOME="/tmp/ciwheelbuilder/uiucprescon_ocr"
 CONAN_DEFAULT_PROFILE_PATH="/tmp/ciwheelbuilder/uiucprescon_ocr/.conan/profiles/default"
 CONAN_BUILD_INFO_DIR="/tmp/ciwheelbuilder/uiucprescon_ocr/build/"
 PYTHONFAULTHANDLER="True"
+CONAN_COMPILER_LIBCXX="libstdc++11"
 #
 [localbuilder]
 conanfile = 'conanfile.py'
