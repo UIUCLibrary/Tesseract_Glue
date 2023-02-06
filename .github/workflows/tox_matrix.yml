@@ -9,13 +9,16 @@ jobs:
         python-version: ['3.7', '3.8' ,'3.9', '3.10', '3.11']
         include:
           - os: macos-latest
-            compiler_version: 14
+            compiler_version: 14.0
             compiler_libcxx: libc++
+            conan_user_home: "/Users/runner"
           - os: ubuntu-latest
             compiler_version: 11.3
             compiler_libcxx: libstdc++11
+            conan_user_home: "/home/runner"
           - os: windows-2019
             compiler_version: 16
+            conan_user_home: 'C:/Users/runneradmin'
       fail-fast: false
     name: Python ${{ matrix.python-version }} ${{ matrix.os }} build
     steps:
@@ -28,8 +31,14 @@ jobs:
       - run: |
           pip install wheel
           pip install -r requirements-dev.txt
-      - name: Run tox
-        if: contains(matrix.os, 'windows')
+      - uses: actions/cache@v3
+        id: cache
+        with:
+          path: "${{ matrix.conan_user_home }}/.conan"
+          key: ${{ runner.os }}-${{ hashFiles('**/conanfile.py') }}
+
+      - name: Build conan packages on Windows
+        if: ${{ contains(matrix.os, 'windows') && steps.cache.outputs.cache-hit != 'true' }}
         shell: cmd
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
@@ -37,21 +46,38 @@ jobs:
           conan config init
           conan config set general.revisions_enabled=1
           conan profile new default --detect
-          conan install . --build  missing --no-import 
+          conan install . --build  missing --no-import -pr:b=default
+        env:
+          CONAN_USER_HOME: ${{ matrix.conan_user_home }}
+      - name: Run tox on Windows
+        if: contains(matrix.os, 'windows')
+        shell: cmd
+        run: |
+          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           tox -e py
         env:
-          CONAN_USER_HOME: "C:/Users/runneradmin"
-      - name: Run tox
-        if: "!contains(matrix.os, 'windows')"
+          CONAN_USER_HOME: ${{ matrix.conan_user_home }}
+
+      - name: Build conan packages on Non-Windows Operating Systems
+        if: ${{ !contains(matrix.os, 'windows') && steps.cache.outputs.cache-hit != 'true' }}
         run: |
           cc --version &&  cc -dumpfullversion -dumpversion 
           pip install conan
+          if conan profile show default; then echo 'profile exists'; else conan profile new default --detect; fi
           conan config init
           conan config set general.revisions_enabled=1
-          conan profile new default --detect
-          tox -e py -vvv
+          if [[ -z "$CONAN_COMPILER_LIBCXX" ]]; then echo 'CONAN_COMPILER_LIBCXX is not defined'; else conan profile update settings.compiler.libcxx=$CONAN_COMPILER_LIBCXX default; fi
+          conan install  . --build missing --build openjpeg --no-import -pr:b=default
         env:
           CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
           CONAN_COMPILER_LIBCXX: ${{ matrix.compiler_libcxx }}
+          CONAN_USER_HOME: ${{ matrix.conan_user_home }}
+      - name: Run tox on Non-Windows Operating Systems
+        if: "!contains(matrix.os, 'windows')"
+        run: tox -e py -vvv
+        env:
+          CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
+          CONAN_COMPILER_LIBCXX: ${{ matrix.compiler_libcxx }}
+          CONAN_USER_HOME: ${{ matrix.conan_user_home }}
 
 
