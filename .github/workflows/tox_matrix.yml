@@ -34,6 +34,8 @@ jobs:
         run: |
           call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
           pip install conan
+          conan config init
+          conan config set general.revisions_enabled=1
           conan profile new default --detect
           conan install . --build  missing --no-import 
           tox -e py
@@ -41,7 +43,13 @@ jobs:
           CONAN_USER_HOME: "C:/Users/runneradmin"
       - name: Run tox
         if: "!contains(matrix.os, 'windows')"
-        run: cc --version &&  cc -dumpfullversion -dumpversion && tox -e py -vvv
+        run: |
+          cc --version &&  cc -dumpfullversion -dumpversion 
+          pip install conan
+          conan config init
+          conan config set general.revisions_enabled=1
+          conan profile new default --detect
+          tox -e py -vvv
         env:
           CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
           CONAN_COMPILER_LIBCXX: ${{ matrix.compiler_libcxx }}
