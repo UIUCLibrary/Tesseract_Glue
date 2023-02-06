@@ -5,7 +5,7 @@ FROM ubuntu:20.04 as wheel_builder_base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN apt-get update && \
-    apt-get install -y software-properties-common --no-install-recommends && \
+    apt-get install -y software-properties-common=0.99.9.10 --no-install-recommends && \
     add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
     < /tmp/apt-packages.txt xargs apt-get install -y && \
@@ -26,7 +26,8 @@ COPY requirements /tmp/requirements
 ENV PYTHON=python3.7
 
 RUN $PYTHON -m venv venv && \
-    source ./venv/bin/activate --upgrade-deps && \
+    source ./venv/bin/activate && \
+    python -m pip install --no-cache-dir pip --upgrade && \
     python -m pip install  --no-cache-dir wheel==0.37.1 && \
     python -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
     python -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt && \
@@ -44,6 +45,7 @@ COPY requirements /tmp/requirements
 ENV PYTHON=python3.8
 RUN $PYTHON -m venv venv && \
     source ./venv/bin/activate && \
+    python -m pip install --no-cache-dir pip --upgrade && \
     python -m pip install --no-cache-dir wheel==0.37.1 && \
     python -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
     python -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt && \
