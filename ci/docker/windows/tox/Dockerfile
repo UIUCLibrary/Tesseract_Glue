@@ -126,6 +126,7 @@ ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements/requirements_conan.txt `
       -r c:/requirements/requirements-ci.txt `
       -r c:/requirements/requirements-extras.txt
 
@@ -142,6 +143,7 @@ ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements/requirements_conan.txt `
       -r c:/requirements/requirements-ci.txt `
       -r c:/requirements/requirements-extras.txt
 
@@ -158,6 +160,7 @@ ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements/requirements_conan.txt `
       -r c:/requirements/requirements-ci.txt `
       -r c:/requirements/requirements-extras.txt
 
@@ -174,6 +177,7 @@ ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements/requirements_conan.txt `
       -r c:/requirements/requirements-ci.txt `
       -r c:/requirements/requirements-extras.txt
 
@@ -190,6 +194,7 @@ ENV PIP_NO_CACHE_DIR=off
 RUN py -m pip install --upgrade pip && `
     py -m pip install wheel && `
     py -m pip wheel -w c:\wheels\ --no-cache-dir `
+      -r c:/requirements/requirements/requirements_conan.txt `
       -r c:/requirements/requirements-ci.txt `
       -r c:/requirements/requirements-extras.txt
 
@@ -198,9 +203,10 @@ FROM CHOCOLATEY_BASE as CONAN_BUILDER
 ARG PIP_EXTRA_INDEX_URL
 ARG CONAN_USER_HOME
 ARG PIP_INDEX_URL
+COPY requirements c:/requirements/requirements
 RUN python -m pip install --upgrade pip ; `
     pip install wheel ; `
-    pip install conan cmake
+    pip install -r c:/requirements/requirements/requirements_conan.txt cmake
 COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
@@ -216,14 +222,23 @@ RUN conan install c:/temp/ --build missing --no-import; `
 FROM CHOCOLATEY_BASE
 
 COPY --from=WHEEL_BUILDER_PY37 C:/wheels/ c:/wheels/
+RUN py -3.7 -m pip install --upgrade pip
+
 COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
+RUN py -3.8 -m pip install --upgrade pip
+
 COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
+RUN py -3.9 -m pip install --upgrade pip
+
 COPY --from=WHEEL_BUILDER_PY310 C:/wheels/ c:/wheels/
+RUN py -3.10 -m pip install --upgrade pip
+
 COPY --from=WHEEL_BUILDER_PY311 C:/wheels/ c:/wheels/
+RUN py -3.11 -m pip install --upgrade pip
 
 ENV PIP_FIND_LINKS=c:\wheels
 COPY requirements c:/requirements/requirements
-RUN python -m pip install pip --upgrade ; pip install -r c:/requirements/requirements/requirements_tox.txt conan cmake devpi_client
+RUN python -m pip install pip --upgrade ; pip install -r c:/requirements/requirements/requirements_tox.txt -r c:/requirements/requirements/requirements_conan.txt cmake devpi_client
 
 COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `

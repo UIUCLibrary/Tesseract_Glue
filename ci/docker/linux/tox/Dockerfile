@@ -107,6 +107,7 @@ RUN $PYTHON -m venv venv --upgrade-deps && \
 FROM wheel_builder_base as conan_builder
 ARG CONAN_USER_HOME
 COPY ci/docker/linux/tox/requirements-conan-build.txt /tmp/
+COPY requirements/requirements_conan.txt /tmp/requirements_conan.txt
 RUN pip3 install --no-cache-dir -r /tmp/requirements-conan-build.txt
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 ARG TARGETARCH

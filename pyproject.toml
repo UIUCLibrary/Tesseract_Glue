@@ -2,6 +2,7 @@
 requires = [
     "setuptools>=61.0",
     'wheel',
+    'conan<2.0',
     'uiucprescon.build @ git+https://github.com/UIUCLibrary/uiucprescon_build.git@v0.1.0'
 ]
 build-backend = "uiucprescon.build"
@@ -46,7 +47,7 @@ environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION", "CONAN_US
 [tool.cibuildwheel.windows]
 before-all = [
     'pip install wheel',
-    'pip install conan cmake ninja',
+    'pip install -r requirements/requirements_conan.txt cmake ninja',
     'conan profile new default --detect --force',
     'conan config init',
     'conan config set general.revisions_enabled=1',
@@ -58,7 +59,7 @@ CONAN_USER_HOME="$TEMP/conan"
 
 [tool.cibuildwheel.macos]
 before-all = [
-    "pip3 install 'conan>=1.53' cmake ninja",
+    "pip3 install -r requirements/requirements_conan.txt cmake ninja",
     'conan profile new $ENVTMPDIR/.conan/profiles/default --detect --force',
     'conan config init',
     'conan config set general.revisions_enabled=1',
@@ -84,7 +85,7 @@ CONAN_BUILD_INFO_DIR="/tmp/ciwheelbuilder/uiucprescon_ocr/build/"
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 before-all = [
     'cc --version', 'cc -dumpfullversion -dumpversion',
-    'pip3 install "conan>=1.53,!=1.55.0" cmake ninja',
+    'pip3 install -r requirements/requirements_conan.txt cmake ninja',
     'conan profile new /tmp/ciwheelbuilder/uiucprescon_ocr/.conan/profiles/default --detect',
     'conan config set general.revisions_enabled=1',
     'if [ -z \"$CONAN_COMPILER_LIBCXX\" ]; then : ; else conan profile update settings.compiler.libcxx=$CONAN_COMPILER_LIBCXX default; fi',
