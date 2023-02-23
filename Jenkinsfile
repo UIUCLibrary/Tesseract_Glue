@@ -33,7 +33,7 @@ def getToxStages(){
         def tox = fileLoader.fromGit(
             'tox',
             'https://github.com/UIUCLibrary/jenkins_helper_scripts.git',
-            '4',
+            '8',
             null,
             ''
         )
@@ -213,6 +213,8 @@ def build_wheels(){
                             cleanup: {
                                 cleanWs(
                                     patterns: [
+                                            [pattern: 'build/', type: 'INCLUDE'],
+                                            [pattern: 'venv/', type: 'INCLUDE'],
                                             [pattern: 'dist/', type: 'INCLUDE'],
                                         ],
                                     notFailBuild: true,
@@ -266,6 +268,8 @@ def build_wheels(){
                             cleanup: {
                                 cleanWs(
                                     patterns: [
+                                            [pattern: 'build/', type: 'INCLUDE'],
+                                            [pattern: 'venv/', type: 'INCLUDE'],
                                             [pattern: 'dist/', type: 'INCLUDE'],
                                         ],
                                     notFailBuild: true,
@@ -295,12 +299,20 @@ def build_wheels(){
                             ]
                         ],
                         buildCmd: {
-                            bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
+                            bat """py -${pythonVersion} -m venv venv
+                                   venv\\Scripts\\python -m pip install pip --upgrade
+                                   venv\\Scripts\\python -m pip install wheel
+                                   venv\\Scripts\\python -m pip install build
+                                   venv\\Scripts\\python -m build --wheel
+                                """
+//                            bat "py -${pythonVersion} -m pip wheel -v --no-deps -w ./dist ."
                         },
                         post:[
                             cleanup: {
                                 cleanWs(
                                     patterns: [
+                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                            [pattern: 'build/', type: 'INCLUDE'],
                                             [pattern: 'dist/', type: 'INCLUDE'],
                                         ],
                                     notFailBuild: true,

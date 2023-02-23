@@ -13,11 +13,11 @@ ARG PIP_INDEX_URL
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
-
+COPY requirements/requirements_conan.txt /tmp/requirements_conan.txt
 RUN python -m pip --no-cache-dir  install --upgrade pip &&  \
     pip install --no-cache-dir wheel cmake && \
     pip install --no-cache-dir setuptools && \
-    pip install --no-cache-dir "conan>=1.53,!=1.55.0"
+    pip install --no-cache-dir -r /tmp/requirements_conan.txt
 
 COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
 COPY requirements/ /requirements/requirements/
