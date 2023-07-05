@@ -21,7 +21,7 @@ Building
 
 Requirements
 ____________
-    * Python 3.6 or greater
+    * Python 3.8 or greater
     * C/C++ compiler
 
 Instructions
