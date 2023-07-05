@@ -16,24 +16,6 @@ RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
 # ==============================================================================
-FROM wheel_builder_base as wheel_builder_py37
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
-COPY requirements /tmp/requirements
-
-ENV PYTHON=python3.7
-
-RUN $PYTHON -m venv venv && \
-    source ./venv/bin/activate && \
-    python -m pip install --no-cache-dir pip --upgrade && \
-    python -m pip install  --no-cache-dir wheel==0.37.1 && \
-    python -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
-    python -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt && \
-    rm -rf venv
-
-# ==============================================================================
 FROM wheel_builder_base as wheel_builder_py38
 
 ARG PIP_EXTRA_INDEX_URL
@@ -131,7 +113,6 @@ ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
-COPY --from=wheel_builder_py37 /wheels/* /wheels/
 COPY --from=wheel_builder_py38 /wheels/* /wheels/
 COPY --from=wheel_builder_py39 /wheels/* /wheels/
 COPY --from=wheel_builder_py310 /wheels/* /wheels/

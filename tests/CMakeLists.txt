@@ -11,7 +11,8 @@ if(BUILD_TESTING)
     include(FetchContent)
     FetchContent_Declare(
         libcatch2
-            URL https://github.com/catchorg/Catch2/archive/v2.13.4.tar.gz
+        URL https://github.com/catchorg/Catch2/archive/v2.13.9.tar.gz
+        URL_HASH SHA256=06dbc7620e3b96c2b69d57bf337028bf245a211b3cddb843835bfe258f427a52
 #        GIT_REPOSITORY https://github.com/catchorg/Catch2.git
 #        GIT_TAG 15cf3ca
     )

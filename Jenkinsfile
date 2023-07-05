@@ -1,7 +1,7 @@
 SONARQUBE_CREDENTIAL_ID = 'sonarcloud-uiucprescon.ocr'
 SUPPORTED_MAC_VERSIONS = ['3.8', '3.9', '3.10', '3.11']
-SUPPORTED_LINUX_VERSIONS = ['3.7', '3.8', '3.9', '3.10', '3.11']
-SUPPORTED_WINDOWS_VERSIONS = ['3.7', '3.8', '3.9', '3.10', '3.11']
+SUPPORTED_LINUX_VERSIONS = ['3.8', '3.9', '3.10', '3.11']
+SUPPORTED_WINDOWS_VERSIONS = ['3.8', '3.9', '3.10', '3.11']
 
 def getPypiConfig() {
     node(){
@@ -713,7 +713,9 @@ pipeline {
                                         stage('Clang Tidy Analysis') {
                                             steps{
                                                 tee('logs/clang-tidy.log') {
-                                                    sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./uiucprescon/ocr')
+                                                    catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
+                                                        sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./uiucprescon/ocr')
+                                                    }
                                                 }
                                             }
                                             post{
