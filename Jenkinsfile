@@ -852,7 +852,7 @@ pipeline {
                                             load('ci/jenkins/scripts/sonarqube.groovy').sonarcloudSubmit(
                                                 props,
                                                 'reports/sonar-report.json',
-                                                'sonarcloud-uiucprescon.ocr'
+                                                SONARQUBE_CREDENTIAL_ID
                                                 )
                                         }
                                     }
