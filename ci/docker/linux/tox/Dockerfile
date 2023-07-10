@@ -1,6 +1,7 @@
 ARG TARGETARCH=amd64
 ARG COMPILER_VERSION_FOR_PREBUILD_CONAN_PACKAGES=9.4
 ARG CONAN_USER_HOME=/conan
+ARG PIP_DOWNLOAD_CACHE=/.cache/pip
 FROM ubuntu:20.04 as wheel_builder_base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -15,76 +16,6 @@ RUN apt-get update && \
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
-# ==============================================================================
-FROM wheel_builder_base as wheel_builder_py38
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
-COPY requirements /tmp/requirements
-
-ENV PYTHON=python3.8
-RUN $PYTHON -m venv venv && \
-    source ./venv/bin/activate && \
-    python -m pip install --no-cache-dir pip --upgrade && \
-    python -m pip install --no-cache-dir wheel==0.37.1 && \
-    python -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
-    python -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt && \
-    rm -rf venv
-
-# ==============================================================================
-FROM wheel_builder_base as wheel_builder_py39
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
-COPY requirements /tmp/requirements
-
-ENV PYTHON=python3.9
-RUN $PYTHON -m venv venv --upgrade-deps && \
-    source ./venv/bin/activate && \
-    python -m pip install  --no-cache-dir wheel==0.37.1 && \
-    python -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
-    python -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt && \
-    rm -rf venv
-
-# ==============================================================================
-FROM wheel_builder_base as wheel_builder_py310
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
-COPY requirements /tmp/requirements
-
-ENV PYTHON=python3.10
-RUN $PYTHON -m venv venv --upgrade-deps && \
-    source ./venv/bin/activate && \
-    python -m pip install --no-cache-dir wheel==0.37.1 && \
-    python -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
-    python -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt && \
-    rm -rf venv
-
-# ==============================================================================
-FROM wheel_builder_base as wheel_builder_py311
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /tmp/
-COPY requirements /tmp/requirements
-
-ENV PYTHON=python3.11
-RUN $PYTHON -m venv venv --upgrade-deps && \
-    source ./venv/bin/activate && \
-    python -m pip install --no-cache-dir wheel==0.37.1 && \
-    python -m pip wheel -w /wheels --no-cache-dir -r /tmp/requirements-ci.txt && \
-    python -m pip wheel -w /wheels --no-cache-dir -v -r /tmp/requirements-extras.txt && \
-    rm -rf venv
-
-# ==============================================================================
 
 FROM wheel_builder_base as conan_builder
 ARG CONAN_USER_HOME
@@ -113,16 +44,9 @@ ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
-COPY --from=wheel_builder_py38 /wheels/* /wheels/
-COPY --from=wheel_builder_py39 /wheels/* /wheels/
-COPY --from=wheel_builder_py310 /wheels/* /wheels/
-COPY --from=wheel_builder_py311 /wheels/* /wheels/
-
-RUN chmod -R 777 /wheels
-ENV PIP_FIND_LINKS=/wheels
 COPY requirements/ /tmp/requirements
 COPY ci/docker/linux/tox/requirements-conan-build.txt /tmp/requirements
-RUN pip3 install --no-cache-dir  -r /tmp/requirements/requirements_tox.txt -r /tmp/requirements/requirements-conan-build.txt "devpi-client<6.0" twine
+RUN pip3 install --no-cache-dir  -r /tmp/requirements/requirements_tox.txt -r /tmp/requirements/requirements-conan-build.txt devpi-client twine
 
 
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
@@ -143,5 +67,11 @@ RUN conan install /tmp --build  missing --no-import -pr:b=default -s compiler.ve
     chmod -R 777 ${CONAN_USER_HOME}
 
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}
+ARG PIP_DOWNLOAD_CACHE
+RUN mkdir -p ${PIP_DOWNLOAD_CACHE} && \
+    chmod -R 777 ${PIP_DOWNLOAD_CACHE}
+
+ENV PIP_DOWNLOAD_CACHE=${PIP_DOWNLOAD_CACHE}
+
 WORKDIR /src
 CMD ["tox", "--workdir", "/tmp/tox/",  "-p=auto", "--parallel--safe-build", "--recreate"]

@@ -46,7 +46,8 @@ def getToxStages(){
                             envNamePrefix: 'Tox Linux',
                             label: 'linux && docker && x86',
                             dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                            dockerArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+                            dockerArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                            dockerRunArgs: '-v pipcache_tesseractglue:/.cache/pip',
                             retry: 2
                         )
                 },
@@ -57,6 +58,7 @@ def getToxStages(){
                                 label: 'windows && docker && x86',
                                 dockerfile: 'ci/docker/windows/tox/Dockerfile',
                                 dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE',
+                                dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip',
                                 retry: 2
                          )
                     }
@@ -583,7 +585,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/jenkins/Dockerfile'
                             label 'linux && docker && x86'
-                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL '
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip '
                         }
                     }
                     when{
@@ -639,7 +641,7 @@ pipeline {
                                 dockerfile {
                                     filename 'ci/docker/linux/jenkins/Dockerfile'
                                     label 'linux && docker && x86'
-                                    additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                    additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
                                     args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                                 }
                             }
@@ -1088,7 +1090,8 @@ pipeline {
                                                 dockerfile: [
                                                     label: 'linux && docker && x86',
                                                     filename: 'ci/docker/linux/tox/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                    additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                                                    args: '-v pipcache_tesseractglue:/.cache/pip',
                                                 ]
                                             ],
                                             testSetup: {
@@ -1128,7 +1131,8 @@ pipeline {
                                                 dockerfile: [
                                                     label: 'linux && docker && x86',
                                                     filename: 'ci/docker/linux/tox/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                    additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                                                    args: '-v pipcache_tesseractglue:/.cache/pip',
                                                 ]
                                             ],
                                             testSetup: {
@@ -1165,7 +1169,8 @@ pipeline {
                                                 dockerfile: [
                                                     label: 'linux && docker && arm64',
                                                     filename: 'ci/docker/linux/tox/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg TARGETARCH=arm64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                    additionalBuildArgs: '--build-arg TARGETARCH=arm64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+                                                    args: '-v pipcache_tesseractglue:/.cache/pip',
                                                 ]
                                             ],
                                             testSetup: {
@@ -1205,7 +1210,8 @@ pipeline {
                                                 dockerfile: [
                                                     label: 'linux && docker && arm64',
                                                     filename: 'ci/docker/linux/tox/Dockerfile',
-                                                    additionalBuildArgs: '--build-arg TARGETARCH=arm64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                                                    additionalBuildArgs: '--build-arg TARGETARCH=arm64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
+                                                    args: '-v pipcache_tesseractglue:/.cache/pip',
                                                 ]
                                             ],
                                             testSetup: {
@@ -1266,7 +1272,8 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
                             label 'linux && docker && x86 && devpi-access'
-                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
+                            args '-v pipcache_tesseractglue:/.cache/pip'
                           }
                     }
                     options{
@@ -1280,9 +1287,8 @@ pipeline {
                             }
                             load('ci/jenkins/scripts/devpi.groovy').upload(
                                 server: DEVPI_CONFIG.server,
-                                credentialsId: 'DS_devpi',
+                                credentialsId: DEVPI_CONFIG.credentialsId,
                                 index: DEVPI_CONFIG.stagingIndex,
-                                clientDir: './devpi'
                             )
                         }
                     }
@@ -1371,8 +1377,9 @@ pipeline {
                                                 agent: [
                                                     dockerfile: [
                                                         filename: 'ci/docker/linux/tox/Dockerfile',
-                                                        additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
-                                                        label: 'linux && docker && x86 && devpi-access'
+                                                        additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                                                        label: 'linux && docker && x86 && devpi-access',
+                                                        args: '-v pipcache_tesseractglue:/.cache/pip',
                                                     ]
                                                 ],
                                                 devpi: [
@@ -1397,8 +1404,9 @@ pipeline {
                                                 agent: [
                                                     dockerfile: [
                                                         filename: 'ci/docker/linux/tox/Dockerfile',
-                                                        additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL',
-                                                        label: 'linux && docker && x86 && devpi-access'
+                                                        additionalBuildArgs: '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                                                        label: 'linux && docker && x86 && devpi-access',
+                                                        args: '-v pipcache_tesseractglue:/.cache/pip',
                                                     ]
                                                 ],
                                                 devpi: [
@@ -1445,7 +1453,8 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
                             label 'linux && docker && devpi-access'
-                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
+                            args '-v pipcache_tesseractglue:/.cache/pip'
                         }
                     }
                     steps {
@@ -1469,7 +1478,7 @@ pipeline {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
-                                docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                                docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .').inside{
                                     load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
@@ -1487,7 +1496,7 @@ pipeline {
                     node('linux && docker && devpi-access') {
                         script{
                             checkout scm
-                            docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL .').inside{
+                            docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .').inside{
                                 load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
@@ -1509,7 +1518,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/jenkins/Dockerfile'
                             label 'linux && docker'
-                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL'
+                            additionalBuildArgs '--build-arg TARGETARCH=amd64 --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
                         }
                     }
                     when{
