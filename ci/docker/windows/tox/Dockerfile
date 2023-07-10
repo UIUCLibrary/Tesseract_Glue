@@ -1,6 +1,7 @@
 # escape=`
 ARG CONAN_USER_HOME=C:/Users/ContainerAdministrator
 ARG VS_INSTALL_PATH="C:\BuildTools\"
+ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc2019
 FROM ${FROM_IMAGE} as certsgen
 RUN certutil -generateSSTFromWU roots.sst
@@ -112,75 +113,6 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     Write-Host "Finished install packages with Chocolatey"
 
 
-
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.8
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements/requirements_conan.txt `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.9
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements/requirements_conan.txt `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY310
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.10
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements/requirements_conan.txt `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY311
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.11
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements/requirements_conan.txt `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
 # ==============================================================================
 FROM CHOCOLATEY_BASE as CONAN_BUILDER
 ARG PIP_EXTRA_INDEX_URL
@@ -204,19 +136,11 @@ RUN conan install c:/temp/ --build missing --no-import; `
 
 FROM CHOCOLATEY_BASE
 
-COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
-RUN py -3.8 -m pip install --upgrade pip
+RUN py -3.8 -m pip install --upgrade pip ; `
+    py -3.9 -m pip install --upgrade pip ; `
+    py -3.10 -m pip install --upgrade pip ; `
+    py -3.11 -m pip install --upgrade pip
 
-COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
-RUN py -3.9 -m pip install --upgrade pip
-
-COPY --from=WHEEL_BUILDER_PY310 C:/wheels/ c:/wheels/
-RUN py -3.10 -m pip install --upgrade pip
-
-COPY --from=WHEEL_BUILDER_PY311 C:/wheels/ c:/wheels/
-RUN py -3.11 -m pip install --upgrade pip
-
-ENV PIP_FIND_LINKS=c:\wheels
 COPY requirements c:/requirements/requirements
 RUN python -m pip install pip --upgrade ; pip install -r c:/requirements/requirements/requirements_tox.txt -r c:/requirements/requirements/requirements_conan.txt cmake devpi_client
 
@@ -231,6 +155,9 @@ RUN conan install c:/temp/ --build outdated --no-import  ; `
     conan install c:/temp/ --build outdated -o "tesseract:shared=True" --no-import  ; `
     conan remove "*" -b --src -f ; `
     conan remove --locks
+
+ARG PIP_DOWNLOAD_CACHE
+RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force
 
 WORKDIR C:/src
 CMD tox --workdir %TEMP%\tox\ -vv  --recreate

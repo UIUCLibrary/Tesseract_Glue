@@ -1,5 +1,5 @@
 # escape=`
-
+ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8
 FROM ${FROM_IMAGE} as certsgen
 RUN certutil -generateSSTFromWU roots.sst
@@ -53,80 +53,11 @@ RUN certutil -addstore -f root roots.sst ; `
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY38
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.8
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY39
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.9
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY310
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.10
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
-# ==============================================================================
-FROM CHOCOLATEY_BASE as WHEEL_BUILDER_PY311
-SHELL ["cmd", "/S", "/C" ]
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt c:/requirements/
-COPY requirements c:/requirements/requirements
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ENV PY_PYTHON=3.11
-ENV PIP_NO_CACHE_DIR=off
-RUN py -m pip install --upgrade pip && `
-    py -m pip install wheel && `
-    py -m pip wheel -w c:\wheels\ --no-cache-dir `
-      -r c:/requirements/requirements-ci.txt `
-      -r c:/requirements/requirements-extras.txt
-
-# ==============================================================================
 FROM CHOCOLATEY_BASE
-COPY --from=WHEEL_BUILDER_PY38 C:/wheels/ c:/wheels/
-COPY --from=WHEEL_BUILDER_PY39 C:/wheels/ c:/wheels/
-COPY --from=WHEEL_BUILDER_PY310 C:/wheels/ c:/wheels/
-COPY --from=WHEEL_BUILDER_PY311 C:/wheels/ c:/wheels/
 
-ENV PIP_FIND_LINKS=c:\wheels
 COPY requirements c:/requirements/requirements
 RUN python -m pip install pip --upgrade ; pip install install -r c:/requirements/requirements/requirements_tox.txt devpi_client
-
+ARG PIP_DOWNLOAD_CACHE
+RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force
 WORKDIR C:/src
 CMD tox --workdir ${Env:TEMP}\tox\ -vv  --recreate
