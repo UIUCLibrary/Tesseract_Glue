@@ -1,7 +1,6 @@
 conan
 coverage
 MarkupSafe
-pip
 pytest
 pytest-bdd
 pytest-cov

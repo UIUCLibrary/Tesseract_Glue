@@ -6,8 +6,8 @@ RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-COPY requirements/requirements_conan.txt /tmp/requirements_conan.txt
-RUN python3 --version && python3 -m pip install --no-cache-dir -r /tmp/requirements_conan.txt
+COPY requirements/requirements-conan.txt /tmp/requirements-conan.txt
+RUN python3 --version && python3 -m pip install --no-cache-dir -r /tmp/requirements-conan.txt
 ARG TARGETARCH
 ARG CONAN_USER_HOME
 COPY ci/docker/linux/package/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
