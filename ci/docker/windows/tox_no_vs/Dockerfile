@@ -53,10 +53,10 @@ RUN certutil -addstore -f root roots.sst ; `
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
-FROM CHOCOLATEY_BASE
+COPY requirements-ci.txt c:/python_requirments/
+COPY requirements/ c:/python_requirments/requirements
+RUN python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-ci.txt
 
-COPY requirements c:/requirements/requirements
-RUN python -m pip install pip --upgrade ; pip install install -r c:/requirements/requirements/requirements_tox.txt devpi_client
 ARG PIP_DOWNLOAD_CACHE
 RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force
 WORKDIR C:/src

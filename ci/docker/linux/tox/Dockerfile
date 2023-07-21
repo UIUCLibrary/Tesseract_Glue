@@ -19,9 +19,9 @@ RUN mkdir -p /.cache/pip && \
 
 FROM wheel_builder_base as conan_builder
 ARG CONAN_USER_HOME
-COPY ci/docker/linux/tox/requirements-conan-build.txt /tmp/
-COPY requirements/requirements_conan.txt /tmp/requirements_conan.txt
-RUN pip3 install --no-cache-dir -r /tmp/requirements-conan-build.txt
+COPY requirements/requirements-ci-freeze.txt /tmp/requirements-ci-freeze.txt
+RUN python3 -m pip install pip --upgrade && pip3 install --no-cache-dir -r /tmp/requirements-ci-freeze.txt
+RUN which conan
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 ARG TARGETARCH
 COPY ci/docker/linux/tox/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
@@ -44,9 +44,9 @@ ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
-COPY requirements/ /tmp/requirements
-COPY ci/docker/linux/tox/requirements-conan-build.txt /tmp/requirements
-RUN pip3 install --no-cache-dir  -r /tmp/requirements/requirements_tox.txt -r /tmp/requirements/requirements-conan-build.txt devpi-client twine
+COPY requirements/ /tmp/requirements/requirements/
+COPY requirements-ci.txt /tmp/requirements/requirements-ci.txt
+RUN python3 -m pip install pip --upgrade && pip3 install --no-cache-dir  -r /tmp/requirements/requirements-ci.txt
 
 
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/

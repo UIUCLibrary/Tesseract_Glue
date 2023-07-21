@@ -1,6 +1,7 @@
 ARG SONAR_SCANNER_VERSION=4.7.0.2747
 ARG PYTHON_VERSION=3.11
 ARG CONAN_USER_HOME=/conan
+ARG PIP_FIND_LINKS=/wheels/
 FROM python:${PYTHON_VERSION} as base_python
 RUN apt-get update -y &&  \
     apt-get install -y --no-install-recommends ca-certificates git && \
@@ -13,20 +14,21 @@ ARG PIP_INDEX_URL
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
-COPY requirements/requirements_conan.txt /tmp/requirements_conan.txt
+COPY requirements/requirements-conan.txt /tmp/requirements-conan.txt
 RUN python -m pip --no-cache-dir  install --upgrade pip &&  \
     pip install --no-cache-dir wheel cmake && \
     pip install --no-cache-dir setuptools && \
-    pip install --no-cache-dir -r /tmp/requirements_conan.txt
-
-COPY ci/docker/shared/python/requirements-ci.txt ci/docker/shared/python/requirements-extras.txt /requirements/
-COPY requirements/ /requirements/requirements/
+    pip install --no-cache-dir -r /tmp/requirements-conan.txt
 
 FROM base_python as wheel_builder
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN pip wheel -r /requirements/requirements-ci.txt --no-cache --wheel-dir /wheels/ && \
-    pip wheel -r /requirements/requirements-extras.txt --no-cache --wheel-dir /wheels/
+COPY requirements-ci.txt /requirements/
+COPY requirements/ /requirements/requirements/
+
+ARG PIP_FIND_LINKS
+RUN mkdir -p ${PIP_FIND_LINKS} &&  \
+    pip wheel --wheel-dir=${PIP_FIND_LINKS} --no-cache-dir -r /requirements/requirements-ci.txt
 
 FROM base_python as conan_builder
 ARG CONAN_USER_HOME
@@ -98,9 +100,15 @@ RUN chmod -R 777 $SONAR_USER_HOME
 
 ENV SONAR_SCANNER_OPTS="-server"
 
-ARG PIP_EXTRA_INDEX_URL
+ARG PIP_FIND_LINKS
 ARG PIP_INDEX_URL
-COPY --from=wheel_builder /wheels/* /wheels/
+ARG PIP_EXTRA_INDEX_URL
+ARG PIP_TRUSTED_HOST
+COPY --from=wheel_builder ${PIP_FIND_LINKS}/* ${PIP_FIND_LINKS}/
+COPY --from=wheel_builder requirements/ /requirements
+RUN pip install --no-index --no-cache-dir --find-links=${PIP_FIND_LINKS} \
+    -r /requirements/requirements-ci.txt
+
 ARG CONAN_USER_HOME
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
 ARG TARGETARCH
@@ -116,5 +124,3 @@ RUN conan install /tmp --build  missing --no-import && \
     conan remove --locks && \
     chmod -R 777 ${CONAN_USER_HOME}
 
-RUN pip install  --no-cache-dir  --no-index --find-links=/wheels/ \
-         -r /requirements/requirements-ci.txt
