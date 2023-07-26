@@ -335,7 +335,7 @@ def build_wheels(){
         def buildStages =  [
            failFast: true,
             'Source Distribution': {
-                node('docker'){
+                node('docker && linux'){
                     docker.image("python").inside(){
                         try{
                             checkout scm
