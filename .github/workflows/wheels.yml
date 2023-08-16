@@ -25,7 +25,11 @@ jobs:
 
       - name: Install cibuildwheel
         run: python -m pip install cibuildwheel==2.15.0
-
+      - uses: actions/cache@v3
+        id: cache-conan
+        with:
+          path: "${{ runner.temp }}/.conan"
+          key: ${{ runner.os }}-compiler-${{ matrix.compiler_version}} ${{ hashFiles('**/conanfile.py') }}
       - name: Build wheels
         if: contains(matrix.os, 'windows')
         shell: cmd
