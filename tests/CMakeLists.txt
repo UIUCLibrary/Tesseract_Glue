@@ -1,4 +1,4 @@
-set(TEST_FILES_BASE_URL "https://jenkins.library.illinois.edu/nexus/repository/sample-data/ocr_test_images")
+set(TEST_FILES_BASE_URL "https://nexus.library.illinois.edu/repository/sample-data/ocr_test_images")
 
 list(APPEND test_image_files blankpage.tif)
 list(APPEND test_image_files engwithheadings.tif)
