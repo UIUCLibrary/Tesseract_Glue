@@ -2,7 +2,7 @@ ARG SONAR_SCANNER_VERSION=4.7.0.2747
 ARG PYTHON_VERSION=3.11
 ARG CONAN_USER_HOME=/conan
 ARG PIP_FIND_LINKS=/wheels/
-FROM python:${PYTHON_VERSION} as base_python
+FROM python:${PYTHON_VERSION} AS base_python
 RUN apt-get update -y &&  \
     apt-get install -y --no-install-recommends ca-certificates git && \
     apt-get clean && \
@@ -20,7 +20,7 @@ RUN python -m pip --no-cache-dir  install --upgrade pip &&  \
     pip install --no-cache-dir setuptools && \
     pip install --no-cache-dir -r /tmp/requirements-conan.txt
 
-FROM base_python as wheel_builder
+FROM base_python AS wheel_builder
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 COPY requirements-ci.txt /requirements/
@@ -30,25 +30,25 @@ ARG PIP_FIND_LINKS
 RUN mkdir -p ${PIP_FIND_LINKS} &&  \
     pip wheel --wheel-dir=${PIP_FIND_LINKS} --no-cache-dir -r /requirements/requirements-ci.txt
 
-FROM base_python as conan_builder
+FROM base_python AS conan_builder
 ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-RUN pip install --no-cache-dir "conan>=1.51"
-ARG TARGETARCH
-COPY ci/docker/linux/jenkins/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
+COPY requirements/requirements-conan.txt /tmp/requirements-conan.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-conan.txt
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \
-    conan config set general.revisions_enabled=1
-RUN conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=default && \
+    conan config set general.revisions_enabled=1 && \
+    conan profile update settings.compiler.version=$(cc -dumpfullversion -dumpversion | grep -oE  "^([0-9]+(\.)?)([0-9]+?)") default && \
+    conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=default && \
     conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=default -s build_type=Debug && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
 #==============================================================================
 
-FROM base_python as SONAR_BUILDER
+FROM base_python AS SONAR_BUILDER
 RUN apt-get update && \
     apt-get install  -y --no-install-recommends unzip && \
     apt-get clean && \
@@ -111,13 +111,8 @@ RUN pip install --no-index --no-cache-dir --find-links=${PIP_FIND_LINKS} \
 
 ARG CONAN_USER_HOME
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
-ARG TARGETARCH
-COPY ci/docker/linux/jenkins/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/profiles/default
 COPY conanfile.py /tmp/conanfile.py
-
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}
-RUN conan config init && \
-    conan config set general.revisions_enabled=1
 
 RUN conan install /tmp --build  missing --no-import && \
     conan remove "*" -b --src -f && \
