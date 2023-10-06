@@ -153,7 +153,7 @@ RUN py -3.8 -m pip install --upgrade pip ; `
     py -3.10 -m pip install --upgrade pip ; `
     py -3.11 -m pip install --upgrade pip ; `
     py -3.12 -m pip install --upgrade pip ; `
-    python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-ci.txt
+    python -m pip install pip --upgrade ; py -3.11 -m pip install --no-cache-dir -r c:/python_requirments/requirements-ci.txt
 
 ARG PIPX_HOME
 ENV PIPX_HOME=${PIPX_HOME}
