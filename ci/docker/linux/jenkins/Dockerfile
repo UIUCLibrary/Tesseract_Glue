@@ -1,4 +1,4 @@
-ARG SONAR_SCANNER_VERSION=4.7.0.2747
+ARG SONAR_SCANNER_VERSION=5.0.1.3006
 ARG PYTHON_VERSION=3.11
 ARG CONAN_USER_HOME=/conan
 ARG PIP_FIND_LINKS=/wheels/
@@ -59,12 +59,12 @@ ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
 ENV SONAR_USER_HOME=/opt/sonar/.sonar
 
 RUN curl --create-dirs -sSLo /tmp/sonar-scanner.zip \
-        https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-$SONAR_SCANNER_VERSION-linux.zip && \
+        https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip && \
     unzip -o /tmp/sonar-scanner.zip -d /opt/sonar/ && \
     rm /tmp/sonar-scanner.zip && \
-    mkdir -p $SONAR_USER_HOME/cache && \
+    mkdir -p ${SONAR_USER_HOME}/cache && \
     chmod -R 777 "${SONAR_USER_HOME}" &&\
-    ln -s /opt/sonar/sonar-scanner-$SONAR_SCANNER_VERSION-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner && \
+    ln -s /opt/sonar/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner && \
     which sonar-scanner
 
 
