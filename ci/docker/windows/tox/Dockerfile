@@ -1,6 +1,7 @@
 # escape=`
 ARG CONAN_USER_HOME=C:/Users/ContainerAdministrator
 ARG VS_INSTALL_PATH="C:\BuildTools\"
+ARG PIPX_HOME=c:\pipx
 ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc2019
 FROM ${FROM_IMAGE} as certsgen
@@ -162,6 +163,16 @@ RUN conan install c:/temp/ --build outdated --no-import  ; `
 
 ARG PIP_DOWNLOAD_CACHE
 RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force
+
+ARG PIPX_HOME
+ENV PIPX_HOME=${PIPX_HOME}
+ENV PIPX_BIN_DIR=${PIPX_HOME}\bin
+
+
+RUN py -3 -m pip install --no-cache-dir pipx ; `
+    py -3 -m pipx ensurepath
+RUN py -3 -m pipx install 'devpi-client<7.0'
+
 
 WORKDIR C:/src
 CMD tox --workdir %TEMP%\tox\ -vv  --recreate
