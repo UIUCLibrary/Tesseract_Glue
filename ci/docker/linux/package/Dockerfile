@@ -27,4 +27,8 @@ RUN conan install /tmp --build missing --build tesseract && \
     conan remove --locks && \
     chmod -R 777 ${CONAN_USER_HOME}
 
-RUN python3 -m pip install --no-cache-dir build
+RUN python3 -m pip install --no-cache-dir build && \
+    python3.8 -m pip install --no-cache-dir build && \
+    python3.9 -m pip install --no-cache-dir build && \
+    python3.10 -m pip install --no-cache-dir build && \
+    python3.11 -m pip install --no-cache-dir build
