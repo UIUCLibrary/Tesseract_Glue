@@ -9,7 +9,7 @@ FROM ${FROM_IMAGE} AS BASE_BUILDER
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
-FROM BASE_BUILDER as CHOCOLATEY_BASE
+FROM BASE_BUILDER AS CHOCOLATEY_BASE
 ARG CHOCOLATEY_SOURCE=https://chocolatey.org/api/v2
 ARG ChocolateyEnvironmentDebug=false
 ADD ci/docker/shared/chocolatey/install_choco.ps1 choco/install_choco.ps1
@@ -34,6 +34,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no
     py -3.9 --version ; `
     py -3.10 --version ; `
     py -3.11 --version ; `
+    py -3.12 --version ; `
     Write-Host "Installing Python with Chocolatey - Done" \
 
 ADD ci/docker/shared/chocolatey/packages.config choco/packages.config

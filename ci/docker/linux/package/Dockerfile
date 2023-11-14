@@ -31,4 +31,5 @@ RUN python3 -m pip install --no-cache-dir build && \
     python3.8 -m pip install --no-cache-dir build && \
     python3.9 -m pip install --no-cache-dir build && \
     python3.10 -m pip install --no-cache-dir build && \
-    python3.11 -m pip install --no-cache-dir build
+    python3.11 -m pip install --no-cache-dir build && \
+    python3.12 -m pip install --no-cache-dir build
