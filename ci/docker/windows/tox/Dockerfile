@@ -99,6 +99,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no
     py -3.9 --version ; `
     py -3.10 --version ; `
     py -3.11 --version ; `
+    py -3.12 --version ; `
     Write-Host "Installing Python with Chocolatey - Done"
 
 ADD ci/docker/shared/chocolatey/packages.config choco/packages.config
@@ -150,6 +151,7 @@ RUN py -3.8 -m pip install --upgrade pip ; `
     py -3.9 -m pip install --upgrade pip ; `
     py -3.10 -m pip install --upgrade pip ; `
     py -3.11 -m pip install --upgrade pip ; `
+    py -3.12 -m pip install --upgrade pip ; `
     python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-ci.txt
 
 ARG CONAN_USER_HOME
