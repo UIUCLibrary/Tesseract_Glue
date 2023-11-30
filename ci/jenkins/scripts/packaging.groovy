@@ -144,6 +144,7 @@ def buildPkg(args = [:]){
         }
     }
     def retries = args['retries'] ? args['retries'] : 1
+    retry(retries){
         def agentRunner = getAgent(args, dockerImageName)
         agentRunner {
             setup()
