@@ -130,7 +130,6 @@ def testPkg2(args = [:]){
 
 def buildPkg(args = [:]){
     def dockerImageName = "${currentBuild.fullProjectName}_${getToxEnv(args)}_build".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
-    def agentRunner = getAgent(args, dockerImageName)
     def setup = args['buildSetup'] ? args['buildSetup']: {
         checkout scm
     }
@@ -144,16 +143,20 @@ def buildPkg(args = [:]){
             bat "py -m pip wheel --no-deps -w ./dist ."
         }
     }
-    agentRunner {
-        setup()
-        try{
-            buildCmd()
-            successful()
-        } catch(e){
-            failure()
-            throw e
-        } finally{
-            cleanup()
+    def retries = args['retries'] ? args['retries'] : 1
+    retry(retries){
+        def agentRunner = getAgent(args, dockerImageName)
+        agentRunner {
+            setup()
+            try{
+                buildCmd()
+                successful()
+            } catch(e){
+                failure()
+                throw e
+            } finally{
+                cleanup()
+            }
         }
     }
 }

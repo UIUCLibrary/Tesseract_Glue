@@ -270,6 +270,7 @@ def linux_wheels(){
                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=quay.io/pypa/manylinux_2_28_x86_64'
                                         ]
                                     ],
+                                    retries: 3,
                                     buildCmd: {
                                         try {
                                             sh(label: 'Building python wheel',
@@ -360,6 +361,7 @@ def linux_wheels(){
                                             additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=quay.io/pypa/manylinux_2_28_aarch64'
                                         ]
                                     ],
+                                    retries: 3,
                                     buildCmd: {
                                         try {
                                             sh(label: 'Building python wheel',
@@ -466,6 +468,7 @@ def windows_wheels(){
                                         additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
                                     ]
                                 ],
+                                retries: 3,
                                 buildCmd: {
                                     bat """py -${pythonVersion} -m venv venv
                                            venv\\Scripts\\python -m pip install pip --upgrade
@@ -558,6 +561,7 @@ def mac_wheels(){
                                         agent: [
                                             label: "mac && python${pythonVersion} && x86",
                                         ],
+                                        retries: 3,
                                         buildCmd: {
                                             withEnv([
                                                 '_PYTHON_HOST_PLATFORM=macosx-10.9-x86_64',
