@@ -305,46 +305,48 @@ def linux_wheels(){
                                     ]
                                 )
                             }
-                            stage("Test Wheel (${pythonVersion} Linux x86_64)"){
-                                packages.testPkg2(
-                                    agent: [
-                                        dockerfile: [
-                                            label: 'linux && docker && x86',
-                                            filename: 'ci/docker/linux/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
-                                            args: '-v pipcache_tesseractglue:/.cache/pip',
-                                        ]
-                                    ],
-                                    testSetup: {
-                                        checkout scm
-                                        unstash "python${pythonVersion} linux x86_64 wheel"
-                                    },
-                                    testCommand: {
-                                        findFiles(glob: 'dist/*.whl').each{
-                                            timeout(5){
-                                                sh(
-                                                    label: 'Running Tox',
-                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
-                                                    )
+                            if(params.TEST_PACKAGES == true){
+                                stage("Test Wheel (${pythonVersion} Linux x86_64)"){
+                                    packages.testPkg(
+                                        agent: [
+                                            dockerfile: [
+                                                label: 'linux && docker && x86',
+                                                filename: 'ci/docker/linux/tox/Dockerfile',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                                                args: '-v pipcache_tesseractglue:/.cache/pip',
+                                            ]
+                                        ],
+                                        testSetup: {
+                                            checkout scm
+                                            unstash "python${pythonVersion} linux x86_64 wheel"
+                                        },
+                                        testCommand: {
+                                            findFiles(glob: 'dist/*.whl').each{
+                                                timeout(5){
+                                                    sh(
+                                                        label: 'Running Tox',
+                                                        script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
+                                                        )
+                                                }
                                             }
-                                        }
-                                    },
-                                    post:[
-                                        cleanup: {
-                                            cleanWs(
-                                                patterns: [
-                                                        [pattern: 'dist/', type: 'INCLUDE'],
-                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                    ],
-                                                notFailBuild: true,
-                                                deleteDirs: true
-                                            )
                                         },
-                                        success: {
-                                            archiveArtifacts artifacts: 'dist/*.whl'
-                                        },
-                                    ]
-                                )
+                                        post:[
+                                            cleanup: {
+                                                cleanWs(
+                                                    patterns: [
+                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                        ],
+                                                    notFailBuild: true,
+                                                    deleteDirs: true
+                                                )
+                                            },
+                                            success: {
+                                                archiveArtifacts artifacts: 'dist/*.whl'
+                                            },
+                                        ]
+                                    )
+                                }
                             }
                         }
                     }
@@ -397,7 +399,7 @@ def linux_wheels(){
                                 )
                             }
                             stage("Test Wheel (${pythonVersion} Linux arm64)"){
-                                packages.testPkg2(
+                                packages.testPkg(
                                     agent: [
                                         dockerfile: [
                                             label: 'linux && docker && arm64',
@@ -496,42 +498,44 @@ def windows_wheels(){
                                 ]
                             )
                         }
-                        stage("Test Wheel (${pythonVersion} Windows x86_64)"){
-                            packages.testPkg2(
-                                agent: [
-                                    dockerfile: [
-                                        label: 'windows && docker && x86',
-                                        filename: 'ci/docker/windows/tox_no_vs/Dockerfile',
-                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
-                                    ]
-                                ],
-                                dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
-                                testSetup: {
-                                     checkout scm
-                                     unstash "python${pythonVersion} windows wheel"
-                                },
-                                testCommand: {
-                                     findFiles(glob: 'dist/*.whl').each{
-                                         powershell(label: 'Running Tox', script: "tox --installpkg ${it.path} --workdir \$env:TEMP\\tox  -e py${pythonVersion.replace('.', '')}")
-                                     }
-
-                                },
-                                post:[
-                                    cleanup: {
-                                        cleanWs(
-                                            patterns: [
-                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                ],
-                                            notFailBuild: true,
-                                            deleteDirs: true
-                                        )
+                        if(params.TEST_PACKAGES == true){
+                            stage("Test Wheel (${pythonVersion} Windows x86_64)"){
+                                packages.testPkg(
+                                    agent: [
+                                        dockerfile: [
+                                            label: 'windows && docker && x86',
+                                            filename: 'ci/docker/windows/tox_no_vs/Dockerfile',
+                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE'
+                                        ]
+                                    ],
+                                    dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
+                                    testSetup: {
+                                         checkout scm
+                                         unstash "python${pythonVersion} windows wheel"
                                     },
-                                    success: {
-                                        archiveArtifacts artifacts: 'dist/*.whl'
-                                    }
-                                ]
-                            )
+                                    testCommand: {
+                                         findFiles(glob: 'dist/*.whl').each{
+                                             powershell(label: 'Running Tox', script: "tox --installpkg ${it.path} --workdir \$env:TEMP\\tox  -e py${pythonVersion.replace('.', '')}")
+                                         }
+
+                                    },
+                                    post:[
+                                        cleanup: {
+                                            cleanWs(
+                                                patterns: [
+                                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                    ],
+                                                notFailBuild: true,
+                                                deleteDirs: true
+                                            )
+                                        },
+                                        success: {
+                                            archiveArtifacts artifacts: 'dist/*.whl'
+                                        }
+                                    ]
+                                )
+                            }
                         }
                     }
                 }
@@ -609,7 +613,7 @@ def mac_wheels(){
                                 }
                                 if(params.TEST_PACKAGES == true){
                                     stage("Test Wheel (${pythonVersion} MacOS x86_64)"){
-                                        packages.testPkg2(
+                                        packages.testPkg(
                                             agent: [
                                                 label: "mac && python${pythonVersion} && x86_64",
                                             ],
@@ -708,7 +712,7 @@ def mac_wheels(){
                                 }
                                 if(params.TEST_PACKAGES == true){
                                     stage("Test Wheel (${pythonVersion} MacOS m1)"){
-                                        packages.testPkg2(
+                                        packages.testPkg(
                                             agent: [
                                                 label: "mac && python${pythonVersion} && m1",
                                             ],
@@ -797,7 +801,7 @@ def mac_wheels(){
                                 parallel(
                                     "Test Python ${pythonVersion} universal2 Wheel on x86_64 mac": {
                                         stage("Test Python ${pythonVersion} universal2 Wheel on x86_64 mac"){
-                                            packages.testPkg2(
+                                            packages.testPkg(
                                                 agent: [
                                                     label: "mac && python${pythonVersion} && x86_64",
                                                 ],
@@ -839,7 +843,7 @@ def mac_wheels(){
                                     },
                                     "Test Python ${pythonVersion} universal2 Wheel on M1 Mac": {
                                         stage("Test Python ${pythonVersion} universal2 Wheel on M1 Mac"){
-                                            packages.testPkg2(
+                                            packages.testPkg(
                                                 agent: [
                                                     label: "mac && python${pythonVersion} && m1",
                                                 ],
@@ -1426,7 +1430,7 @@ pipeline {
                                         arches.each{arch ->
                                             testSdistStages["Test sdist (MacOS ${arch} - Python ${pythonVersion})"] = {
                                                 stage("Test sdist (MacOS ${arch} - Python ${pythonVersion})"){
-                                                    packages.testPkg2(
+                                                    packages.testPkg(
                                                         agent: [
                                                             label: "mac && python${pythonVersion} && ${arch}",
                                                         ],
@@ -1468,7 +1472,7 @@ pipeline {
                                             testSdistStages["Test sdist (Windows x86_64 - Python ${pythonVersion})"] = {
                                                 stage("Test sdist (Windows x86_64 - Python ${pythonVersion})"){
                                                     retry(2){
-                                                        packages.testPkg2(
+                                                        packages.testPkg(
                                                             agent: [
                                                                 dockerfile: [
                                                                     label: 'windows && docker && x86',
@@ -1509,7 +1513,7 @@ pipeline {
                                         if(params.INCLUDE_LINUX_X86_64 == true){
                                             testSdistStages["Test sdist (Linux x86_64 - Python ${pythonVersion})"] = {
                                                 stage("Test sdist (Linux x86_64 - Python ${pythonVersion})"){
-                                                    packages.testPkg2(
+                                                    packages.testPkg(
                                                         agent: [
                                                             dockerfile: [
                                                                 label: 'linux && docker && x86',
@@ -1548,7 +1552,7 @@ pipeline {
                                         if(params.INCLUDE_LINUX_ARM == true){
                                             testSdistStages["Test sdist (Linux ARM64 - Python ${pythonVersion})"] = {
                                                 stage("Test sdist (Linux ARM64 - Python ${pythonVersion})"){
-                                                    packages.testPkg2(
+                                                    packages.testPkg(
                                                         agent: [
                                                             dockerfile: [
                                                                 label: 'linux && docker && arm64',
@@ -1823,7 +1827,8 @@ pipeline {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
-                                docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .').inside{
+                                def dockerImage = docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .')
+                                dockerImage.inside{
                                     load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
@@ -1833,6 +1838,7 @@ pipeline {
                                         credentialsId: DEVPI_CONFIG.credentialsId
                                     )
                                 }
+                                sh script: "docker image rm --no-prune ${dockerImage.imageName()}"
                             }
                         }
                     }
@@ -1841,7 +1847,8 @@ pipeline {
                     node('linux && docker && devpi-access') {
                         script{
                             checkout scm
-                            docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .').inside{
+                            def dockerImage = docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .')
+                            dockerImage.inside{
                                 load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
@@ -1851,6 +1858,7 @@ pipeline {
 
                                 )
                             }
+                            sh script: "docker image rm --no-prune ${dockerImage.imageName()}"
                         }
                     }
                 }
