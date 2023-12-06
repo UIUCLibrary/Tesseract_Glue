@@ -1827,7 +1827,8 @@ pipeline {
                         script{
                             if (!env.TAG_NAME?.trim()){
                                 checkout scm
-                                docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .').inside{
+                                def dockerImage = docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .')
+                                dockerImage.inside{
                                     load('ci/jenkins/scripts/devpi.groovy').pushPackageToIndex(
                                         pkgName: props.Name,
                                         pkgVersion: props.Version,
@@ -1837,6 +1838,7 @@ pipeline {
                                         credentialsId: DEVPI_CONFIG.credentialsId
                                     )
                                 }
+                                sh script: "docker image rm --no-prune ${dockerImage.imageName()}"
                             }
                         }
                     }
@@ -1845,7 +1847,8 @@ pipeline {
                     node('linux && docker && devpi-access') {
                         script{
                             checkout scm
-                            docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .').inside{
+                            def dockerImage = docker.build('ocr:devpi','-f ./ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip .')
+                            dockerImage.inside{
                                 load('ci/jenkins/scripts/devpi.groovy').removePackage(
                                     pkgName: props.Name,
                                     pkgVersion: props.Version,
@@ -1855,6 +1858,7 @@ pipeline {
 
                                 )
                             }
+                            sh script: "docker image rm --no-prune ${dockerImage.imageName()}"
                         }
                     }
                 }
