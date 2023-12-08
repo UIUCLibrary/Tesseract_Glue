@@ -130,16 +130,18 @@ def buildPkg(args = [:]){
         }
     }
     def retries = args['retries'] ? args['retries'] : 1
-    agentRunner {
-        setup()
-        try{
-            buildCmd()
-            successful()
-        } catch(e){
-            failure()
-            throw e
-        } finally{
-            cleanup()
+    retry(retries){
+        agentRunner {
+            setup()
+            try{
+                buildCmd()
+                successful()
+            } catch(e){
+                failure()
+                throw e
+            } finally{
+                cleanup()
+            }
         }
     }
 }
