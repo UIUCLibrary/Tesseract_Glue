@@ -20,8 +20,8 @@ RUN mkdir -p /.cache/pip && \
 
 FROM wheel_builder_base AS conan_builder
 ARG CONAN_USER_HOME
-COPY requirements/requirements-ci-freeze.txt /tmp/requirements-ci-freeze.txt
-RUN python3 -m pip install pip --upgrade && pip3 install --no-cache-dir -r /tmp/requirements-ci-freeze.txt
+COPY requirements/requirements-dev-freeze.txt /tmp/requirements-dev-freeze.txt
+RUN python3 -m pip install pip --upgrade && pip3 install --no-cache-dir -r /tmp/requirements-dev-freeze.txt
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
 COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
@@ -41,8 +41,8 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
 COPY requirements/ /tmp/requirements/requirements/
-COPY requirements-ci.txt /tmp/requirements/requirements-ci.txt
-RUN python3 -m pip install pip --upgrade && pip3 install --no-cache-dir  -r /tmp/requirements/requirements-ci.txt
+COPY requirements-dev.txt /tmp/requirements/requirements-dev.txt
+RUN python3 -m pip install pip --upgrade && pip3 install --no-cache-dir  -r /tmp/requirements/requirements-dev.txt
 
 
 COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/

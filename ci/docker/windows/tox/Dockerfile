@@ -145,14 +145,14 @@ RUN certutil -addstore -f root roots.sst ; `
 
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-COPY requirements-ci.txt c:/python_requirments/
+COPY requirements-dev.txt c:/python_requirments/
 COPY requirements/ c:/python_requirments/requirements
 RUN py -3.8 -m pip install --upgrade pip ; `
     py -3.9 -m pip install --upgrade pip ; `
     py -3.10 -m pip install --upgrade pip ; `
     py -3.11 -m pip install --upgrade pip ; `
     py -3.12 -m pip install --upgrade pip ; `
-    python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-ci.txt
+    python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-dev.txt
 
 ARG CONAN_USER_HOME
 COPY --from=CONAN_BUILDER ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
