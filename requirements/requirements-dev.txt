@@ -11,3 +11,4 @@ pytest-bdd<4.0
 sphinx
 toml
 uiucprescon.build @ git+https://github.com/UIUCLibrary/uiucprescon_build.git@v0.1.0
+twine

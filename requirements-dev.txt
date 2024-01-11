@@ -1,2 +1,4 @@
--r requirements/requirements-tox.txt
 -r requirements/requirements-dev.txt
+-r requirements/requirements-dev-freeze.txt
+-r requirements/requirements-tox.txt
+-r requirements/requirements-extras.txt
