@@ -497,6 +497,7 @@ def windows_wheels(){
                                             dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
                                         ]
                                     ],
+                                    retries: 3,
                                     testSetup: {
                                          checkout scm
                                          unstash "python${pythonVersion} windows wheel"
