@@ -1354,6 +1354,9 @@ pipeline {
                                     label 'docker && linux'
                                 }
                             }
+                            options {
+                                retry(3)
+                            }
                             steps{
                                 withEnv(['PIP_NO_CACHE_DIR=off']) {
                                     sh(label: 'Building sdist',
