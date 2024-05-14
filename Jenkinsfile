@@ -309,6 +309,7 @@ def linux_wheels(){
                                                 args: '-v pipcache_tesseractglue:/.cache/pip',
                                             ]
                                         ],
+                                        retries: 3,
                                         testSetup: {
                                             checkout scm
                                             unstash "python${pythonVersion} linux x86_64 wheel"
