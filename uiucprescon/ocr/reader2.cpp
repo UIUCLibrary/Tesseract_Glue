@@ -41,3 +41,13 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
     tess.Recognize(nullptr);
     return std::string (std::unique_ptr<char[]>(tess.GetUTF8Text(), std::default_delete<char[]>()).get());
 }
+
+std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image, int dpi) {
+    if(!this->good){
+        return "";
+    }
+    tess.SetImage(image->getPix().get());
+    tess.SetSourceResolution(dpi);
+    tess.Recognize(nullptr);
+    return std::string (std::unique_ptr<char[]>(tess.GetUTF8Text(), std::default_delete<char[]>()).get());
+}

@@ -4,6 +4,7 @@
 #include "reader2.h"
 #include "utils.h"
 #include <leptonica/allheaders.h>
+#include <memory>
 #include <map>
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
@@ -23,7 +24,8 @@ PYBIND11_MODULE(tesseractwrap, m){
 
     pybind11::class_<Reader2>(m, "Reader")
             .def(pybind11::init<const std::string &, const std::string &>())
-            .def("get_ocr", &Reader2::get_ocr_from_image);
+            .def("get_ocr", static_cast<std::string (Reader2::*)(const std::shared_ptr<Image> &)>(&Reader2::get_ocr_from_image), "get ocr")
+            .def("get_ocr", static_cast<std::string (Reader2::*)(const std::shared_ptr<Image> &, int)>(&Reader2::get_ocr_from_image), "get ocr");
 
     // ================================================================================================================
     m.def("tesseract_version", &tesseract_version, "Get the version of tesseract being used");

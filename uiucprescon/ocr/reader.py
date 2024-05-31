@@ -2,7 +2,7 @@
 import abc
 import os
 from uiucprescon.ocr import tesseractwrap  # type: ignore
-
+from typing import Optional
 
 class AbsReader(metaclass=abc.ABCMeta):
     """Baseclass used for implementing various reader types."""
@@ -63,7 +63,7 @@ class Reader(AbsReader):
         """
         return self._reader.get_ocr(image)
 
-    def read(self, file: str) -> str:
+    def read(self, file: str, dpi: Optional[str] = None) -> str:
         """Generate text from an image.
 
         Args:
@@ -74,4 +74,6 @@ class Reader(AbsReader):
 
         """
         image = tesseractwrap.load_image(file)
-        return self._reader.get_ocr(image)
+        if dpi is None:
+            return self._reader.get_ocr(image)
+        return self._reader.get_ocr(image, dpi)
