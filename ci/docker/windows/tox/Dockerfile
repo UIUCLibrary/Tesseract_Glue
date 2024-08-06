@@ -139,7 +139,9 @@ ENV PIPX_BIN_DIR=${PIPX_HOME}\bin
 
 RUN py -3 -m pip install --no-cache-dir pipx ; `
     py -3 -m pipx ensurepath
-RUN py -3 -m pipx install 'devpi-client<7.0'
+RUN py -3 -m pipx install 'devpi-client<7.0' ; `
+    py -3 -m pipx install 'tox' ; `
+    py -3 -m pipx inject tox tox-uv
 
 
 WORKDIR C:/src
