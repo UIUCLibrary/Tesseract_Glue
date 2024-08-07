@@ -87,20 +87,22 @@ FROM CHOCOLATEY_BASE as CONAN_BUILDER
 ARG PIP_EXTRA_INDEX_URL
 ARG CONAN_USER_HOME
 ARG PIP_INDEX_URL
-COPY requirements c:/requirements/requirements
-RUN python -m pip install --upgrade pip ; `
-    pip install wheel ; `
-    pip install -r c:/requirements/requirements/requirements-conan.txt
+COPY requirements-dev.txt c:/requirements/requirements-dev.txt
 COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
-RUN conan config init ; `
-    conan config set general.revisions_enabled=1
 
-RUN conan install c:/temp/ --build missing --no-import; `
+RUN python -m venv venv --upgrade-deps; `
+    .\\venv\\Scripts\\activate.ps1 ; `
+    pip install uv --no-cache-dir; `
+    uv pip install -r c:/requirements/requirements-dev.txt --no-cache-dir; `
+    conan config init ; `
+    conan config set general.revisions_enabled=1 ; `
+    conan install c:/temp/ --build missing --no-import; `
     conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import  ; `
     conan remove "*" -b --src -f ; `
-    conan remove --lock
+    conan remove --lock ; `
+    Remove-Item venv -Force -Recurse
 # ==============================================================================
 
 FROM CHOCOLATEY_BASE
@@ -112,26 +114,16 @@ RUN certutil -addstore -f root roots.sst ; `
 
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-COPY requirements-dev.txt c:/python_requirments/
-COPY requirements/ c:/python_requirments/requirements
-RUN py -3.8 -m pip install --upgrade pip ; `
-    py -3.9 -m pip install --upgrade pip ; `
-    py -3.10 -m pip install --upgrade pip ; `
-    py -3.11 -m pip install --upgrade pip ; `
-    py -3.12 -m pip install --upgrade pip ; `
-    python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-dev.txt
 
 ARG CONAN_USER_HOME
 COPY --from=CONAN_BUILDER ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}
-COPY conanfile.py c:/temp/conanfile.py
-RUN conan install c:/temp/ --build outdated --no-import  ; `
-    conan install c:/temp/ --build outdated -o "tesseract:shared=True" --no-import  ; `
-    conan remove "*" -b --src -f ; `
-    conan remove --locks
 
+ENV UV_INDEX_STRATEGY=unsafe-best-match
+ARG UV_CACHE_DIR
 ARG PIP_DOWNLOAD_CACHE
-RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force
+RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force; `
+    New-Item -type directory -path ${Env:UV_CACHE_DIR} -Force
 
 ARG PIPX_HOME
 ENV PIPX_HOME=${PIPX_HOME}

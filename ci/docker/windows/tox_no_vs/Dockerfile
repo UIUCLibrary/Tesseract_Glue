@@ -3,6 +3,7 @@ ARG PIPX_HOME=c:\pipx
 ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
 ARG UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8
+
 FROM ${FROM_IMAGE} AS certsgen
 RUN certutil -generateSSTFromWU roots.sst
 
@@ -39,7 +40,7 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no
     py -3.10 --version ; `
     py -3.11 --version ; `
     py -3.12 --version ; `
-    Write-Host "Installing Python with Chocolatey - Done" \
+    Write-Host "Installing Python with Chocolatey - Done"
 
 ADD ci/docker/shared/chocolatey/packages.config choco/packages.config
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
@@ -59,10 +60,8 @@ RUN certutil -addstore -f root roots.sst ; `
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 
-COPY requirements-dev.txt c:/python_requirments/
-COPY requirements/ c:/python_requirments/requirements
-RUN python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-dev.txt
-
+ENV UV_INDEX_STRATEGY=unsafe-best-match
+ARG UV_CACHE_DIR
 ARG PIP_DOWNLOAD_CACHE
 RUN mkdir ${Env:PIP_DOWNLOAD_CACHE},${Env:UV_CACHE_DIR}
 
@@ -72,7 +71,9 @@ ENV PIPX_BIN_DIR=${PIPX_HOME}\bin
 
 RUN py -3 -m pip install --no-cache-dir pipx ; `
     py -3 -m pipx ensurepath
-RUN py -3 -m pipx install 'devpi-client<7.0'
+RUN py -3 -m pipx install 'devpi-client<7.0' ; `
+    py -3 -m pipx install 'tox' ; `
+    py -3 -m pipx inject tox tox-uv
 
 
 WORKDIR C:/src

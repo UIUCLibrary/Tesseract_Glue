@@ -1,0 +1,3 @@
+-r requirements-dev.txt
+-r requirements-tox.txt
+-r requirements-extras.txt
