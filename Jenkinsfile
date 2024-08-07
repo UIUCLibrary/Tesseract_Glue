@@ -1,4 +1,4 @@
-library identifier: 'JenkinsPythonHelperLibrary@2024.1.2', retriever: modernSCM(
+library identifier: 'JenkinsPythonHelperLibrary@2024.7.0', retriever: modernSCM(
   [$class: 'GitSCMSource',
    remote: 'https://github.com/UIUCLibrary/JenkinsPythonHelperLibrary.git',
    ])
@@ -44,8 +44,8 @@ def getToxStages(){
                             envNamePrefix: 'Tox Linux',
                             label: 'linux && docker && x86',
                             dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                            dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
-                            dockerRunArgs: '-v pipcache_tesseractglue:/.cache/pip',
+                            dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
+                            dockerRunArgs: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
                             retry: 2
                         )
                 },
@@ -55,8 +55,8 @@ def getToxStages(){
                                 envNamePrefix: 'Tox Windows',
                                 label: 'windows && docker && x86',
                                 dockerfile: 'ci/docker/windows/tox/Dockerfile',
-                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip',
-                                dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip',
+                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
+                                dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip -v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv',
                                 retry: 2
                          )
                     }
@@ -305,8 +305,8 @@ def linux_wheels(){
                                             dockerfile: [
                                                 label: 'linux && docker && x86',
                                                 filename: 'ci/docker/linux/tox/Dockerfile',
-                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
-                                                args: '-v pipcache_tesseractglue:/.cache/pip',
+                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
+                                                args: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
                                             ]
                                         ],
                                         retries: 3,
@@ -398,8 +398,8 @@ def linux_wheels(){
                                         dockerfile: [
                                             label: 'linux && docker && arm64',
                                             filename: 'ci/docker/linux/tox/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
-                                            args: '-v pipcache_tesseractglue:/.cache/pip',
+                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
+                                            args: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
                                         ]
                                     ],
                                     testSetup: {
@@ -456,17 +456,20 @@ def windows_wheels(){
                                     dockerfile: [
                                         label: 'windows && docker && x86',
                                         filename: 'ci/docker/windows/tox/Dockerfile',
-                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip'
+                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
+                                        args: '-v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv'
                                     ]
                                 ],
                                 retries: 3,
                                 buildCmd: {
-                                    bat """py -${pythonVersion} -m venv venv
-                                           venv\\Scripts\\python -m pip install pip --upgrade
-                                           venv\\Scripts\\python -m pip install wheel
-                                           venv\\Scripts\\python -m pip install build
-                                           venv\\Scripts\\python -m build --wheel
-                                        """
+                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                        bat """py -${pythonVersion} -m venv venv
+                                               call venv\\Scripts\\activate.bat
+                                               python -m pip install uv
+                                               uv pip install build
+                                               python -m build --wheel --installer=uv
+                                            """
+                                    }
                                 },
                                 post:[
                                     cleanup: {
@@ -494,7 +497,7 @@ def windows_wheels(){
                                         dockerfile: [
                                             label: 'windows && docker && x86',
                                             filename: 'ci/docker/windows/tox_no_vs/Dockerfile',
-                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip',
+                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
                                             dockerImageName: "${currentBuild.fullProjectName}_test_no_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', '').toLowerCase(),
                                         ]
                                     ],
@@ -555,15 +558,16 @@ def mac_wheels(){
                                             withEnv([
                                                 '_PYTHON_HOST_PLATFORM=macosx-10.9-x86_64',
                                                 'MACOSX_DEPLOYMENT_TARGET=10.9',
-                                                'ARCHFLAGS=-arch x86_64'
+                                                'ARCHFLAGS=-arch x86_64',
+                                                'UV_INDEX_STRATEGY=unsafe-best-match'
                                             ]){
                                                  sh(label: 'Building wheel',
                                                     script: """python${pythonVersion} -m venv venv
                                                                . ./venv/bin/activate
-                                                               python -m pip install --upgrade pip
-                                                               pip install wheel==0.37
-                                                               pip install build delocate
-                                                               python -m build --wheel
+                                                               pip install uv
+                                                               uv pip install wheel==0.37
+                                                               uv pip install build delocate
+                                                               python -m build --wheel --installer=uv
                                                                """
                                                    )
                                                  findFiles(glob: 'dist/*.whl').each{
@@ -607,13 +611,16 @@ def mac_wheels(){
                                                 unstash "python${pythonVersion} x86_64 mac wheel"
                                             },
                                             testCommand: {
-                                                findFiles(glob: 'dist/*.whl').each{
-                                                    sh(label: 'Running Tox',
-                                                       script: """python${pythonVersion} -m venv venv
-                                                       ./venv/bin/python -m pip install --upgrade pip
-                                                       ./venv/bin/pip install -r requirements/requirements-tox.txt
-                                                       ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                    )
+                                                withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                    findFiles(glob: 'dist/*.whl').each{
+                                                        sh(label: 'Running Tox',
+                                                           script: """python${pythonVersion} -m venv venv
+                                                           . ./venv/bin/activate
+                                                           python -m pip install uv
+                                                           uv pip install -r requirements-dev.txt
+                                                           tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                        )
+                                                    }
                                                 }
 
                                             },
@@ -656,15 +663,16 @@ def mac_wheels(){
                                             withEnv([
                                                 '_PYTHON_HOST_PLATFORM=macosx-11.0-arm64',
                                                 'MACOSX_DEPLOYMENT_TARGET=11.0',
-                                                'ARCHFLAGS=-arch arm64'
+                                                'ARCHFLAGS=-arch arm64',
+                                                'UV_INDEX_STRATEGY=unsafe-best-match'
                                                 ]) {
                                                  sh(label: 'Building wheel',
                                                     script: """python${pythonVersion} -m venv venv
                                                                . ./venv/bin/activate
-                                                               pip install --upgrade pip
-                                                               pip install wheel==0.37
-                                                               pip install build delocate
-                                                               python -m build --wheel
+                                                               pip install uv
+                                                               uv pip install wheel==0.37
+                                                               uv pip install build delocate
+                                                               python -m build --wheel --installer=uv
                                                                """
                                                    )
                                                  findFiles(glob: 'dist/*.whl').each{
@@ -706,15 +714,17 @@ def mac_wheels(){
                                                 unstash "python${pythonVersion} m1 mac wheel"
                                             },
                                             testCommand: {
-                                                findFiles(glob: 'dist/*.whl').each{
-                                                    sh(label: 'Running Tox',
-                                                       script: """python${pythonVersion} -m venv venv
-                                                       ./venv/bin/python -m pip install --upgrade pip
-                                                       ./venv/bin/pip install -r requirements/requirements-tox.txt
-                                                       ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                    )
+                                                withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                    findFiles(glob: 'dist/*.whl').each{
+                                                        sh(label: 'Running Tox',
+                                                           script: """python${pythonVersion} -m venv venv
+                                                           . ./venv/bin/activate
+                                                           python -m pip install uv
+                                                           uv pip install -r requirements-dev.txt
+                                                           tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                        )
+                                                    }
                                                 }
-
                                             },
                                             post:[
                                                 cleanup: {
@@ -796,15 +806,17 @@ def mac_wheels(){
                                                 },
                                                 retries: 3,
                                                 testCommand: {
-                                                    findFiles(glob: 'dist/*.whl').each{
-                                                        sh(label: 'Running Tox',
-                                                           script: """python${pythonVersion} -m venv venv
-                                                                      . ./venv/bin/activate
-                                                                      python -m pip install --upgrade pip
-                                                                      pip install -r requirements/requirements-tox.txt
-                                                                      CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                   """
-                                                        )
+                                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                        findFiles(glob: 'dist/*.whl').each{
+                                                            sh(label: 'Running Tox',
+                                                               script: """python${pythonVersion} -m venv venv
+                                                                          . ./venv/bin/activate
+                                                                          python -m pip install uv
+                                                                          uv pip install -r requirements-dev.txt
+                                                                          CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                       """
+                                                            )
+                                                        }
                                                     }
                                                 },
                                                 post:[
@@ -838,15 +850,17 @@ def mac_wheels(){
                                                 },
                                                 retries: 3,
                                                 testCommand: {
-                                                    findFiles(glob: 'dist/*.whl').each{
-                                                        sh(label: 'Running Tox',
-                                                           script: """python${pythonVersion} -m venv venv
-                                                                      . ./venv/bin/activate
-                                                                      python -m pip install --upgrade pip
-                                                                      pip install -r requirements/requirements-tox.txt
-                                                                      CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                   """
-                                                        )
+                                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                        findFiles(glob: 'dist/*.whl').each{
+                                                            sh(label: 'Running Tox',
+                                                               script: """python${pythonVersion} -m venv venv
+                                                                          . ./venv/bin/activate
+                                                                          python -m pip install uv
+                                                                          uv pip install -r requirements-dev.txt
+                                                                          CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                       """
+                                                            )
+                                                        }
                                                     }
                                                 },
                                                 post:[
@@ -1058,7 +1072,7 @@ pipeline {
                                 dockerfile {
                                     filename 'ci/docker/linux/jenkins/Dockerfile'
                                     label 'linux && docker && x86'
-                                    additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
+                                    additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
                                     args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                                 }
                             }
@@ -1418,13 +1432,16 @@ pipeline {
                                                         },
                                                         retries: 3,
                                                         testCommand: {
-                                                            findFiles(glob: 'dist/*.tar.gz').each{
-                                                                sh(label: 'Running Tox',
-                                                                   script: """python${pythonVersion} -m venv venv
-                                                                   ./venv/bin/python -m pip install --upgrade pip
-                                                                   ./venv/bin/pip install -r requirements/requirements-tox.txt
-                                                                   ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                                )
+                                                            withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                                findFiles(glob: 'dist/*.tar.gz').each{
+                                                                    sh(label: 'Running Tox',
+                                                                       script: """python${pythonVersion} -m venv venv
+                                                                       . ./venv/bin/activate
+                                                                       python -m pip install uv
+                                                                       uv pip install -r requirements-dev.txt
+                                                                       tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                                    )
+                                                                }
                                                             }
 
                                                         },
@@ -1456,8 +1473,8 @@ pipeline {
                                                                 dockerfile: [
                                                                     label: 'windows && docker && x86',
                                                                     filename: 'ci/docker/windows/tox/Dockerfile',
-                                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip',
-                                                                    args: '-v pipcache_pykdu:c:/users/containeradministrator/appdata/local/pip',
+                                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
+                                                                    args: '-v pipcache_pykdu:c:/users/containeradministrator/appdata/local/pip -v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv',
                                                                     dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase(),
                                                                 ]
                                                             ],
@@ -1497,7 +1514,7 @@ pipeline {
                                                             dockerfile: [
                                                                 label: 'linux && docker && x86',
                                                                 filename: 'ci/docker/linux/tox/Dockerfile',
-                                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
+                                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
                                                             ]
                                                         ],
                                                         retries: 3,
@@ -1537,7 +1554,7 @@ pipeline {
                                                             dockerfile: [
                                                                 label: 'linux && docker && arm64',
                                                                 filename: 'ci/docker/linux/tox/Dockerfile',
-                                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
+                                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
                                                             ]
                                                         ],
                                                         retries: 3,
@@ -1601,8 +1618,8 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
                             label 'linux && docker && x86 && devpi-access'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
-                            args '-v pipcache_tesseractglue:/.cache/pip'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                            args '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv'
                           }
                     }
                     options{
@@ -1647,7 +1664,7 @@ pipeline {
                                                 agent: [
                                                     dockerfile: [
                                                         filename: 'ci/docker/windows/tox/Dockerfile',
-                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip',
+                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
                                                         label: 'windows && docker && x86 && devpi-access'
                                                     ]
                                                 ],
@@ -1674,7 +1691,7 @@ pipeline {
                                                 agent: [
                                                     dockerfile: [
                                                         filename: 'ci/docker/windows/tox_no_vs/Dockerfile',
-                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip',
+                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
                                                         label: 'windows && docker && x86 && devpi-access'
                                                     ]
                                                 ],
@@ -1706,9 +1723,9 @@ pipeline {
                                                 agent: [
                                                     dockerfile: [
                                                         filename: 'ci/docker/linux/tox/Dockerfile',
-                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
                                                         label: 'linux && docker && x86 && devpi-access',
-                                                        args: '-v pipcache_tesseractglue:/.cache/pip',
+                                                        args: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
                                                     ]
                                                 ],
                                                 devpi: [
@@ -1733,9 +1750,9 @@ pipeline {
                                                 agent: [
                                                     dockerfile: [
                                                         filename: 'ci/docker/linux/tox/Dockerfile',
-                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip',
+                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
                                                         label: 'linux && docker && x86 && devpi-access',
-                                                        args: '-v pipcache_tesseractglue:/.cache/pip',
+                                                        args: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
                                                     ]
                                                 ],
                                                 devpi: [
@@ -1782,8 +1799,8 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/tox/Dockerfile'
                             label 'linux && docker && devpi-access'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
-                            args '-v pipcache_tesseractglue:/.cache/pip'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                            args '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv'
                         }
                     }
                     steps {
@@ -1851,7 +1868,7 @@ pipeline {
                         dockerfile {
                             filename 'ci/docker/linux/jenkins/Dockerfile'
                             label 'linux && docker'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip'
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
                         }
                     }
                     when{
