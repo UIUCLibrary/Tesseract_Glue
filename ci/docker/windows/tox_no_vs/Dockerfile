@@ -1,6 +1,7 @@
 # escape=`
 ARG PIPX_HOME=c:\pipx
 ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
+ARG UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8
 FROM ${FROM_IMAGE} AS certsgen
 RUN certutil -generateSSTFromWU roots.sst
@@ -63,8 +64,7 @@ COPY requirements/ c:/python_requirments/requirements
 RUN python -m pip install pip --upgrade ; pip install --no-cache-dir -r c:/python_requirments/requirements-dev.txt
 
 ARG PIP_DOWNLOAD_CACHE
-RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force
-
+RUN mkdir ${Env:PIP_DOWNLOAD_CACHE},${Env:UV_CACHE_DIR}
 
 ARG PIPX_HOME
 ENV PIPX_HOME=${PIPX_HOME}

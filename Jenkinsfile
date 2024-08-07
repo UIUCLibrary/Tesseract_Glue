@@ -461,12 +461,14 @@ def windows_wheels(){
                                 ],
                                 retries: 3,
                                 buildCmd: {
-                                    bat """py -${pythonVersion} -m venv venv
-                                           venv\\Scripts\\python -m pip install pip --upgrade
-                                           venv\\Scripts\\python -m pip install wheel
-                                           venv\\Scripts\\python -m pip install build
-                                           venv\\Scripts\\python -m build --wheel
-                                        """
+                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                        bat """py -${pythonVersion} -m venv venv
+                                               call venv\\Scripts\\activate.bat
+                                               python -m pip install uv
+                                               uv pip install build
+                                               python -m build --wheel --installer=uv
+                                            """
+                                    }
                                 },
                                 post:[
                                     cleanup: {
@@ -555,15 +557,16 @@ def mac_wheels(){
                                             withEnv([
                                                 '_PYTHON_HOST_PLATFORM=macosx-10.9-x86_64',
                                                 'MACOSX_DEPLOYMENT_TARGET=10.9',
-                                                'ARCHFLAGS=-arch x86_64'
+                                                'ARCHFLAGS=-arch x86_64',
+                                                'UV_INDEX_STRATEGY=unsafe-best-match'
                                             ]){
                                                  sh(label: 'Building wheel',
                                                     script: """python${pythonVersion} -m venv venv
                                                                . ./venv/bin/activate
-                                                               python -m pip install --upgrade pip
-                                                               pip install wheel==0.37
-                                                               pip install build delocate
-                                                               python -m build --wheel
+                                                               pip install uv
+                                                               uv pip install wheel==0.37
+                                                               uv pip install build delocate
+                                                               python -m build --wheel --installer=uv
                                                                """
                                                    )
                                                  findFiles(glob: 'dist/*.whl').each{
@@ -607,13 +610,16 @@ def mac_wheels(){
                                                 unstash "python${pythonVersion} x86_64 mac wheel"
                                             },
                                             testCommand: {
-                                                findFiles(glob: 'dist/*.whl').each{
-                                                    sh(label: 'Running Tox',
-                                                       script: """python${pythonVersion} -m venv venv
-                                                       ./venv/bin/python -m pip install --upgrade pip
-                                                       ./venv/bin/pip install -r requirements/requirements-tox.txt
-                                                       ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                    )
+                                                withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                    findFiles(glob: 'dist/*.whl').each{
+                                                        sh(label: 'Running Tox',
+                                                           script: """python${pythonVersion} -m venv venv
+                                                           . ./venv/bin/activate
+                                                           python -m pip install uv
+                                                           uv pip install -r requirements-dev.txt
+                                                           tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                        )
+                                                    }
                                                 }
 
                                             },
@@ -656,15 +662,16 @@ def mac_wheels(){
                                             withEnv([
                                                 '_PYTHON_HOST_PLATFORM=macosx-11.0-arm64',
                                                 'MACOSX_DEPLOYMENT_TARGET=11.0',
-                                                'ARCHFLAGS=-arch arm64'
+                                                'ARCHFLAGS=-arch arm64',
+                                                'UV_INDEX_STRATEGY=unsafe-best-match'
                                                 ]) {
                                                  sh(label: 'Building wheel',
                                                     script: """python${pythonVersion} -m venv venv
                                                                . ./venv/bin/activate
-                                                               pip install --upgrade pip
-                                                               pip install wheel==0.37
-                                                               pip install build delocate
-                                                               python -m build --wheel
+                                                               pip install uv
+                                                               uv pip install wheel==0.37
+                                                               uv pip install build delocate
+                                                               python -m build --wheel --installer=uv
                                                                """
                                                    )
                                                  findFiles(glob: 'dist/*.whl').each{
@@ -706,15 +713,17 @@ def mac_wheels(){
                                                 unstash "python${pythonVersion} m1 mac wheel"
                                             },
                                             testCommand: {
-                                                findFiles(glob: 'dist/*.whl').each{
-                                                    sh(label: 'Running Tox',
-                                                       script: """python${pythonVersion} -m venv venv
-                                                       ./venv/bin/python -m pip install --upgrade pip
-                                                       ./venv/bin/pip install -r requirements/requirements-tox.txt
-                                                       ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                    )
+                                                withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                    findFiles(glob: 'dist/*.whl').each{
+                                                        sh(label: 'Running Tox',
+                                                           script: """python${pythonVersion} -m venv venv
+                                                           . ./venv/bin/activate
+                                                           python -m pip install uv
+                                                           uv pip install -r requirements-dev.txt
+                                                           tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                        )
+                                                    }
                                                 }
-
                                             },
                                             post:[
                                                 cleanup: {
@@ -796,15 +805,17 @@ def mac_wheels(){
                                                 },
                                                 retries: 3,
                                                 testCommand: {
-                                                    findFiles(glob: 'dist/*.whl').each{
-                                                        sh(label: 'Running Tox',
-                                                           script: """python${pythonVersion} -m venv venv
-                                                                      . ./venv/bin/activate
-                                                                      python -m pip install --upgrade pip
-                                                                      pip install -r requirements/requirements-tox.txt
-                                                                      CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                   """
-                                                        )
+                                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                        findFiles(glob: 'dist/*.whl').each{
+                                                            sh(label: 'Running Tox',
+                                                               script: """python${pythonVersion} -m venv venv
+                                                                          . ./venv/bin/activate
+                                                                          python -m pip install uv
+                                                                          uv pip install -r requirements-dev.txt
+                                                                          CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                       """
+                                                            )
+                                                        }
                                                     }
                                                 },
                                                 post:[
@@ -838,15 +849,17 @@ def mac_wheels(){
                                                 },
                                                 retries: 3,
                                                 testCommand: {
-                                                    findFiles(glob: 'dist/*.whl').each{
-                                                        sh(label: 'Running Tox',
-                                                           script: """python${pythonVersion} -m venv venv
-                                                                      . ./venv/bin/activate
-                                                                      python -m pip install --upgrade pip
-                                                                      pip install -r requirements/requirements-tox.txt
-                                                                      CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                   """
-                                                        )
+                                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                        findFiles(glob: 'dist/*.whl').each{
+                                                            sh(label: 'Running Tox',
+                                                               script: """python${pythonVersion} -m venv venv
+                                                                          . ./venv/bin/activate
+                                                                          python -m pip install uv
+                                                                          uv pip install -r requirements-dev.txt
+                                                                          CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                       """
+                                                            )
+                                                        }
                                                     }
                                                 },
                                                 post:[
