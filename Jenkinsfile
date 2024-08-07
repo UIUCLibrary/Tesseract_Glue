@@ -1,4 +1,4 @@
-library identifier: 'JenkinsPythonHelperLibrary@2024.1.2', retriever: modernSCM(
+library identifier: 'JenkinsPythonHelperLibrary@2024.7.0', retriever: modernSCM(
   [$class: 'GitSCMSource',
    remote: 'https://github.com/UIUCLibrary/JenkinsPythonHelperLibrary.git',
    ])
@@ -1431,13 +1431,16 @@ pipeline {
                                                         },
                                                         retries: 3,
                                                         testCommand: {
-                                                            findFiles(glob: 'dist/*.tar.gz').each{
-                                                                sh(label: 'Running Tox',
-                                                                   script: """python${pythonVersion} -m venv venv
-                                                                   ./venv/bin/python -m pip install --upgrade pip
-                                                                   ./venv/bin/pip install -r requirements/requirements-tox.txt
-                                                                   ./venv/bin/tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                                )
+                                                            withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                                findFiles(glob: 'dist/*.tar.gz').each{
+                                                                    sh(label: 'Running Tox',
+                                                                       script: """python${pythonVersion} -m venv venv
+                                                                       . ./venv/bin/activate
+                                                                       python -m pip install uv
+                                                                       uv pip install -r requirements-dev.txt
+                                                                       tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
+                                                                    )
+                                                                }
                                                             }
 
                                                         },
