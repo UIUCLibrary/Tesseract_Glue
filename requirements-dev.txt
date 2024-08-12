@@ -4,7 +4,7 @@ alabaster==0.7.13
     # via sphinx
 astroid==3.2.4
     # via pylint
-babel==2.15.0
+babel==2.16.0
     # via sphinx
 backports-tarfile==1.2.0
     # via jaraco-context
@@ -87,7 +87,7 @@ jinja2==3.1.4
     #   sphinx
 keyring==25.3.0
     # via twine
-lxml==5.2.2
+lxml==5.3.0
     # via
     #   -r requirements/requirements-dev.txt
     #   gcovr
@@ -243,7 +243,7 @@ tomli==2.0.1
     #   tox
 tomlkit==0.13.0
     # via pylint
-tox==4.17.0
+tox==4.17.1
     # via
     #   -r requirements/requirements-tox.txt
     #   tox-uv
@@ -260,14 +260,14 @@ typing-extensions==4.12.2
     #   pylint
     #   rich
     #   tox-uv
-uiucprescon-build @ git+https://github.com/UIUCLibrary/uiucprescon_build.git@496c6c52d7135c36c4e8df14b3e5720485611182
+uiucprescon.build @ git+https://github.com/UIUCLibrary/uiucprescon_build.git@v0.1.0
     # via -r requirements/requirements-dev.txt
 urllib3==1.26.19
     # via
     #   conan
     #   requests
     #   twine
-uv==0.2.33
+uv==0.2.35
     # via tox-uv
 virtualenv==20.26.3
     # via tox
@@ -275,7 +275,7 @@ wheel==0.44.0
     # via
     #   -r requirements/requirements-extras.txt
     #   uiucprescon-build
-zipp==3.19.2
+zipp==3.20.0
     # via
     #   importlib-metadata
     #   importlib-resources

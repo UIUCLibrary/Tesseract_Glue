@@ -94,7 +94,7 @@ COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_USER_HOME}/.conan/profiles
 
 RUN python -m venv venv --upgrade-deps; `
     .\\venv\\Scripts\\activate.ps1 ; `
-    pip install uv --no-cache-dir; `
+    pip install $(Select-String "^uv==" c:/requirements/requirements-dev.txt).Line --no-cache-dir; `
     uv pip install -r c:/requirements/requirements-dev.txt --no-cache-dir; `
     conan config init ; `
     conan config set general.revisions_enabled=1 ; `
