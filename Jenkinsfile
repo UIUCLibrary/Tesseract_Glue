@@ -51,12 +51,14 @@ def getToxStages(){
                 },
                 'Windows':{
                     timeout(240){
+                        // Don't cache uv path here on windows because it keeps running into Access is denied errors on
+                        // windows
                         windowsJobs = getToxTestsParallel(
                                 envNamePrefix: 'Tox Windows',
                                 label: 'windows && docker && x86',
                                 dockerfile: 'ci/docker/windows/tox/Dockerfile',
                                 dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
-                                dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip -v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv',
+                                dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip',
                                 retry: 2
                          )
                     }
