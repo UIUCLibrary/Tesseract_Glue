@@ -1,7 +1,7 @@
 ARG SONAR_SCANNER_VERSION=5.0.1.3006
 ARG PYTHON_VERSION=3.11
 ARG CONAN_USER_HOME=/conan
-ARG PIP_FIND_LINKS=/wheels/
+ARG PIP_FIND_LINKS=/wheels
 FROM python:${PYTHON_VERSION} AS base_python
 RUN apt-get update -y &&  \
     apt-get install -y --no-install-recommends ca-certificates git && \
@@ -26,8 +26,9 @@ ARG PIP_INDEX_URL
 COPY requirements-dev.txt /requirements/
 
 ARG PIP_FIND_LINKS
-RUN mkdir -p ${PIP_FIND_LINKS} &&  \
-    pip wheel --wheel-dir=${PIP_FIND_LINKS} --no-cache-dir -r /requirements/requirements-dev.txt
+RUN --mount=type=cache,target=/root/.cache/pip \
+    mkdir -p ${PIP_FIND_LINKS}/ &&  \
+    pip wheel --wheel-dir=${PIP_FIND_LINKS}/ --cache-dir /root/.cache/pip -r /requirements/requirements-dev.txt
 
 FROM base_python AS conan_builder
 ARG CONAN_USER_HOME
@@ -105,7 +106,7 @@ ARG PIP_EXTRA_INDEX_URL
 ARG PIP_TRUSTED_HOST
 COPY --from=wheel_builder ${PIP_FIND_LINKS}/* ${PIP_FIND_LINKS}/
 COPY --from=wheel_builder requirements/ /requirements
-RUN pip install --no-index --no-cache-dir --find-links=${PIP_FIND_LINKS} \
+RUN pip install --no-index --no-cache-dir --find-links=${PIP_FIND_LINKS}/ \
     -r /requirements/requirements-dev.txt
 
 ARG CONAN_USER_HOME
