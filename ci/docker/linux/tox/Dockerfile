@@ -30,7 +30,7 @@ COPY conanfile.py /tmp/conanfile.py
 COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
 RUN python3 -m venv venv --upgrade-deps && \
      . ./venv/bin/activate && \
-    pip install pip uv --upgrade && \
+    pip install $(grep "^uv==" /tmp/requirements/requirements-dev.txt) && \
     uv pip install --no-cache-dir  -r /tmp/requirements/requirements-dev.txt && \
     conan config init && \
     conan config set general.revisions_enabled=1 && \
