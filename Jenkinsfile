@@ -557,31 +557,9 @@ def mac_wheels(){
                                         ],
                                         retries: 3,
                                         buildCmd: {
-                                            withEnv([
-                                                '_PYTHON_HOST_PLATFORM=macosx-10.9-x86_64',
-                                                'MACOSX_DEPLOYMENT_TARGET=10.9',
-                                                'ARCHFLAGS=-arch x86_64',
-                                                'UV_INDEX_STRATEGY=unsafe-best-match'
-                                            ]){
-                                                 sh(label: 'Building wheel',
-                                                    script: """python${pythonVersion} -m venv venv
-                                                               . ./venv/bin/activate
-                                                               pip install uv
-                                                               uv pip install wheel==0.37
-                                                               uv pip install build delocate
-                                                               python -m build --wheel --installer=uv
-                                                               """
-                                                   )
-                                                 findFiles(glob: 'dist/*.whl').each{
-                                                        sh(label: 'Fixing up wheel',
-                                                           script: """. ./venv/bin/activate
-                                                                      pip list
-                                                                      delocate-listdeps --depending ${it.path}
-                                                                      delocate-wheel -w fixed_wheels --require-archs x86_64 --verbose ${it.path}
-                                                                   """
-                                                     )
-                                                 }
-                                             }
+                                            sh(label: 'Building wheel',
+                                               script: "contrib/build_mac_wheel.sh . --venv-path=./venv --base-python=python${pythonVersion}"
+                                            )
                                         },
                                         post:[
                                             cleanup: {
@@ -657,34 +635,9 @@ def mac_wheels(){
                                             label: "mac && python${pythonVersion} && m1",
                                         ],
                                         buildCmd: {
-                                            //                     Taken from cibuildwheel source code
-                                            //                     https://github.com/pypa/cibuildwheel/blob/main/cibuildwheel/macos.py
-                                            //
-                                            //                     # macOS 11 is the first OS with arm64 support, so the wheels
-                                            //                     # have that as a minimum.
-                                            withEnv([
-                                                '_PYTHON_HOST_PLATFORM=macosx-11.0-arm64',
-                                                'MACOSX_DEPLOYMENT_TARGET=11.0',
-                                                'ARCHFLAGS=-arch arm64',
-                                                'UV_INDEX_STRATEGY=unsafe-best-match'
-                                                ]) {
-                                                 sh(label: 'Building wheel',
-                                                    script: """python${pythonVersion} -m venv venv
-                                                               . ./venv/bin/activate
-                                                               pip install uv
-                                                               uv pip install wheel==0.37
-                                                               uv pip install build delocate
-                                                               python -m build --wheel --installer=uv
-                                                               """
-                                                   )
-                                                 findFiles(glob: 'dist/*.whl').each{
-                                                    sh(label: 'Fixing up wheel',
-                                                       script: """./venv/bin/delocate-listdeps --depending ${it.path}
-                                                                  ./venv/bin/delocate-wheel -w fixed_wheels --require-archs arm64 --verbose ${it.path}
-                                                               """
-                                                 )
-                                             }
-                                            }
+                                             sh(label: 'Building wheel',
+                                                script: "contrib/build_mac_wheel.sh . --venv-path=./venv --base-python=python${pythonVersion}"
+                                               )
                                         },
                                         post:[
                                             cleanup: {

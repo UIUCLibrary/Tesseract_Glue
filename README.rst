@@ -8,8 +8,8 @@ Wrapper around Google Tesseract for Python.
 
 Master Branch:
 
-.. image:: https://jenkins.library.illinois.edu/buildStatus/icon?job=OpenSourceProjects/Tesseract_Glue/master
-    :target: https://jenkins.library.illinois.edu/job/OpenSourceProjects/job/Tesseract_Glue/job/master/
+.. image:: https://jenkins-prod.library.illinois.edu/buildStatus/icon?job=open%20source/uiucprescon.ocr/master
+    :target: https://jenkins-prod.library.illinois.edu/job/open%20source/job/uiucprescon.ocr/job/master/
 
 
 .. Note::
@@ -34,3 +34,15 @@ ____________
 
     This generates a whl and tar.gz file in the ./dist/ directory and can be used to install into your Python
     environment.
+
+Building Portable Python Wheels For Mac
+---------------------------------------
+
+Since this package links to Tesseract library, to make sure that these files are generated in a portable manner and
+will run on other machines, please use the included shell script (contrib/build_mac_wheel.sh) provided to generate
+them.
+
+
+.. code-block:: console
+
+    ./contrib/build_mac_wheel.sh .
