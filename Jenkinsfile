@@ -17,44 +17,6 @@ def getPypiConfig() {
     }
 }
 
-def getToxStages(){
-    script{
-        def windowsJobs = [:]
-        def linuxJobs = [:]
-        stage('Scanning Tox Environments'){
-            parallel(
-                'Linux':{
-                    linuxJobs = getToxTestsParallel(
-                            envNamePrefix: 'Tox Linux',
-                            label: 'linux && docker && x86',
-                            dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                            dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
-                            dockerRunArgs: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
-                            retry: 2
-                        )
-                },
-                'Windows':{
-                    timeout(240){
-                        // Don't cache uv path here on windows because it keeps running into Access is denied errors on
-                        // windows
-                        windowsJobs = getToxTestsParallel(
-                                envNamePrefix: 'Tox Windows',
-                                label: 'windows && docker && x86',
-                                dockerfile: 'ci/docker/windows/tox/Dockerfile',
-                                dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
-                                dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip',
-                                retry: 2
-                         )
-                    }
-                },
-                failFast: true
-            )
-        }
-        return windowsJobs + linuxJobs
-    }
-}
-
-
 wheelStashes = []
 
 defaultParameterValues = [
@@ -1072,11 +1034,45 @@ pipeline {
                             when {
                                equals expected: true, actual: params.TEST_RUN_TOX
                             }
-                            steps {
-                                script{
-                                    parallel(getToxStages())
+                            parallel{
+                                stage('Linux'){
+                                    when{
+                                        expression {return nodesByLabel('linux && docker && x86').size() > 0}
+                                    }
+                                    steps{
+                                        script{
+                                            parallel(
+                                                getToxTestsParallel(
+                                                    envNamePrefix: 'Tox Linux',
+                                                    label: 'linux && docker && x86',
+                                                    dockerfile: 'ci/docker/linux/tox/Dockerfile',
+                                                    dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
+                                                    dockerRunArgs: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
+                                                    retry: 2
+                                                )
+                                            )
+                                        }
+                                    }
                                 }
-
+                                stage('Windows'){
+                                    when{
+                                        expression {return nodesByLabel('windows && docker && x86').size() > 0}
+                                    }
+                                    steps{
+                                        script{
+                                            parallel(
+                                                getToxTestsParallel(
+                                                    envNamePrefix: 'Tox Windows',
+                                                    label: 'windows && docker && x86',
+                                                    dockerfile: 'ci/docker/windows/tox/Dockerfile',
+                                                    dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
+                                                    dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip',
+                                                    retry: 2
+                                                )
+                                            )
+                                        }
+                                    }
+                                }
                             }
                         }
                     }
