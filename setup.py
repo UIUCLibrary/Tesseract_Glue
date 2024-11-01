@@ -177,16 +177,8 @@ tesseract_extension.cmake_source_dir = \
     os.path.abspath(os.path.dirname(__file__))
 
 setuptools.setup(
-    packages=['uiucprescon.ocr'],
-    install_requires=[],
-    test_suite='tests',
-    tests_require=[
-        'pytest',
-        'pytest-bdd'
-    ],
     ext_modules=[
         tesseract_extension
     ],
-    package_data={"uiucprescon.ocr": ["py.typed"]},
     cmdclass=cmd_class,
 )
