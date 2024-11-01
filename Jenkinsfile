@@ -899,6 +899,13 @@ pipeline {
                                         equals expected: true, actual: params.USE_SONARQUBE
                                         beforeOptions true
                                     }
+                                    environment{
+                                        UV_INDEX_STRATEGY='unsafe-best-match'
+                                        SONAR_SCANNER_HOME='/tmp/sonar'
+                                        UV_TOOL_DIR='/tmp/uvtools'
+                                        UV_PYTHON_INSTALL_DIR='/tmp/uvpython'
+                                        UV_CACHE_DIR='/tmp/uvcache'
+                                    }
                                     steps{
                                         script{
                                             def props = readTOML( file: 'pyproject.toml')['project']
@@ -906,13 +913,27 @@ pipeline {
                                                 if (env.CHANGE_ID){
                                                     sh(
                                                         label: 'Running Sonar Scanner',
-                                                        script: "sonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
-                                                        )
+                                                        script: """python3 -m venv uv
+                                                                  uv/bin/pip install uv
+                                                                  trap "rm -rf uv" EXIT
+                                                                  uv/bin/uv venv venv
+                                                                  trap "rm -rf uv && rm -rf venv" EXIT
+                                                                  . ./venv/bin/activate
+                                                                  uv/bin/uv pip install uv
+                                                                  uv tool run pysonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
+                                                                  """
+                                                    )
                                                 } else {
                                                     sh(
                                                         label: 'Running Sonar Scanner',
-                                                        script: "sonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
-                                                        )
+                                                        script: """python3 -m venv uv
+                                                                   uv/bin/pip install uv
+                                                                   uv/bin/uv venv venv
+                                                                   . ./venv/bin/activate
+                                                                   uv/bin/uv pip install uv
+                                                                   uv tool run pysonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
+                                                               """
+                                                   )
                                                 }
                                             }
                                             timeout(time: 1, unit: 'HOURS') {

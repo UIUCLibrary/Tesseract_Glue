@@ -1,4 +1,3 @@
-ARG SONAR_SCANNER_VERSION=5.0.1.3006
 ARG PYTHON_VERSION=3.11
 ARG CONAN_USER_HOME=/conan
 ARG PIP_FIND_LINKS=/wheels
@@ -53,20 +52,6 @@ RUN apt-get update && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-ARG SONAR_SCANNER_VERSION
-ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
-ENV SONAR_USER_HOME=/opt/sonar/.sonar
-
-RUN curl --create-dirs -sSLo /tmp/sonar-scanner.zip \
-        https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-${SONAR_SCANNER_VERSION}-linux.zip && \
-    unzip -o /tmp/sonar-scanner.zip -d /opt/sonar/ && \
-    rm /tmp/sonar-scanner.zip && \
-    mkdir -p ${SONAR_USER_HOME}/cache && \
-    chmod -R 777 "${SONAR_USER_HOME}" &&\
-    ln -s /opt/sonar/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner && \
-    which sonar-scanner
-
-
 RUN curl --create-dirs -sSLo /tmp/build-wrapper-linux-x86.zip https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip && \
     unzip -o /tmp/build-wrapper-linux-x86.zip -d /opt/ && \
     ln -s /opt/build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/build-wrapper-linux-x86-64 && \
@@ -80,22 +65,14 @@ RUN apt-get update &&  \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
-COPY --from=SONAR_BUILDER /opt/sonar /opt/sonar/
 COPY --from=SONAR_BUILDER /opt/build-wrapper-linux-x86 /opt/build-wrapper-linux-x86/
 ARG SONAR_SCANNER_VERSION
-ARG SONAR_SCANNER_HOME=/opt/sonar/${SONAR_SCANNER_VERSION}-linux
-ENV SONAR_USER_HOME=/opt/sonar/.sonar
-
-RUN ln -s /opt/sonar/sonar-scanner-${SONAR_SCANNER_VERSION}-linux/bin/sonar-scanner /usr/local/bin/sonar-scanner && \
-    which sonar-scanner
 
 RUN ln -s /opt/build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/build-wrapper-linux-x86-64 && \
     which build-wrapper-linux-x86-64
 
 RUN mkdir -p /.sonar/cache && \
     chmod -R 777 /.sonar/cache
-
-RUN chmod -R 777 $SONAR_USER_HOME
 
 ENV SONAR_SCANNER_OPTS="-server"
 
