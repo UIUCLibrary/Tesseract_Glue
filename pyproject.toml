@@ -7,13 +7,46 @@ requires = [
 ]
 build-backend = "uiucprescon.build"
 
+[project]
+name = "uiucprescon.ocr"
+version = "0.1.5.dev1"
+classifiers = [
+    'Development Status :: 3 - Alpha',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Topic :: Software Development :: Libraries :: Python Modules',
+]
+readme = "README.rst"
+requires-python = ">=3.8"
+license = { file="LICENSE"}
+description = "Image to text processing using Google Tesseract"
+maintainers = [
+    { name="Henry Borchers", email="hborcher@illinois.edu" }
+]
+authors = [
+    {name="University Library at The University of Illinois at Urbana Champaign: Preservation Services", email="prescons@library.illinois.edu"}
+]
+
+[project.urls]
+Documentation = "https://www.library.illinois.edu/dccdocs/ocr"
+Download = "https://github.com/UIUCLibrary/ocr"
+
+[tool.setuptools]
+packages = [
+    "uiucprescon.ocr"
+]
+zip-safe = false
+
+[tool.setuptools.package-data]
+"uiucprescon.ocr" = ["py.typed"]
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = [
     "tests"
  ]
 addopts = "--verbose"
-markers =[
+markers = [
     "integration"
 ]
 norecursedirs = [
@@ -24,6 +57,24 @@ junit_logging = "all"
 junit_log_passing_tests = true
 junit_family="xunit2"
 bdd_features_base_dir = "tests/features/"
+
+[tool.coverage.run]
+relative_files = true
+branch = true
+
+[tool.coverage.paths]
+source = [
+    "uiucprescon/"
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    'raise NotImplementedError'
+]
+
+[tool.coverage.html]
+directory = "reports/coverage"
+
 
 [tool.pylint.MASTER]
 init-hook="sys.path.append('.')"
