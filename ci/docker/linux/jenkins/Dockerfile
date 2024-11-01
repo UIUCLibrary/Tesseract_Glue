@@ -42,7 +42,6 @@ RUN conan config init && \
     conan config set general.revisions_enabled=1 && \
     conan profile update settings.compiler.version=$(cc -dumpfullversion -dumpversion | grep -oE  "^([0-9]+(\.)?)([0-9]+?)") default && \
     conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=default && \
-    conan install /tmp --build outdated --build=openjpeg --no-import -pr:b=default -s build_type=Debug && \
     conan remove "*" -b --src -f && \
     conan remove --locks
 
