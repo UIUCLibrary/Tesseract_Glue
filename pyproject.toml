@@ -17,7 +17,7 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 readme = "README.rst"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = { file="LICENSE"}
 description = "Image to text processing using Google Tesseract"
 maintainers = [
@@ -87,6 +87,7 @@ build-frontend = "build"
 skip = [
     "cp36-*",
     "cp37-*",
+    "cp38-*",
     "pp*",
     "*-win32",
     "*-musllinux*",
