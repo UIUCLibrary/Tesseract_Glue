@@ -35,6 +35,7 @@ Download = "https://github.com/UIUCLibrary/ocr"
 packages = [
     "uiucprescon.ocr"
 ]
+include-package-data = false
 zip-safe = false
 
 [tool.setuptools.package-data]
