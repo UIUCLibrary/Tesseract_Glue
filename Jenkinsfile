@@ -671,7 +671,9 @@ pipeline {
                                             steps{
                                                 sh(
                                                     label: 'Running CTest',
-                                                    script: 'cd build/cpp && ctest --output-on-failure --no-compress-output -T Test',
+                                                    script: '''. ./venv/bin/activate
+                                                               cd build/cpp && ctest --output-on-failure --no-compress-output -T Test
+                                                            ''',
                                                     returnStatus: true
                                                 )
 
