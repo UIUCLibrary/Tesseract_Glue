@@ -5,9 +5,9 @@ library identifier: 'JenkinsPythonHelperLibrary@2024.7.0', retriever: modernSCM(
    ])
 
 SONARQUBE_CREDENTIAL_ID = 'sonarcloud_token'
-SUPPORTED_MAC_VERSIONS = ['3.9', '3.10', '3.11', '3.12']
-SUPPORTED_LINUX_VERSIONS = ['3.9', '3.10', '3.11', '3.12']
-SUPPORTED_WINDOWS_VERSIONS = ['3.9', '3.10', '3.11', '3.12']
+SUPPORTED_MAC_VERSIONS = ['3.9', '3.10', '3.11', '3.12', '3.13']
+SUPPORTED_LINUX_VERSIONS = ['3.9', '3.10', '3.11', '3.12', '3.13']
+SUPPORTED_WINDOWS_VERSIONS = ['3.9', '3.10', '3.11', '3.12', '3.13']
 
 def installCerts(cacheLocation){
     def cachedFile = "${cacheLocation}\\roots.sst".replaceAll(/\\\\+/, '\\\\')
