@@ -30,7 +30,7 @@ COPY conanfile.py /tmp/conanfile.py
 COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
 RUN python3 -m venv venv --upgrade-deps && \
      . ./venv/bin/activate && \
-    pip install $(grep "^uv==" /tmp/requirements/requirements-dev.txt) && \
+    pip install --disable-pip-version-check uv && \
     uv pip install --no-cache-dir  -r /tmp/requirements/requirements-dev.txt && \
     conan config init && \
     conan config set general.revisions_enabled=1 && \
@@ -38,7 +38,9 @@ RUN python3 -m venv venv --upgrade-deps && \
     python /tmp/update_conan_compiler.py ${CONAN_USER_HOME}/.conan/settings.yml gcc $(cc -dumpfullversion -dumpversion | grep -oE  "^([0-9]+(\.)?)([0-9]+?)") && \
     conan install /tmp -pr:b=default --build outdated --build=openjpeg --no-import && \
     conan remove "*" -b --src -f && \
-    conan remove --locks && rm -rf venv
+    conan remove --locks  && \
+    uv cache prune && \
+    rm -rf venv
 
 # ==============================================================================
 
@@ -65,16 +67,6 @@ ENV PIP_DOWNLOAD_CACHE=${PIP_DOWNLOAD_CACHE}
 ENV UV_CACHE_DIR=${UV_CACHE_DIR}
 
 ENV UV_INDEX_STRATEGY=unsafe-best-match
-
-ARG PIPX_HOME
-ENV PIPX_HOME=${PIPX_HOME}
-ENV PIPX_BIN_DIR=${PIPX_HOME}/bin
-RUN python3 -m pip install --no-cache-dir pipx && \
-    pipx ensurepath && \
-    mkdir -p $PIPX_HOME  && chmod -R 777 $PIPX_HOME
-
-RUN PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx install 'tox' && \
-    PIPX_HOME=/opt/pipx PIPX_BIN_DIR=/usr/local/bin pipx inject tox tox-uv
 
 WORKDIR /src
 CMD ["tox", "--workdir", "/tmp/tox/",  "-p=auto", "--parallel--safe-build", "--recreate"]

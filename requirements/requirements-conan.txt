@@ -1,3 +1,0 @@
-conan<2.0
-cmake
-ninja

@@ -1,3 +1,4 @@
+import org.jenkinsci.plugins.pipeline.modeldefinition.Utils
 library identifier: 'JenkinsPythonHelperLibrary@2024.7.0', retriever: modernSCM(
   [$class: 'GitSCMSource',
    remote: 'https://github.com/UIUCLibrary/JenkinsPythonHelperLibrary.git',
@@ -70,103 +71,189 @@ defaultParameterValues = [
 ]
 
 def linux_wheels(){
-    def wheelStages = [failFast: true]
-    SUPPORTED_LINUX_VERSIONS.each{ pythonVersion ->
-        wheelStages["Python ${pythonVersion} - Linux"] = {
-            stage("Python ${pythonVersion} - Linux"){
-                def archBuilds = [failFast: true]
-                def arches = []
-                if(params.INCLUDE_LINUX_ARM == true){
-                    arches << 'arm64'
-                }
-                if(params.INCLUDE_LINUX_X86_64 == true){
-                    arches << 'x86_64'
-                }
-                arches.each{ arch ->
-                    archBuilds["Python ${pythonVersion} Linux ${arch} Wheel"] = {
-                        stage("Python ${pythonVersion} Linux ${arch} Wheel"){
-                            stage("Build Wheel (${pythonVersion} Linux ${arch})"){
-                                retry(3){
-                                    buildPythonPkg(
-                                        agent: [
-                                            dockerfile: [
-                                                label: "linux && docker && ${arch}",
-                                                filename: 'ci/docker/linux/package/Dockerfile',
-                                                additionalBuildArgs: "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=${arch=='x86_64'? 'quay.io/pypa/manylinux2014_x86_64': 'quay.io/pypa/manylinux2014_aarch64'}"
-                                            ]
-                                        ],
-                                        buildCmd: {
-                                            sh(label: 'Building python wheel',
-                                               script:"""python -m venv venv
-                                                         . ./venv/bin/activate
-                                                         python -m pip install pip "\$(grep -oE '^uv==.\\S+' ./requirements-dev.txt)" --upgrade
-                                                         UV_INDEX_STRATEGY=unsafe-best-match uv pip install -r requirements-dev.txt
-                                                         UV_INDEX_STRATEGY=unsafe-best-match python${pythonVersion} -m build --wheel "--config-setting=conan_cache=/conan/.conan" --installer=uv
-                                                         auditwheel show ./dist/*.whl
-                                                         auditwheel -v repair ./dist/*.whl -w ./dist
-                                                         auditwheel show ./dist/*manylinux*.whl
-                                                         """
-                                            )
-                                        },
-                                        post:[
-                                            cleanup: {
-                                                cleanWs(
-                                                    patterns: [
-                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                        [pattern: 'dist/', type: 'INCLUDE'],
-                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
+    def selectedArches = []
+    def allValidArches = ['arm64', 'x86_64']
+    if(params.INCLUDE_LINUX_ARM == true){
+        selectedArches << 'arm64'
+    }
+    if(params.INCLUDE_LINUX_X86_64 == true){
+        selectedArches << 'x86_64'
+    }
+    parallel([failFast: true] << SUPPORTED_LINUX_VERSIONS.collectEntries{ pythonVersion ->
+        [
+            "Python ${pythonVersion} - Linux": {
+                stage("Python ${pythonVersion} - Linux"){
+                    parallel([failFast: true] << allValidArches.collectEntries{ arch ->
+                        [
+                            "Python ${pythonVersion} Linux ${arch} Wheel": {
+                                stage("Python ${pythonVersion} Linux ${arch} Wheel"){
+                                    if(selectedArches.contains(arch)){
+                                        stage("Build Wheel (${pythonVersion} Linux ${arch})"){
+                                            retry(3){
+                                                buildPythonPkg(
+                                                    agent: [
+                                                        dockerfile: [
+                                                            label: "linux && docker && ${arch}",
+                                                            filename: 'ci/docker/linux/package/Dockerfile',
+                                                            additionalBuildArgs: "--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=${arch=='x86_64'? 'quay.io/pypa/manylinux2014_x86_64': 'quay.io/pypa/manylinux2014_aarch64'}"
+                                                        ]
                                                     ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
-                                            },
-                                            success: {
-                                                stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux - ${arch} - wheel"
-                                                wheelStashes << "python${pythonVersion} linux - ${arch} - wheel"
-                                                archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
-                                            }
-                                        ]
-                                    )
-                                }
-                            }
-                            if(params.TEST_PACKAGES == true){
-                                stage("Test Wheel (${pythonVersion} Linux ${arch})"){
-                                    retry(3){
-                                        node("docker && linux && ${arch}"){
-                                            checkout scm
-                                            unstash "python${pythonVersion} linux - ${arch} - wheel"
-                                            try{
-                                                withEnv([
-                                                    'PIP_CACHE_DIR=/tmp/pipcache',
-                                                    'UV_INDEX_STRATEGY=unsafe-best-match',
-                                                    'UV_TOOL_DIR=/tmp/uvtools',
-                                                    'UV_PYTHON_INSTALL_DIR=/tmp/uvpython',
-                                                    'UV_CACHE_DIR=/tmp/uvcache',
-                                                    "TOX_INSTALL_PKG=${findFiles(glob:'dist/*.whl')[0].path}",
-                                                    "TOX_ENV=py${pythonVersion.replace('.', '')}"
-                                                ]){
-                                                    docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
-                                                        sh(
-                                                            label: 'Testing with tox',
-                                                            script: '''python3 -m venv venv
-                                                                       . ./venv/bin/activate
-                                                                       trap "rm -rf venv" EXIT
-                                                                       pip install uv
-                                                                       uvx --with tox-uv tox
-                                                                       rm -rf .tox
-                                                                    '''
+                                                    buildCmd: {
+                                                        sh(label: 'Building python wheel',
+                                                           script:"""python -m venv venv
+                                                                     trap "rm -rf venv" EXIT
+                                                                     venv/bin/pip install --disable-pip-version-check uv
+                                                                     UV_INDEX_STRATEGY=unsafe-best-match venv/bin/uv build --python ${pythonVersion}  --wheel "--config-setting=conan_cache=/conan/.conan"
+                                                                     rm -rf venv
+                                                                     auditwheel show ./dist/*.whl
+                                                                     auditwheel -v repair ./dist/*.whl -w ./dist
+                                                                     auditwheel show ./dist/*manylinux*.whl
+                                                                     """
                                                         )
+                                                    },
+                                                    post:[
+                                                        cleanup: {
+                                                            cleanWs(
+                                                                patterns: [
+                                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                ],
+                                                                notFailBuild: true,
+                                                                deleteDirs: true
+                                                            )
+                                                        },
+                                                        success: {
+                                                            stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux - ${arch} - wheel"
+                                                            wheelStashes << "python${pythonVersion} linux - ${arch} - wheel"
+                                                            archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
+                                                        }
+                                                    ]
+                                                )
+                                            }
+                                        }
+                                        if(params.TEST_PACKAGES == true){
+                                            stage("Test Wheel (${pythonVersion} Linux ${arch})"){
+                                                retry(3){
+                                                    node("docker && linux && ${arch}"){
+                                                        checkout scm
+                                                        unstash "python${pythonVersion} linux - ${arch} - wheel"
+                                                        try{
+                                                            withEnv([
+                                                                'PIP_CACHE_DIR=/tmp/pipcache',
+                                                                'UV_INDEX_STRATEGY=unsafe-best-match',
+                                                                'UV_TOOL_DIR=/tmp/uvtools',
+                                                                'UV_PYTHON_INSTALL_DIR=/tmp/uvpython',
+                                                                'UV_CACHE_DIR=/tmp/uvcache',
+                                                                "TOX_INSTALL_PKG=${findFiles(glob:'dist/*.whl')[0].path}",
+                                                                "TOX_ENV=py${pythonVersion.replace('.', '')}"
+                                                            ]){
+                                                                docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                                    sh(
+                                                                        label: 'Testing with tox',
+                                                                        script: '''python3 -m venv venv
+                                                                                   . ./venv/bin/activate
+                                                                                   trap "rm -rf venv" EXIT
+                                                                                   pip install --disable-pip-version-check uv
+                                                                                   uvx --with tox-uv tox
+                                                                                   rm -rf .tox
+                                                                                '''
+                                                                    )
+                                                                }
+                                                            }
+                                                        } finally {
+                                                            cleanWs(
+                                                                patterns: [
+                                                                    [pattern: '.tox/', type: 'INCLUDE'],
+                                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                    ]
+                                                            )
+                                                        }
                                                     }
                                                 }
-                                            } finally {
-                                                cleanWs(
-                                                    patterns: [
-                                                        [pattern: '.tox/', type: 'INCLUDE'],
-                                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                            }
+                                        }
+                                    } else {
+                                        Utils.markStageSkippedForConditional("Python ${pythonVersion} Linux ${arch} Wheel")
+                                    }
+                                }
+                            }
+                        ]
+                    })
+                }
+            }
+        ]
+    })
+}
+
+def windows_wheels(){
+    parallel([failFast: true] << SUPPORTED_WINDOWS_VERSIONS.collectEntries{ pythonVersion ->
+        [
+            "Windows - Python ${pythonVersion}": {
+                stage("Windows - Python ${pythonVersion}"){
+                    if(params.INCLUDE_WINDOWS_X86_64 == true){
+                        stage("Windows - Python ${pythonVersion} x86_64: wheel"){
+                            stage("Build Wheel (${pythonVersion} Windows)"){
+                                buildPythonPkg(
+                                    agent: [
+                                        dockerfile: [
+                                            label: 'windows && docker && x86',
+                                            filename: 'ci/docker/windows/tox/Dockerfile',
+                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
+                                            args: '-v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv'
+                                        ]
+                                    ],
+                                    retries: 3,
+                                    buildCmd: {
+                                        withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                            bat """py -m venv venv
+                                                   venv\\Scripts\\pip install --disable-pip-version-check uv
+                                                   venv\\Scripts\\uv build --python ${pythonVersion} --wheel
+                                                   rmdir /S /Q venv
+                                                """
+                                        }
+                                    },
+                                    post:[
+                                        cleanup: {
+                                            cleanWs(
+                                                patterns: [
                                                         [pattern: 'venv/', type: 'INCLUDE'],
-                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                        ]
-                                                )
+                                                        [pattern: 'build/', type: 'INCLUDE'],
+                                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                                    ],
+                                                notFailBuild: true,
+                                                deleteDirs: true
+                                            )
+                                        },
+                                        success: {
+                                            stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
+                                            wheelStashes << "python${pythonVersion} windows wheel"
+                                        }
+                                    ]
+                                )
+                            }
+                            if(params.TEST_PACKAGES == true){
+                                stage("Test Wheel (${pythonVersion} Windows x86_64)"){
+                                    node('windows && docker'){
+                                        docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=C:\\Users\\ContainerUser\\Documents --mount source=msvc-runtime,target=c:\\msvc_runtime --mount source=windows-certs,target=c:\\certs'){
+                                            checkout scm
+                                            installMSVCRuntime('c:\\msvc_runtime\\')
+                                            installCerts('c:\\certs\\')
+                                            unstash "python${pythonVersion} windows wheel"
+                                            withEnv([
+                                                'PIP_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\pipcache',
+                                                'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\uvtools',
+                                                'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython',
+                                                'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\uvcache',
+                                                'UV_INDEX_STRATEGY=unsafe-best-match',
+                                            ]){
+                                                findFiles(glob: 'dist/*.whl').each{
+                                                    bat """python -m pip install  --disable-pip-version-check uv
+                                                           uvx -p ${pythonVersion} --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
+                                                        """
+                                                }
                                             }
                                         }
                                     }
@@ -175,401 +262,212 @@ def linux_wheels(){
                         }
                     }
                 }
-                parallel(archBuilds)
             }
-        }
-    }
-    parallel(wheelStages)
+        ]
+    })
 }
 
-def windows_wheels(){
-    def wheelStages = [failFast: true]
-    SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
-        if(params.INCLUDE_WINDOWS_X86_64 == true){
-            wheelStages["Windows - Python ${pythonVersion}"] = {
-                stage("Windows - Python ${pythonVersion}"){
-                    stage("Windows - Python ${pythonVersion} x86_64: wheel"){
-                        stage("Build Wheel (${pythonVersion} Windows)"){
-                            buildPythonPkg(
-                                agent: [
-                                    dockerfile: [
-                                        label: 'windows && docker && x86',
-                                        filename: 'ci/docker/windows/tox/Dockerfile',
-                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
-                                        args: '-v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv'
-                                    ]
-                                ],
-                                retries: 3,
-                                buildCmd: {
-                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                        bat """py -${pythonVersion} -m venv venv
-                                               call venv\\Scripts\\activate.bat
-                                               python -m pip install uv
-                                               uv pip install build
-                                               python -m build --wheel --installer=uv
-                                            """
+def mac_wheels(){
+    def selectedArches = []
+    def allValidArches = ['arm64', 'x86_64']
+    if(params.INCLUDE_MACOS_X86_64 == true){
+        selectedArches << "x86_64"
+    }
+    if(params.INCLUDE_MACOS_ARM == true){
+        selectedArches << "arm64"
+    }
+    parallel([failFast: true] << SUPPORTED_MAC_VERSIONS.collectEntries{ pythonVersion ->
+        [
+            "Python ${pythonVersion} - Mac":{
+                stage("Python ${pythonVersion} - Mac"){
+                    stage('Single architecture wheel'){
+                        parallel([failFast: true] << allValidArches.collectEntries{arch ->
+                            [
+                                "Python ${pythonVersion} MacOS ${arch}": {
+                                    stage("Python ${pythonVersion} MacOS ${arch}"){
+                                        if(selectedArches.contains(arch)){
+                                            stage("Build Wheel (${pythonVersion} ${arch}"){
+                                                buildPythonPkg(
+                                                    agent: [
+                                                        label: "mac && python${pythonVersion} && ${arch}",
+                                                    ],
+                                                    retries: 3,
+                                                    buildCmd: {
+                                                        sh(label: 'Building wheel',
+                                                           script: "contrib/build_mac_wheel.sh . --venv-path=./venv --base-python=python${pythonVersion}"
+                                                        )
+                                                    },
+                                                    post:[
+                                                        cleanup: {
+                                                            cleanWs(
+                                                                patterns: [
+                                                                        [pattern: 'build/', type: 'INCLUDE'],
+                                                                        [pattern: 'venv/', type: 'INCLUDE'],
+                                                                        [pattern: 'dist/', type: 'INCLUDE'],
+                                                                    ],
+                                                                notFailBuild: true,
+                                                                deleteDirs: true
+                                                            )
+                                                        },
+                                                        success: {
+                                                            stash includes: 'dist/*.whl', name: "python${pythonVersion} ${arch} mac wheel"
+                                                            wheelStashes << "python${pythonVersion} ${arch} mac wheel"
+                                                        }
+                                                    ]
+                                                )
+                                            }
+                                            if(params.TEST_PACKAGES == true){
+                                                stage("Test Wheel (${pythonVersion} MacOS ${arch})"){
+                                                    testPythonPkg(
+                                                        agent: [
+                                                            label: "mac && python${pythonVersion} && ${arch}",
+                                                        ],
+                                                        testSetup: {
+                                                            checkout scm
+                                                            unstash "python${pythonVersion} ${arch} mac wheel"
+                                                        },
+                                                        testCommand: {
+                                                            withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                                findFiles(glob: 'dist/*.whl').each{
+                                                                    sh(label: 'Running Tox',
+                                                                       script: """python${pythonVersion} -m venv venv
+                                                                                  trap "rm -rf venv" EXIT
+                                                                                  ./venv/bin/pip install --disable-pip-version-check uv
+                                                                                  trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                  ./venv/bin/uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                               """
+                                                                    )
+                                                                }
+                                                            }
+
+                                                        },
+                                                        post:[
+                                                            cleanup: {
+                                                                cleanWs(
+                                                                    patterns: [
+                                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                                                            [pattern: '.tox/', type: 'INCLUDE'],
+                                                                        ],
+                                                                    notFailBuild: true,
+                                                                    deleteDirs: true
+                                                                )
+                                                            },
+                                                            success: {
+                                                                 archiveArtifacts artifacts: 'dist/*.whl'
+                                                            }
+                                                        ]
+                                                    )
+                                                }
+                                            }
+                                        } else {
+                                            Utils.markStageSkippedForConditional("Python ${pythonVersion} MacOS ${arch}")
+                                        }
                                     }
-                                },
-                                post:[
-                                    cleanup: {
+                                }
+                            ]}
+                        )
+                    }
+                    if(params.INCLUDE_MACOS_X86_64 && params.INCLUDE_MACOS_ARM){
+                        stage("Universal2 Wheel: Python ${pythonVersion}"){
+                            stage('Make Universal2 wheel'){
+                                node("mac && python${pythonVersion}") {
+                                    checkout scm
+                                    unstash "python${pythonVersion} arm64 mac wheel"
+                                    unstash "python${pythonVersion} x86_64 mac wheel"
+                                    def wheelNames = []
+                                    findFiles(excludes: '', glob: 'dist/*.whl').each{wheelFile ->
+                                        wheelNames.add(wheelFile.path)
+                                    }
+                                    try{
+                                        sh(label: 'Make Universal2 wheel',
+                                           script: """python3 -m venv venv
+                                                      trap "rm -rf venv" EXIT
+                                                      ./venv/bin/pip install --disable-pip-version-check uv
+                                                      mkdir -p out
+                                                      ./venv/bin/uvx --python ${pythonVersion} --index-strategy unsafe-best-match --with-requirements requirements-dev.txt --from delocate delocate-merge  ${wheelNames.join(' ')} --verbose -w ./out/
+                                                      rm dist/*.whl
+                                                   """
+                                           )
+                                       def fusedWheel = findFiles(excludes: '', glob: 'out/*.whl')[0]
+                                       def pythonVersionShort = pythonVersion.replace('.','')
+                                       def props = readTOML( file: 'pyproject.toml')['project']
+                                       def universalWheel = "uiucprescon.ocr-${props.version}-cp${pythonVersionShort}-cp${pythonVersionShort}-macosx_11_0_universal2.whl"
+                                       sh "mv ${fusedWheel.path} ./dist/${universalWheel}"
+                                       stash includes: 'dist/*.whl', name: "python${pythonVersion} mac-universal2 wheel"
+                                       wheelStashes << "python${pythonVersion} mac-universal2 wheel"
+                                       archiveArtifacts artifacts: 'dist/*.whl'
+                                    } finally {
                                         cleanWs(
                                             patterns: [
-                                                    [pattern: 'venv/', type: 'INCLUDE'],
-                                                    [pattern: 'build/', type: 'INCLUDE'],
+                                                    [pattern: 'out/', type: 'INCLUDE'],
                                                     [pattern: 'dist/', type: 'INCLUDE'],
+                                                    [pattern: 'venv/', type: 'INCLUDE'],
                                                 ],
                                             notFailBuild: true,
                                             deleteDirs: true
                                         )
-                                    },
-                                    success: {
-                                        stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
-                                        wheelStashes << "python${pythonVersion} windows wheel"
-                                    }
-                                ]
-                            )
-                        }
-                        if(params.TEST_PACKAGES == true){
-                            stage("Test Wheel (${pythonVersion} Windows x86_64)"){
-                                node('windows && docker'){
-                                    docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=C:\\Users\\ContainerUser\\Documents --mount source=msvc-runtime,target=c:\\msvc_runtime --mount source=windows-certs,target=c:\\certs'){
-                                        checkout scm
-                                        installMSVCRuntime('c:\\msvc_runtime\\')
-                                        installCerts('c:\\certs\\')
-                                        unstash "python${pythonVersion} windows wheel"
-                                        withEnv([
-                                            'PIP_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\pipcache',
-                                            'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\uvtools',
-                                            'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython',
-                                            'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\uvcache',
-                                            'UV_INDEX_STRATEGY=unsafe-best-match',
-                                        ]){
-                                            findFiles(glob: 'dist/*.whl').each{
-                                                bat """python -m pip install uv
-                                                       uvx -p ${pythonVersion} --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
-                                                    """
+                                   }
+                                }
+                            }
+                            if(params.TEST_PACKAGES == true){
+                                stage("Test universal2 Wheel"){
+                                    parallel(selectedArches.collectEntries{arch ->
+                                        [
+                                            "Test Python ${pythonVersion} universal2 Wheel on ${arch} mac": {
+                                                stage("Test Python ${pythonVersion} universal2 Wheel on ${arch} mac"){
+                                                    testPythonPkg(
+                                                        agent: [
+                                                            label: "mac && python${pythonVersion} && ${arch}",
+                                                        ],
+                                                        testSetup: {
+                                                            checkout scm
+                                                            unstash "python${pythonVersion} mac-universal2 wheel"
+                                                        },
+                                                        retries: 3,
+                                                        testCommand: {
+                                                            withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                                findFiles(glob: 'dist/*.whl').each{
+                                                                    sh(label: 'Running Tox',
+                                                                       script: """python${pythonVersion} -m venv venv
+                                                                                  trap "rm -rf venv" EXIT
+                                                                                  ./venv/bin/python -m pip install --disable-pip-version-check uv
+                                                                                  trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                  CONAN_REVISIONS_ENABLED=1 ./venv/bin/uvx --with-requirements requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                               """
+                                                                    )
+                                                                }
+                                                            }
+                                                        },
+                                                        post:[
+                                                            cleanup: {
+                                                                cleanWs(
+                                                                    patterns: [
+                                                                            [pattern: 'dist/', type: 'INCLUDE'],
+                                                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                                                            [pattern: '.tox/', type: 'INCLUDE'],
+                                                                        ],
+                                                                    notFailBuild: true,
+                                                                    deleteDirs: true
+                                                                )
+                                                            },
+                                                            success: {
+                                                                 archiveArtifacts artifacts: 'dist/*.whl'
+                                                            }
+                                                        ]
+                                                    )
+                                                }
                                             }
-                                        }
-                                    }
+                                        ]
+                                    })
                                 }
                             }
                         }
                     }
                 }
             }
-        }
-    }
-    parallel(wheelStages)
-}
-
-def mac_wheels(){
-    def wheelStages = [failFast: true]
-    SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
-        wheelStages["Python ${pythonVersion} - Mac"] = {
-            stage("Python ${pythonVersion} - Mac"){
-                stage('Single architecture wheel'){
-                    def archBuilds = [failFast: true]
-                    if(params.INCLUDE_MACOS_X86_64 == true){
-                        archBuilds["Python ${pythonVersion} MacOS x86_64"] = {
-                            stage("Python ${pythonVersion} MacOS x86_64"){
-                                stage("Build Wheel (${pythonVersion} MacOS x86_64)"){
-                                    buildPythonPkg(
-                                        agent: [
-                                            label: "mac && python${pythonVersion} && x86",
-                                        ],
-                                        retries: 3,
-                                        buildCmd: {
-                                            sh(label: 'Building wheel',
-                                               script: "contrib/build_mac_wheel.sh . --venv-path=./venv --base-python=python${pythonVersion}"
-                                            )
-                                        },
-                                        post:[
-                                            cleanup: {
-                                                cleanWs(
-                                                    patterns: [
-                                                            [pattern: 'build/', type: 'INCLUDE'],
-                                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                        ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
-                                            },
-                                            success: {
-                                                stash includes: 'dist/*.whl', name: "python${pythonVersion} x86_64 mac wheel"
-                                                wheelStashes << "python${pythonVersion} x86_64 mac wheel"
-                                            }
-                                        ]
-                                    )
-                                }
-                                if(params.TEST_PACKAGES == true){
-                                    stage("Test Wheel (${pythonVersion} MacOS x86_64)"){
-                                        testPythonPkg(
-                                            agent: [
-                                                label: "mac && python${pythonVersion} && x86_64",
-                                            ],
-                                            testSetup: {
-                                                checkout scm
-                                                unstash "python${pythonVersion} x86_64 mac wheel"
-                                            },
-                                            testCommand: {
-                                                withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                    findFiles(glob: 'dist/*.whl').each{
-                                                        sh(label: 'Running Tox',
-                                                           script: """python${pythonVersion} -m venv venv
-                                                           . ./venv/bin/activate
-                                                           python -m pip install uv
-                                                           uv pip install -r requirements-dev.txt
-                                                           tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                        )
-                                                    }
-                                                }
-
-                                            },
-                                            post:[
-                                                cleanup: {
-                                                    cleanWs(
-                                                        patterns: [
-                                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                                [pattern: 'venv/', type: 'INCLUDE'],
-                                                                [pattern: '.tox/', type: 'INCLUDE'],
-                                                            ],
-                                                        notFailBuild: true,
-                                                        deleteDirs: true
-                                                    )
-                                                },
-                                                success: {
-                                                     archiveArtifacts artifacts: 'dist/*.whl'
-                                                }
-                                            ]
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    if(params.INCLUDE_MACOS_ARM == true){
-                        archBuilds["Python ${pythonVersion} MacOS m1 wheel"] = {
-                            stage("Python ${pythonVersion} MacOS m1 wheel"){
-                                stage("Build Wheel (${pythonVersion} MacOS m1)"){
-                                    buildPythonPkg(
-                                        agent: [
-                                            label: "mac && python${pythonVersion} && m1",
-                                        ],
-                                        buildCmd: {
-                                             sh(label: 'Building wheel',
-                                                script: "contrib/build_mac_wheel.sh . --venv-path=./venv --base-python=python${pythonVersion}"
-                                               )
-                                        },
-                                        post:[
-                                            cleanup: {
-                                                cleanWs(
-                                                    patterns: [
-                                                            [pattern: 'build/', type: 'INCLUDE'],
-                                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                        ],
-                                                    notFailBuild: true,
-                                                    deleteDirs: true
-                                                )
-                                            },
-                                            success: {
-                                                stash includes: 'dist/*.whl', name: "python${pythonVersion} m1 mac wheel"
-                                                wheelStashes << "python${pythonVersion} m1 mac wheel"
-                                            }
-                                        ]
-                                    )
-                                }
-                                if(params.TEST_PACKAGES == true){
-                                    stage("Test Wheel (${pythonVersion} MacOS m1)"){
-                                        testPythonPkg(
-                                            agent: [
-                                                label: "mac && python${pythonVersion} && m1",
-                                            ],
-                                            testSetup: {
-                                                checkout scm
-                                                unstash "python${pythonVersion} m1 mac wheel"
-                                            },
-                                            testCommand: {
-                                                withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                    findFiles(glob: 'dist/*.whl').each{
-                                                        sh(label: 'Running Tox',
-                                                           script: """python${pythonVersion} -m venv venv
-                                                           . ./venv/bin/activate
-                                                           python -m pip install uv
-                                                           uv pip install -r requirements-dev.txt
-                                                           tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                        )
-                                                    }
-                                                }
-                                            },
-                                            post:[
-                                                cleanup: {
-                                                    cleanWs(
-                                                        patterns: [
-                                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                                [pattern: 'venv/', type: 'INCLUDE'],
-                                                                [pattern: '.tox/', type: 'INCLUDE'],
-                                                            ],
-                                                        notFailBuild: true,
-                                                        deleteDirs: true
-                                                    )
-                                                },
-                                                success: {
-                                                     archiveArtifacts artifacts: 'dist/*.whl'
-                                                }
-                                            ]
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    parallel(archBuilds)
-                }
-                if(params.INCLUDE_MACOS_X86_64 && params.INCLUDE_MACOS_ARM && pythonVersion != '3.8'){
-                    stage("Universal2 Wheel: Python ${pythonVersion}"){
-                        stage('Make Universal2 wheel'){
-                            node("mac && python${pythonVersion}") {
-                                checkout scm
-                                unstash "python${pythonVersion} m1 mac wheel"
-                                unstash "python${pythonVersion} x86_64 mac wheel"
-                                def wheelNames = []
-                                findFiles(excludes: '', glob: 'dist/*.whl').each{wheelFile ->
-                                    wheelNames.add(wheelFile.path)
-                                }
-                                try{
-                                    sh(label: 'Make Universal2 wheel',
-                                       script: """python${pythonVersion} -m venv venv
-                                                  . ./venv/bin/activate
-                                                  pip install --upgrade pip
-                                                  pip install wheel delocate
-                                                  mkdir -p out
-                                                  delocate-merge  ${wheelNames.join(' ')} --verbose -w ./out/
-                                                  rm dist/*.whl
-                                                   """
-                                       )
-                                   def fusedWheel = findFiles(excludes: '', glob: 'out/*.whl')[0]
-                                   def pythonVersionShort = pythonVersion.replace('.','')
-                                   def props = readTOML( file: 'pyproject.toml')['project']
-                                   def universalWheel = "uiucprescon.ocr-${props.version}-cp${pythonVersionShort}-cp${pythonVersionShort}-macosx_11_0_universal2.whl"
-                                   sh "mv ${fusedWheel.path} ./dist/${universalWheel}"
-                                   stash includes: 'dist/*.whl', name: "python${pythonVersion} mac-universal2 wheel"
-                                   wheelStashes << "python${pythonVersion} mac-universal2 wheel"
-                                   archiveArtifacts artifacts: 'dist/*.whl'
-                                } finally {
-                                    cleanWs(
-                                        patterns: [
-                                                [pattern: 'out/', type: 'INCLUDE'],
-                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                [pattern: 'venv/', type: 'INCLUDE'],
-                                            ],
-                                        notFailBuild: true,
-                                        deleteDirs: true
-                                    )
-                               }
-                            }
-                        }
-                        if(params.TEST_PACKAGES == true){
-                            stage("Test universal2 Wheel"){
-                                parallel(
-                                    "Test Python ${pythonVersion} universal2 Wheel on x86_64 mac": {
-                                        stage("Test Python ${pythonVersion} universal2 Wheel on x86_64 mac"){
-                                            testPythonPkg(
-                                                agent: [
-                                                    label: "mac && python${pythonVersion} && x86_64",
-                                                ],
-                                                testSetup: {
-                                                    checkout scm
-                                                    unstash "python${pythonVersion} mac-universal2 wheel"
-                                                },
-                                                retries: 3,
-                                                testCommand: {
-                                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                        findFiles(glob: 'dist/*.whl').each{
-                                                            sh(label: 'Running Tox',
-                                                               script: """python${pythonVersion} -m venv venv
-                                                                          . ./venv/bin/activate
-                                                                          python -m pip install uv
-                                                                          uv pip install -r requirements-dev.txt
-                                                                          CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                       """
-                                                            )
-                                                        }
-                                                    }
-                                                },
-                                                post:[
-                                                    cleanup: {
-                                                        cleanWs(
-                                                            patterns: [
-                                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                                    [pattern: 'venv/', type: 'INCLUDE'],
-                                                                    [pattern: '.tox/', type: 'INCLUDE'],
-                                                                ],
-                                                            notFailBuild: true,
-                                                            deleteDirs: true
-                                                        )
-                                                    },
-                                                    success: {
-                                                         archiveArtifacts artifacts: 'dist/*.whl'
-                                                    }
-                                                ]
-                                            )
-                                        }
-                                    },
-                                    "Test Python ${pythonVersion} universal2 Wheel on M1 Mac": {
-                                        stage("Test Python ${pythonVersion} universal2 Wheel on M1 Mac"){
-                                            testPythonPkg(
-                                                agent: [
-                                                    label: "mac && python${pythonVersion} && m1",
-                                                ],
-                                                testSetup: {
-                                                    checkout scm
-                                                    unstash "python${pythonVersion} mac-universal2 wheel"
-                                                },
-                                                retries: 3,
-                                                testCommand: {
-                                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                        findFiles(glob: 'dist/*.whl').each{
-                                                            sh(label: 'Running Tox',
-                                                               script: """python${pythonVersion} -m venv venv
-                                                                          . ./venv/bin/activate
-                                                                          python -m pip install uv
-                                                                          uv pip install -r requirements-dev.txt
-                                                                          CONAN_REVISIONS_ENABLED=1 tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                       """
-                                                            )
-                                                        }
-                                                    }
-                                                },
-                                                post:[
-                                                    cleanup: {
-                                                        cleanWs(
-                                                            patterns: [
-                                                                    [pattern: 'dist/', type: 'INCLUDE'],
-                                                                    [pattern: 'venv/', type: 'INCLUDE'],
-                                                                    [pattern: '.tox/', type: 'INCLUDE'],
-                                                                ],
-                                                            notFailBuild: true,
-                                                            deleteDirs: true
-                                                        )
-                                                    },
-                                                    success: {
-                                                         archiveArtifacts artifacts: 'dist/*.whl'
-                                                    }
-                                                ]
-                                            )
-                                        }
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-    parallel(wheelStages)
+        ]
+    })
 }
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
@@ -636,33 +534,47 @@ pipeline {
                 }
             }
             stages{
-                stage('Building') {
+                stage('Building and Testing') {
                     agent {
                         dockerfile {
                             filename 'ci/docker/linux/jenkins/Dockerfile'
                             label 'linux && docker && x86'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip '
+                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                            args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                         }
                     }
-                    when{
-                        equals expected: true, actual: params.RUN_CHECKS
-                        beforeAgent true
-                    }
                     stages{
-                        stage('Building Python Package'){
-                            steps {
-                                timeout(20){
-                                    tee('logs/python_build.log'){
+                        stage('Setup'){
+                            stages{
+                                stage('Setup Testing Environment'){
+                                    steps{
                                         sh(
-                                            label: 'Build python package',
-                                            script: 'CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" python setup.py build -b build --build-lib build/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace'
-                                        )
+                                            label: 'Create virtual environment',
+                                            script: '''python3 -m venv bootstrap_uv
+                                                       bootstrap_uv/bin/pip install uv
+                                                       bootstrap_uv/bin/uv venv venv
+                                                       . ./venv/bin/activate
+                                                       bootstrap_uv/bin/uv pip install --index-strategy unsafe-best-match uv
+                                                       rm -rf bootstrap_uv
+                                                       uv pip install --index-strategy unsafe-best-match -r requirements-dev.txt
+                                                       '''
+                                       )
                                     }
                                 }
-                            }
-                            post{
-                                always{
-                                    recordIssues(filters: [excludeFile('build/*'), excludeFile('conan/*'), ], tools: [gcc(pattern: 'logs/python_build.log')])
+                                stage('Installing project as editable module'){
+                                    steps{
+                                        timeout(10){
+                                            sh(
+                                                label: 'Build python package',
+                                                script: '''mkdir -p build/python
+                                                           mkdir -p logs
+                                                           mkdir -p reports
+                                                           . ./venv/bin/activate
+                                                           CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --index-strategy unsafe-best-match --verbose -e .
+                                                           '''
+                                            )
+                                        }
+                                    }
                                 }
                             }
                         }
@@ -670,6 +582,7 @@ pipeline {
                             steps{
                                 timeout(3){
                                     sh '''mkdir -p logs
+                                          . ./venv/bin/activate
                                           python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log
                                           '''
                                 }
@@ -684,57 +597,26 @@ pipeline {
                                         def props = readTOML( file: 'pyproject.toml')['project']
                                         zip archive: true, dir: 'build/docs/html', glob: '', zipFile: "dist/${props.name}-${props.version}.doc.zip"
                                     }
-
                                     stash includes: 'dist/*.doc.zip,build/docs/html/**', name: 'DOCS_ARCHIVE'
                                 }
                             }
                         }
-                    }
-                }
-                stage('Testing'){
-                    stages{
-                        stage('Code Quality') {
-                            agent {
-                                dockerfile {
-                                    filename 'ci/docker/linux/jenkins/Dockerfile'
-                                    label 'linux && docker && x86'
-                                    additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
-                                    args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
-                                }
-                            }
+                        stage('Checks'){
                             when{
                                 equals expected: true, actual: params.RUN_CHECKS
                                 beforeAgent true
                             }
                             stages{
-                                stage('Setting up Tests'){
-                                    parallel{
-                                        stage('Setting Up C++ Tests'){
-                                            steps{
-                                                sh(
-                                                    label: 'Building C++ project for metrics',
-                                                    script: '''conan install . -if build/cpp -g cmake_find_package
-                                                               cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
-                                                               make -C build/cpp clean tester
-                                                               '''
-                                                )
-                                            }
-                                        }
-                                        stage('Setting Up Python Tests'){
-                                            steps{
-                                                timeout(10){
-                                                    sh(
-                                                        label: 'Build python package',
-                                                        script: '''mkdir -p build/python
-                                                                   mkdir -p logs
-                                                                   mkdir -p reports
-                                                                   CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory  python setup.py build -b build/python --build-lib build/python/lib/ build_ext -j $(grep -c ^processor /proc/cpuinfo) --inplace --debug
-                                                                   '''
-                                                    )
-                                                    unstash 'DOCS_ARCHIVE'
-                                                }
-                                            }
-                                        }
+                                stage('Setting Up C++ Tests'){
+                                    steps{
+                                        sh(
+                                            label: 'Building C++ project for metrics',
+                                            script: '''. ./venv/bin/activate
+                                                       conan install . -if build/cpp -g cmake_find_package
+                                                       cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                                       make -C build/cpp clean tester
+                                                       '''
+                                        )
                                     }
                                 }
                                 stage('Running Tests'){
@@ -745,6 +627,7 @@ pipeline {
                                                     sh(
                                                         label: 'Running pytest',
                                                         script: '''mkdir -p reports/pytestcoverage
+                                                                   . ./venv/bin/activate
                                                                    coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                                    '''
                                                     )
@@ -753,14 +636,15 @@ pipeline {
                                             post {
                                                 always {
                                                     junit 'reports/pytest/junit-pytest.xml'
-
                                                 }
                                             }
                                         }
                                         stage('Run Doctest Tests'){
                                             steps {
                                                 timeout(3){
-                                                    sh 'python -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log'
+                                                    sh '''. ./venv/bin/activate
+                                                          python -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log
+                                                       '''
                                                 }
                                             }
                                             post{
@@ -824,7 +708,9 @@ pipeline {
                                                     catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
                                                         sh(
                                                             label: 'Running Flake8',
-                                                            script: 'flake8 uiucprescon --tee --output-file logs/flake8.log'
+                                                            script: '''. ./venv/bin/activate
+                                                                       flake8 uiucprescon --tee --output-file logs/flake8.log
+                                                                    '''
                                                         )
                                                     }
                                                 }
@@ -839,7 +725,8 @@ pipeline {
                                             steps{
                                                 sh(
                                                     label: 'Running MyPy',
-                                                    script: '''stubgen uiucprescon -o mypy_stubs
+                                                    script: '''. ./venv/bin/activate
+                                                               stubgen uiucprescon -o mypy_stubs
                                                                mkdir -p reports/mypy/html
                                                                MYPYPATH="$WORKSPACE/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
                                                                '''
@@ -858,14 +745,17 @@ pipeline {
                                                     sh(label: 'Running pylint',
                                                         script: '''mkdir -p logs
                                                                    mkdir -p reports
+                                                                   . ./venv/bin/activate
                                                                    pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
-                                                                   '''
+                                                                '''
 
                                                     )
                                                 }
                                                 sh(
-                                                    script: 'pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
                                                     label: 'Running pylint for sonarqube',
+                                                    script: '''. ./venv/bin/activate
+                                                               pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt
+                                                            ''',
                                                     returnStatus: true
                                                 )
                                             }
@@ -881,6 +771,7 @@ pipeline {
                                             sh(script: '''mkdir -p build/coverage
                                                           find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=$WORKSPACE/ \\;
                                                           mv *.gcov build/coverage/
+                                                          . ./venv/bin/activate
                                                           coverage combine
                                                           coverage xml -o ./reports/coverage-python.xml
                                                           gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
@@ -907,6 +798,7 @@ pipeline {
                                         UV_CACHE_DIR='/tmp/uvcache'
                                     }
                                     steps{
+                                        milestone 1
                                         script{
                                             def props = readTOML( file: 'pyproject.toml')['project']
                                             withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
@@ -914,7 +806,7 @@ pipeline {
                                                     sh(
                                                         label: 'Running Sonar Scanner',
                                                         script: """python3 -m venv uv
-                                                                  uv/bin/pip install uv
+                                                                  uv/bin/pip install --disable-pip-version-check uv
                                                                   trap "rm -rf uv" EXIT
                                                                   uv/bin/uv venv venv
                                                                   trap "rm -rf uv && rm -rf venv" EXIT
@@ -927,7 +819,7 @@ pipeline {
                                                     sh(
                                                         label: 'Running Sonar Scanner',
                                                         script: """python3 -m venv uv
-                                                                   uv/bin/pip install uv
+                                                                   uv/bin/pip install --disable-pip-version-check uv
                                                                    uv/bin/uv venv venv
                                                                    . ./venv/bin/activate
                                                                    uv/bin/uv pip install uv
@@ -953,66 +845,195 @@ pipeline {
                                     }
                                 }
                             }
-                            post{
-                                cleanup{
-                                    cleanWs(
-                                        patterns: [
-                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                [pattern: 'build/', type: 'INCLUDE'],
-                                                [pattern: 'logs/', type: 'INCLUDE'],
-                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
-                                            ],
-                                        notFailBuild: true,
-                                        deleteDirs: true
-                                        )
+                        }
+                    }
+                    post{
+                        cleanup{
+                            cleanWs(
+                                patterns: [
+                                        [pattern: 'venv/', type: 'INCLUDE'],
+                                        [pattern: 'build/', type: 'INCLUDE'],
+                                        [pattern: 'build/', type: 'INCLUDE'],
+                                        [pattern: 'logs/', type: 'INCLUDE'],
+                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                        [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
+                                    ],
+                                notFailBuild: true,
+                                deleteDirs: true
+                                )
+                        }
+                    }
+                }
+                stage('Run Tox test') {
+                    when {
+                       equals expected: true, actual: params.TEST_RUN_TOX
+                    }
+                    parallel{
+                        stage('Linux'){
+                            environment{
+                                PIP_CACHE_DIR='/tmp/pipcache'
+                                UV_INDEX_STRATEGY='unsafe-best-match'
+                                UV_TOOL_DIR='/tmp/uvtools'
+                                UV_PYTHON_INSTALL_DIR='/tmp/uvpython'
+                                UV_CACHE_DIR='/tmp/uvcache'
+                            }
+                            when{
+                                expression {return nodesByLabel('linux && docker').size() > 0}
+                            }
+                            steps{
+                                script{
+                                    def envs = []
+                                    node('docker && linux'){
+                                        docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                            try{
+                                                checkout scm
+                                                sh(script: 'python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv')
+                                                envs = sh(
+                                                    label: 'Get tox environments',
+                                                    script: './venv/bin/uvx --quiet --with tox-uv tox list -d --no-desc',
+                                                    returnStdout: true,
+                                                ).trim().split('\n')
+                                            } finally{
+                                                cleanWs(
+                                                    patterns: [
+                                                        [pattern: 'venv/', type: 'INCLUDE'],
+                                                        [pattern: '.tox', type: 'INCLUDE'],
+                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                    ]
+                                                )
+                                            }
+                                        }
+                                    }
+                                    parallel(
+                                        envs.collectEntries{toxEnv ->
+                                            def version = toxEnv.replaceAll(/py(\d)(\d+)/, '$1.$2')
+                                            [
+                                                "Tox Environment: ${toxEnv}",
+                                                {
+                                                    node('docker && linux'){
+                                                        checkout scm
+                                                        def image
+                                                        lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
+                                                            image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
+                                                        }
+                                                        try{
+                                                            image.inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                                retry(3){
+                                                                    try{
+                                                                        sh( label: 'Running Tox',
+                                                                            script: """python3 -m venv /tmp/venv && /tmp/venv/bin/pip install --disable-pip-version-check uv
+                                                                                       /tmp/venv/bin/uvx --python ${version} --python-preference system --with tox-uv tox run -e ${toxEnv} -vvv
+                                                                                    """
+                                                                            )
+                                                                    } catch(e) {
+                                                                        sh(script: '''. ./venv/bin/activate
+                                                                              uv python list
+                                                                              '''
+                                                                                )
+                                                                        throw e
+                                                                    } finally{
+                                                                        cleanWs(
+                                                                            patterns: [
+                                                                                [pattern: 'venv/', type: 'INCLUDE'],
+                                                                                [pattern: '.tox', type: 'INCLUDE'],
+                                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                            ]
+                                                                        )
+                                                                    }
+                                                                }
+                                                            }
+                                                        } finally {
+                                                            sh "docker rmi ${image.id}"
+                                                        }
+                                                    }
+                                                }
+                                            ]
+                                        }
+                                    )
                                 }
                             }
                         }
-                        stage('Run Tox test') {
-                            when {
-                               equals expected: true, actual: params.TEST_RUN_TOX
-                            }
-                            parallel{
-                                stage('Linux'){
-                                    when{
-                                        expression {return nodesByLabel('linux && docker && x86').size() > 0}
-                                    }
-                                    steps{
-                                        script{
-                                            parallel(
-                                                getToxTestsParallel(
-                                                    envNamePrefix: 'Tox Linux',
-                                                    label: 'linux && docker && x86',
-                                                    dockerfile: 'ci/docker/linux/tox/Dockerfile',
-                                                    dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv',
-                                                    dockerRunArgs: '-v pipcache_tesseractglue:/.cache/pip -v uvcache_tesseractglue:/.cache/uv',
-                                                    retry: 2
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                                stage('Windows'){
-                                    when{
-                                        expression {return nodesByLabel('windows && docker && x86').size() > 0}
-                                    }
-                                    steps{
-                                        script{
-                                            parallel(
-                                                getToxTestsParallel(
-                                                    envNamePrefix: 'Tox Windows',
-                                                    label: 'windows && docker && x86',
-                                                    dockerfile: 'ci/docker/windows/tox/Dockerfile',
-                                                    dockerArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
-                                                    dockerRunArgs: '-v pipcache_tesseractglue:c:/users/containeradministrator/appdata/local/pip',
-                                                    retry: 2
-                                                )
-                                            )
-                                        }
-                                    }
-                                }
-                            }
+                        stage('Windows'){
+                             when{
+                                 expression {return nodesByLabel('windows && docker && x86').size() > 0}
+                             }
+                             environment{
+                                 UV_INDEX_STRATEGY='unsafe-best-match'
+                                 PIP_CACHE_DIR='C:\\Users\\ContainerUser\\Documents\\pipcache'
+                                 UV_TOOL_DIR='C:\\Users\\ContainerUser\\Documents\\uvtools'
+                                 UV_PYTHON_INSTALL_DIR='C:\\Users\\ContainerUser\\Documents\\uvpython'
+                                 UV_CACHE_DIR='C:\\Users\\ContainerUser\\Documents\\uvcache'
+                             }
+                             steps{
+                                 script{
+                                     def envs = []
+                                     node('docker && windows'){
+                                         docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=C:\\Users\\ContainerUser\\Documents'){
+                                             try{
+                                                 checkout scm
+                                                 bat(script: 'python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv')
+                                                 envs = bat(
+                                                     label: 'Get tox environments',
+                                                     script: '@.\\venv\\Scripts\\uvx --quiet --with-requirements requirements-dev.txt --with tox-uv tox list -d --no-desc',
+                                                     returnStdout: true,
+                                                 ).trim().split('\r\n')
+                                             } finally{
+                                                 cleanWs(
+                                                     patterns: [
+                                                         [pattern: 'venv/', type: 'INCLUDE'],
+                                                         [pattern: '.tox', type: 'INCLUDE'],
+                                                         [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                     ]
+                                                 )
+                                             }
+                                         }
+                                     }
+                                     parallel(
+                                         envs.collectEntries{toxEnv ->
+                                             def version = toxEnv.replaceAll(/py(\d)(\d+)/, '$1.$2')
+                                             [
+                                                 "Tox Environment: ${toxEnv}",
+                                                 {
+                                                     node('docker && windows'){
+                                                        def image
+                                                        checkout scm
+                                                        lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
+                                                            image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion .')
+                                                        }
+                                                        try{
+                                                            image.inside('--mount source=python-tmp-uiucpreson-ocr,target=C:\\Users\\ContainerUser\\Documents'){
+                                                                try{
+                                                                    retry(3){
+                                                                        bat(label: 'Running Tox',
+                                                                             script: """python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv
+                                                                                    call venv\\Scripts\\activate.bat
+                                                                                    uv python install cpython-${version}
+                                                                                    uvx -p ${version} --with-requirements requirements-dev.txt --with tox-uv tox run -e ${toxEnv}
+                                                                                    rmdir /S /Q .tox
+                                                                                    rmdir /S /Q venv
+                                                                                 """
+                                                                        )
+                                                                    }
+                                                                } finally{
+                                                                     cleanWs(
+                                                                         patterns: [
+                                                                             [pattern: 'venv/', type: 'INCLUDE'],
+                                                                             [pattern: '.tox', type: 'INCLUDE'],
+                                                                             [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                         ]
+                                                                     )
+                                                                }
+                                                            }
+                                                        } finally {
+                                                            bat "docker rmi --no-prune ${image.id}"
+                                                        }
+                                                     }
+                                                 }
+                                             ]
+                                         }
+                                     )
+                                 }
+                             }
                         }
                     }
                 }
@@ -1059,22 +1080,27 @@ pipeline {
                         stage('Build sdist'){
                             agent {
                                 docker {
-                                    image 'python:3.11'
+                                    image 'python'
                                     label 'docker && linux'
+                                    args '--mount source=python-tmp-uiucpreson-ocr,target=/tmp'
                                 }
                             }
                             options {
                                 retry(3)
                             }
+                            environment{
+                                PIP_CACHE_DIR='/tmp/pipcache'
+                                UV_INDEX_STRATEGY='unsafe-best-match'
+                                UV_CACHE_DIR='/tmp/uvcache'
+                            }
                             steps{
-                                withEnv(['PIP_NO_CACHE_DIR=off']) {
-                                    sh(label: 'Building sdist',
-                                       script: '''python -m venv venv --upgrade-deps
-                                                  venv/bin/pip install build
-                                                  venv/bin/python -m build --sdist
-                                                  '''
-                                    )
-                                }
+                                sh(label: 'Building sdist',
+                                   script: '''python -m venv venv
+                                              trap "rm -rf venv" EXIT
+                                              venv/bin/pip install --disable-pip-version-check uv
+                                              venv/bin/uv build --sdist
+                                              '''
+                                )
                             }
                             post{
                                 success{
@@ -1105,180 +1131,198 @@ pipeline {
                                     def testSdistStages = [
                                         failFast: true
                                     ]
-                                    SUPPORTED_MAC_VERSIONS.each{ pythonVersion ->
-                                        def arches = []
+                                    testSdistStages << SUPPORTED_MAC_VERSIONS.collectEntries{ pythonVersion ->
+                                        def selectedArches = []
+                                        def allValidArches = ["x86_64", "arm64"]
                                         if(params.INCLUDE_MACOS_X86_64 == true){
-                                            arches << "x86_64"
+                                            selectedArches << "x86_64"
                                         }
                                         if(params.INCLUDE_MACOS_ARM == true){
-                                            arches << "m1"
+                                            selectedArches << "arm64"
                                         }
-                                        arches.each{arch ->
-                                            testSdistStages["Test sdist (MacOS ${arch} - Python ${pythonVersion})"] = {
-                                                stage("Test sdist (MacOS ${arch} - Python ${pythonVersion})"){
-                                                    testPythonPkg(
-                                                        agent: [
-                                                            label: "mac && python${pythonVersion} && ${arch}",
-                                                        ],
-                                                        testSetup: {
-                                                            checkout scm
-                                                            unstash 'python sdist'
-                                                        },
-                                                        retries: 3,
-                                                        testCommand: {
-                                                            withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                                findFiles(glob: 'dist/*.tar.gz').each{
-                                                                    sh(label: 'Running Tox',
-                                                                       script: """python${pythonVersion} -m venv venv
-                                                                       . ./venv/bin/activate
-                                                                       python -m pip install uv
-                                                                       uv pip install -r requirements-dev.txt
-                                                                       tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"""
-                                                                    )
-                                                                }
-                                                            }
-
-                                                        },
-                                                        post:[
-                                                            cleanup: {
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                                                            [pattern: '.tox/', type: 'INCLUDE'],
-                                                                        ],
-                                                                    notFailBuild: true,
-                                                                    deleteDirs: true
-                                                                )
-                                                            },
-                                                        ]
-                                                    )
-                                                }
-                                            }
-                                        }
-                                    }
-                                    SUPPORTED_WINDOWS_VERSIONS.each{ pythonVersion ->
-                                        if(params.INCLUDE_WINDOWS_X86_64 == true){
-                                            testSdistStages["Test sdist (Windows x86_64 - Python ${pythonVersion})"] = {
-                                                stage("Test sdist (Windows x86_64 - Python ${pythonVersion})"){
-                                                    retry(2){
-                                                        testPythonPkg(
-                                                            agent: [
-                                                                dockerfile: [
-                                                                    label: 'windows && docker && x86',
-                                                                    filename: 'ci/docker/windows/tox/Dockerfile',
-                                                                    additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
-                                                                    args: '-v pipcache_pykdu:c:/users/containeradministrator/appdata/local/pip -v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv',
-                                                                    dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase(),
-                                                                ]
-                                                            ],
-                                                            testSetup: {
-                                                                checkout scm
-                                                                unstash 'python sdist'
-                                                            },
-                                                            testCommand: {
-                                                                findFiles(glob: 'dist/*.tar.gz').each{
-                                                                    bat(label: 'Running Tox', script: "tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v")
-                                                                }
-                                                            },
-                                                            post:[
-                                                                cleanup: {
-                                                                    cleanWs(
-                                                                        patterns: [
-                                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                        ],
-                                                                        notFailBuild: true,
-                                                                        deleteDirs: true
-                                                                    )
+                                        return allValidArches.collectEntries{ arch ->
+                                            def newStageName = "Test sdist (MacOS ${arch} - Python ${pythonVersion})"
+                                            return [
+                                                "${newStageName}": {
+                                                    if(selectedArches.contains(arch)){
+                                                        stage(newStageName){
+                                                            testPythonPkg(
+                                                                agent: [
+                                                                    label: "mac && python${pythonVersion} && ${arch}",
+                                                                ],
+                                                                testSetup: {
+                                                                    checkout scm
+                                                                    unstash 'python sdist'
                                                                 },
-                                                            ]
-                                                        )
+                                                                retries: 3,
+                                                                testCommand: {
+                                                                    withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
+                                                                        findFiles(glob: 'dist/*.tar.gz').each{
+                                                                            sh(label: 'Running Tox',
+                                                                               script: """python3 -m venv venv
+                                                                                          trap "rm -rf venv" EXIT
+                                                                                          venv/bin/pip install  --disable-pip-version-check uv
+                                                                                          trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                          venv/bin/uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                       """
+                                                                            )
+                                                                        }
+                                                                    }
+
+                                                                },
+                                                                post:[
+                                                                    cleanup: {
+                                                                        cleanWs(
+                                                                            patterns: [
+                                                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                                                    [pattern: '.tox/', type: 'INCLUDE'],
+                                                                                ],
+                                                                            notFailBuild: true,
+                                                                            deleteDirs: true
+                                                                        )
+                                                                    },
+                                                                ]
+                                                            )
+                                                        }
+                                                    } else {
+                                                        Utils.markStageSkippedForConditional(newStageName)
                                                     }
                                                 }
-                                            }
+                                            ]
                                         }
                                     }
-                                    SUPPORTED_LINUX_VERSIONS.each{pythonVersion ->
-                                        if(params.INCLUDE_LINUX_X86_64 == true){
-                                            testSdistStages["Test sdist (Linux x86_64 - Python ${pythonVersion})"] = {
-                                                stage("Test sdist (Linux x86_64 - Python ${pythonVersion})"){
-                                                    testPythonPkg(
-                                                        agent: [
-                                                            dockerfile: [
-                                                                label: 'linux && docker && x86',
-                                                                filename: 'ci/docker/linux/tox/Dockerfile',
-                                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
-                                                            ]
-                                                        ],
-                                                        retries: 3,
-                                                        testSetup: {
-                                                            checkout scm
-                                                            unstash 'python sdist'
-                                                        },
-                                                        testCommand: {
-                                                            findFiles(glob: 'dist/*.tar.gz').each{
-                                                                sh(
-                                                                    label: 'Running Tox',
-                                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
-                                                                    )
-                                                            }
-                                                        },
-                                                        post:[
-                                                            cleanup: {
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                        ],
-                                                                    notFailBuild: true,
-                                                                    deleteDirs: true
+                                    testSdistStages << SUPPORTED_WINDOWS_VERSIONS.collectEntries{ pythonVersion ->
+                                        def selectedArches = []
+                                        def allValidArches = ["x86_64"]
+                                        if(params.INCLUDE_WINDOWS_X86_64 == true){
+                                            selectedArches << "x86_64"
+                                        }
+                                        return allValidArches.collectEntries{ arch ->
+                                            def newStageName = "Test sdist (Windows x86_64 - Python ${pythonVersion})"
+                                            return [
+                                                "${newStageName}": {
+                                                    if(selectedArches.contains(arch)){
+                                                        stage(newStageName){
+                                                            retry(2){
+                                                                testPythonPkg(
+                                                                    agent: [
+                                                                        dockerfile: [
+                                                                            label: 'windows && docker && x86',
+                                                                            filename: 'ci/docker/windows/tox/Dockerfile',
+                                                                            additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg chocolateyVersion --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv',
+                                                                            args: '-v pipcache_pykdu:c:/users/containeradministrator/appdata/local/pip -v uvcache_tesseractglue:c:/users/containeradministrator/appdata/local/uv',
+                                                                            dockerImageName: "${currentBuild.fullProjectName}_test_with_msvc".replaceAll('-', '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase(),
+                                                                        ]
+                                                                    ],
+                                                                    testSetup: {
+                                                                        checkout scm
+                                                                        unstash 'python sdist'
+                                                                    },
+                                                                    testCommand: {
+                                                                        findFiles(glob: 'dist/*.tar.gz').each{
+                                                                            bat(
+                                                                                label: 'Running Tox',
+                                                                                script: """py -m venv venv
+                                                                                           venv\\Scripts\\pip install --disable-pip-version-check uv
+                                                                                           venv\\Scripts\\uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v
+                                                                                           rmdir /S /Q venv
+                                                                                           """
+                                                                            )
+                                                                        }
+                                                                    },
+                                                                    post:[
+                                                                        cleanup: {
+                                                                            cleanWs(
+                                                                                patterns: [
+                                                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                                ],
+                                                                                notFailBuild: true,
+                                                                                deleteDirs: true
+                                                                            )
+                                                                        },
+                                                                    ]
                                                                 )
-                                                            },
-                                                        ]
-                                                    )
+                                                            }
+                                                        }
+                                                    } else {
+                                                        Utils.markStageSkippedForConditional(newStageName)
+                                                    }
                                                 }
-                                            }
+                                            ]
+                                        }
+                                    }
+                                    testSdistStages << SUPPORTED_LINUX_VERSIONS.collectEntries{ pythonVersion ->
+                                        def selectedArches = []
+                                        def allValidArches = ["x86_64", "arm64"]
+                                        if(params.INCLUDE_LINUX_X86_64 == true){
+                                            selectedArches << "x86_64"
                                         }
                                         if(params.INCLUDE_LINUX_ARM == true){
-                                            testSdistStages["Test sdist (Linux ARM64 - Python ${pythonVersion})"] = {
-                                                stage("Test sdist (Linux ARM64 - Python ${pythonVersion})"){
-                                                    testPythonPkg(
-                                                        agent: [
-                                                            dockerfile: [
-                                                                label: 'linux && docker && arm64',
-                                                                filename: 'ci/docker/linux/tox/Dockerfile',
-                                                                additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
-                                                            ]
-                                                        ],
-                                                        retries: 3,
-                                                        testSetup: {
-                                                            checkout scm
-                                                            unstash 'python sdist'
-                                                        },
-                                                        testCommand: {
-                                                            findFiles(glob: 'dist/*.tar.gz').each{
-                                                                sh(
-                                                                    label: 'Running Tox',
-                                                                    script: "tox --installpkg ${it.path} --workdir /tmp/tox -e py${pythonVersion.replace('.', '')}"
-                                                                    )
-                                                            }
-                                                        },
-                                                        post:[
-                                                            cleanup: {
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                        ],
-                                                                    notFailBuild: true,
-                                                                    deleteDirs: true
-                                                                )
-                                                            },
-                                                        ]
-                                                    )
+                                            selectedArches << "arm64"
+                                        }
+                                        return allValidArches.collectEntries{ arch ->
+                                            def newStageName = "Test sdist (Linux ${arch} - Python ${pythonVersion})"
+                                            return [
+                                                "${newStageName}": {
+                                                    if(selectedArches.contains(arch)){
+                                                        stage(newStageName){
+                                                            testPythonPkg(
+                                                                agent: [
+                                                                    dockerfile: [
+                                                                        label: "linux && docker && ${arch}",
+                                                                        filename: 'ci/docker/linux/tox/Dockerfile',
+                                                                        additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                                                                    ]
+                                                                ],
+                                                                retries: 3,
+                                                                testSetup: {
+                                                                    checkout scm
+                                                                    unstash 'python sdist'
+                                                                },
+                                                                testCommand: {
+                                                                    withEnv([
+                                                                        'PIP_CACHE_DIR=/tmp/pipcache',
+                                                                        'UV_INDEX_STRATEGY=unsafe-best-match',
+                                                                        'UV_TOOL_DIR=/tmp/uvtools',
+                                                                        'UV_PYTHON_INSTALL_DIR=/tmp/uvpython',
+                                                                        'UV_CACHE_DIR=/tmp/uvcache',
+                                                                    ]){
+                                                                        findFiles(glob: 'dist/*.tar.gz').each{
+                                                                            sh(
+                                                                                label: 'Running Tox',
+                                                                                script: """python3 -m venv venv
+                                                                                           trap "rm -rf venv" EXIT
+                                                                                           ./venv/bin/pip install --disable-pip-version-check uv
+                                                                                           trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                           ./venv/bin/uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                        """
+                                                                                )
+                                                                        }
+                                                                    }
+                                                                },
+                                                                post:[
+                                                                    cleanup: {
+                                                                        cleanWs(
+                                                                            patterns: [
+                                                                                    [pattern: '.tox/', type: 'INCLUDE'],
+                                                                                    [pattern: 'dist/', type: 'INCLUDE'],
+                                                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                                ],
+                                                                            notFailBuild: true,
+                                                                            deleteDirs: true
+                                                                        )
+                                                                    },
+                                                                ]
+                                                            )
+                                                        }
+                                                     } else {
+                                                         Utils.markStageSkippedForConditional(newStageName)
+                                                     }
                                                 }
-                                            }
+                                            ]
                                         }
                                     }
                                     parallel(testSdistStages)
@@ -1292,11 +1336,18 @@ pipeline {
         stage('Deploy'){
             parallel{
                 stage('Deploy to pypi') {
+                    environment{
+                        PIP_CACHE_DIR='/tmp/pipcache'
+                        UV_INDEX_STRATEGY='unsafe-best-match'
+                        UV_TOOL_DIR='/tmp/uvtools'
+                        UV_PYTHON_INSTALL_DIR='/tmp/uvpython'
+                        UV_CACHE_DIR='/tmp/uvcache'
+                    }
                     agent {
-                        dockerfile {
-                            filename 'ci/docker/linux/jenkins/Dockerfile'
-                            label 'linux && docker'
-                            additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                        docker{
+                            image 'python'
+                            label 'docker && linux'
+                            args '--mount source=python-tmp-uiucpreson-ocr,target=/tmp'
                         }
                     }
                     when{
@@ -1327,11 +1378,31 @@ pipeline {
                                 unstash it
                             }
                         }
-                        pypiUpload(
-                            credentialsId: 'jenkins-nexus',
-                            repositoryUrl: SERVER_URL,
-                            glob: 'dist/*'
-                        )
+                         withEnv(
+                            [
+                                "TWINE_REPOSITORY_URL=${SERVER_URL}",
+                                'UV_INDEX_STRATEGY=unsafe-best-match'
+                            ]
+                        ){
+                            withCredentials(
+                                [
+                                    usernamePassword(
+                                        credentialsId: 'jenkins-nexus',
+                                        passwordVariable: 'TWINE_PASSWORD',
+                                        usernameVariable: 'TWINE_USERNAME'
+                                    )
+                                ]){
+                                    sh(
+                                        label: 'Uploading to pypi',
+                                        script: '''python3 -m venv venv
+                                                   trap "rm -rf venv" EXIT
+                                                   . ./venv/bin/activate
+                                                   pip install --disable-pip-version-check uv
+                                                   uvx --with-requirements=requirements-dev.txt twine upload --disable-progress-bar --non-interactive dist/*
+                                                '''
+                                    )
+                            }
+                        }
                     }
                     post{
                         cleanup{

@@ -1,0 +1,21 @@
+build
+conan<2.0
+coverage
+cmake
+delocate ; sys_platform == 'darwin'
+flake8
+gcovr
+lxml
+mypy
+ninja
+pybind11~=2.10.1
+pylint
+pytest
+pytest-bdd<4.0
+setuptools
+sphinx
+toml
+tox
+twine
+uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/archive/refs/tags/v0.2.3.tar.gz
+wheel
