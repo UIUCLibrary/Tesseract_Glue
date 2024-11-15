@@ -570,7 +570,7 @@ pipeline {
                                                            mkdir -p logs
                                                            mkdir -p reports
                                                            . ./venv/bin/activate
-                                                           CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux-x86-64 --out-dir build/build_wrapper_output_directory uv pip install --index-strategy unsafe-best-match --verbose -e .
+                                                           CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --index-strategy unsafe-best-match --verbose -e .
                                                            '''
                                             )
                                         }
@@ -611,7 +611,8 @@ pipeline {
                                     steps{
                                         sh(
                                             label: 'Building C++ project for metrics',
-                                            script: '''conan install . -if build/cpp -g cmake_find_package
+                                            script: '''. ./venv/bin/activate
+                                                       conan install . -if build/cpp -g cmake_find_package
                                                        cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
                                                        make -C build/cpp clean tester
                                                        '''
