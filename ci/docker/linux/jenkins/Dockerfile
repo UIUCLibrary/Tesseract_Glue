@@ -13,11 +13,11 @@ ARG PIP_INDEX_URL
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
-COPY requirements/requirements-conan.txt /tmp/requirements-conan.txt
+COPY requirements-dev.txt /tmp/requirements-dev.txt
 RUN python -m pip --no-cache-dir  install --upgrade pip &&  \
     pip install --no-cache-dir wheel cmake && \
     pip install --no-cache-dir setuptools && \
-    pip install --no-cache-dir -r /tmp/requirements-conan.txt
+    pip install --no-cache-dir -r /tmp/requirements-dev.txt
 
 FROM base_python AS wheel_builder
 ARG PIP_EXTRA_INDEX_URL
@@ -33,8 +33,8 @@ FROM base_python AS conan_builder
 ARG CONAN_USER_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-COPY requirements/requirements-conan.txt /tmp/requirements-conan.txt
-RUN pip install --no-cache-dir -r /tmp/requirements-conan.txt
+COPY requirements-dev.txt /tmp/requirements-dev.txt
+RUN pip install --no-cache-dir -r /tmp/requirements-dev.txt
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
 RUN conan config init && \

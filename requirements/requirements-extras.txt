@@ -1,6 +1,0 @@
-conan
-coverage
-pytest
-pytest-bdd
-setuptools
-wheel

@@ -7,29 +7,26 @@ RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-COPY requirements/requirements-conan.txt /tmp/requirements-conan.txt
-RUN python3 --version && python3 -m pip install --no-cache-dir -r /tmp/requirements-conan.txt
-#ARG TARGETARCH
 ARG CONAN_USER_HOME
-#COPY ci/docker/linux/package/conan/$TARGETARCH/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY conanfile.py /tmp/conanfile.py
-RUN conan config init && \
-    conan config set general.revisions_enabled=1 && \
-    conan profile update settings.compiler.version=$(cc -dumpfullversion -dumpversion | grep -oE  "^([0-9]+(\.)?)([0-9]+?)") default
+COPY requirements-dev.txt /tmp/requirements-dev.txt
 WORKDIR /conantest
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
-RUN conan install /tmp --build missing --build tesseract && \
+RUN python3 -m venv venv && \
+    . ./venv/bin/activate \
+    pip install --disable-pip-version-check uv && \
+    uv pip install -r /tmp/requirements-dev.txt && \
+    conan config init && \
+    conan config set general.revisions_enabled=1 && \
+    conan profile update settings.compiler.version=$(cc -dumpfullversion -dumpversion | grep -oE  "^([0-9]+(\.)?)([0-9]+?)") default &&  \
+    conan install -pr:b=default --build missing --build tesseract /tmp && \
     LD_LIBRARY_PATH=/conantest/lib && $(conan info /tmp/conanfile.py --paths --package-filter="tesseract/*" | grep package_folder: | sed -e 's/[ \t]*package_folder: //' -e "s/$/\/bin\/tesseract/") --version > /tmp/results.txt && \
     cat /tmp/results.txt && \
     if grep -q libopenjp2 /tmp/results.txt; then echo "found it"; else >&2 echo "Tesseract was not built with openjpeg " ; exit 1; fi && \
     conan remove "*" -b --src -f && \
     conan remove --locks && \
+    uv cache prune && \
+    rm -rf venv && \
     chmod -R 777 ${CONAN_USER_HOME}
 
-RUN python3 -m pip install --no-cache-dir build && \
-    python3.8 -m pip install --no-cache-dir build && \
-    python3.9 -m pip install --no-cache-dir build && \
-    python3.10 -m pip install --no-cache-dir build && \
-    python3.11 -m pip install --no-cache-dir build && \
-    python3.12 -m pip install --no-cache-dir build
