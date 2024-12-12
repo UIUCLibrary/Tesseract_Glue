@@ -162,6 +162,7 @@ def linux_wheels(){
                                                                 }
                                                             }
                                                         } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                             cleanWs(
                                                                 patterns: [
                                                                     [pattern: '.tox/', type: 'INCLUDE'],
@@ -240,24 +241,28 @@ def windows_wheels(){
                             if(params.TEST_PACKAGES == true){
                                 stage("Test Wheel (${pythonVersion} Windows x86_64)"){
                                     node('windows && docker'){
-                                        docker.image('python').inside('--mount source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\uvpython --mount source=msvc-runtime,target=c:\\msvc_runtime --mount source=windows-certs,target=c:\\certs'){
-                                            checkout scm
-                                            installMSVCRuntime('c:\\msvc_runtime\\')
-                                            installCerts('c:\\certs\\')
-                                            unstash "python${pythonVersion} windows wheel"
-                                            withEnv([
-                                                'PIP_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\pipcache',
-                                                'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\uvtools',
-                                                'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython',
-                                                'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\uvcache',
-                                                'UV_INDEX_STRATEGY=unsafe-best-match',
-                                            ]){
-                                                findFiles(glob: 'dist/*.whl').each{
-                                                    bat """python -m pip install  --disable-pip-version-check uv
-                                                           uvx -p ${pythonVersion} --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
-                                                        """
+                                        try{
+                                            docker.image('python').inside('--mount source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\uvpython --mount source=msvc-runtime,target=c:\\msvc_runtime --mount source=windows-certs,target=c:\\certs'){
+                                                checkout scm
+                                                installMSVCRuntime('c:\\msvc_runtime\\')
+                                                installCerts('c:\\certs\\')
+                                                unstash "python${pythonVersion} windows wheel"
+                                                withEnv([
+                                                    'PIP_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\pipcache',
+                                                    'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\uvtools',
+                                                    'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython',
+                                                    'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\uvcache',
+                                                    'UV_INDEX_STRATEGY=unsafe-best-match',
+                                                ]){
+                                                    findFiles(glob: 'dist/*.whl').each{
+                                                        bat """python -m pip install  --disable-pip-version-check uv
+                                                               uvx -p ${pythonVersion} --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
+                                                            """
+                                                    }
                                                 }
                                             }
+                                        } finally{
+                                            bat "${tool(name: 'Default', type: 'git')} clean -dfx"
                                         }
                                     }
                                 }
@@ -889,8 +894,8 @@ pipeline {
                                 script{
                                     def envs = []
                                     node('docker && linux'){
-                                        docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
-                                            try{
+                                        try{
+                                            docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
                                                 checkout scm
                                                 sh(script: 'python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv')
                                                 envs = sh(
@@ -898,15 +903,16 @@ pipeline {
                                                     script: './venv/bin/uvx --quiet --with tox-uv tox list -d --no-desc',
                                                     returnStdout: true,
                                                 ).trim().split('\n')
-                                            } finally{
-                                                cleanWs(
-                                                    patterns: [
-                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                        [pattern: '.tox', type: 'INCLUDE'],
-                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                    ]
-                                                )
                                             }
+                                        } finally{
+                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                            cleanWs(
+                                                patterns: [
+                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                    [pattern: '.tox', type: 'INCLUDE'],
+                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                ]
+                                            )
                                         }
                                     }
                                     parallel(
@@ -924,31 +930,23 @@ pipeline {
                                                         try{
                                                             image.inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
                                                                 retry(3){
-                                                                    try{
-                                                                        sh( label: 'Running Tox',
-                                                                            script: """python3 -m venv /tmp/venv && /tmp/venv/bin/pip install --disable-pip-version-check uv
-                                                                                       /tmp/venv/bin/uvx --python ${version} --python-preference system --with tox-uv tox run -e ${toxEnv} -vvv
-                                                                                    """
-                                                                            )
-                                                                    } catch(e) {
-                                                                        sh(script: '''. ./venv/bin/activate
-                                                                              uv python list
-                                                                              '''
-                                                                                )
-                                                                        throw e
-                                                                    } finally{
-                                                                        cleanWs(
-                                                                            patterns: [
-                                                                                [pattern: 'venv/', type: 'INCLUDE'],
-                                                                                [pattern: '.tox', type: 'INCLUDE'],
-                                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                            ]
+                                                                    sh( label: 'Running Tox',
+                                                                        script: """python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv
+                                                                                   venv/bin/uvx --python ${version} --python-preference system --with tox-uv tox run -e ${toxEnv} -vvv
+                                                                                """
                                                                         )
-                                                                    }
                                                                 }
                                                             }
                                                         } finally {
                                                             sh "docker rmi ${image.id}"
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                            cleanWs(
+                                                                patterns: [
+                                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                                    [pattern: '.tox', type: 'INCLUDE'],
+                                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                ]
+                                                            )
                                                         }
                                                     }
                                                 }
@@ -973,8 +971,8 @@ pipeline {
                                  script{
                                      def envs = []
                                      node('docker && windows'){
-                                         docker.image('python').inside("--mount source=uv_python_install_dir,target=${env.UV_PYTHON_INSTALL_DIR}"){
-                                             try{
+                                         try{
+                                            docker.image('python').inside("--mount source=uv_python_install_dir,target=${env.UV_PYTHON_INSTALL_DIR}"){
                                                  checkout scm
                                                  bat(script: 'python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv')
                                                  envs = bat(
@@ -982,15 +980,16 @@ pipeline {
                                                      script: '@.\\venv\\Scripts\\uvx --quiet --with-requirements requirements-dev.txt --with tox-uv tox list -d --no-desc',
                                                      returnStdout: true,
                                                  ).trim().split('\r\n')
-                                             } finally{
-                                                 cleanWs(
-                                                     patterns: [
-                                                         [pattern: 'venv/', type: 'INCLUDE'],
-                                                         [pattern: '.tox', type: 'INCLUDE'],
-                                                         [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                     ]
-                                                 )
-                                             }
+                                            }
+                                         } finally{
+                                             bat "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                             cleanWs(
+                                                 patterns: [
+                                                     [pattern: 'venv/', type: 'INCLUDE'],
+                                                     [pattern: '.tox', type: 'INCLUDE'],
+                                                     [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                 ]
+                                             )
                                          }
                                      }
                                      parallel(
@@ -1007,30 +1006,26 @@ pipeline {
                                                         }
                                                         try{
                                                             image.inside("--mount source=uv_python_install_dir,target=${env.UV_PYTHON_INSTALL_DIR}"){
-                                                                try{
-                                                                    retry(3){
-                                                                        bat(label: 'Running Tox',
-                                                                             script: """python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv
-                                                                                    call venv\\Scripts\\activate.bat
-                                                                                    uv python install cpython-${version}
-                                                                                    uvx -p ${version} --with-requirements requirements-dev.txt --with tox-uv tox run -e ${toxEnv}
-                                                                                    rmdir /S /Q .tox
-                                                                                    rmdir /S /Q venv
-                                                                                 """
-                                                                        )
-                                                                    }
-                                                                } finally{
-                                                                     cleanWs(
-                                                                         patterns: [
-                                                                             [pattern: 'venv/', type: 'INCLUDE'],
-                                                                             [pattern: '.tox', type: 'INCLUDE'],
-                                                                             [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                         ]
-                                                                     )
+                                                                retry(3){
+                                                                    bat(label: 'Running Tox',
+                                                                         script: """python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv
+                                                                                call venv\\Scripts\\activate.bat
+                                                                                uv python install cpython-${version}
+                                                                                uvx -p ${version} --with-requirements requirements-dev.txt --with tox-uv tox run -e ${toxEnv}
+                                                                             """
+                                                                    )
                                                                 }
                                                             }
                                                         } finally {
                                                             bat "docker rmi --no-prune ${image.id}"
+                                                            bat "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                            cleanWs(
+                                                                patterns: [
+                                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                                    [pattern: '.tox', type: 'INCLUDE'],
+                                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                ]
+                                                            )
                                                         }
                                                      }
                                                  }
