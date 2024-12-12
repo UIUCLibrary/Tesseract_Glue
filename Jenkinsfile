@@ -162,6 +162,7 @@ def linux_wheels(){
                                                                 }
                                                             }
                                                         } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                             cleanWs(
                                                                 patterns: [
                                                                     [pattern: '.tox/', type: 'INCLUDE'],
@@ -240,24 +241,28 @@ def windows_wheels(){
                             if(params.TEST_PACKAGES == true){
                                 stage("Test Wheel (${pythonVersion} Windows x86_64)"){
                                     node('windows && docker'){
-                                        docker.image('python').inside('--mount source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\uvpython --mount source=msvc-runtime,target=c:\\msvc_runtime --mount source=windows-certs,target=c:\\certs'){
-                                            checkout scm
-                                            installMSVCRuntime('c:\\msvc_runtime\\')
-                                            installCerts('c:\\certs\\')
-                                            unstash "python${pythonVersion} windows wheel"
-                                            withEnv([
-                                                'PIP_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\pipcache',
-                                                'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\uvtools',
-                                                'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython',
-                                                'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\uvcache',
-                                                'UV_INDEX_STRATEGY=unsafe-best-match',
-                                            ]){
-                                                findFiles(glob: 'dist/*.whl').each{
-                                                    bat """python -m pip install  --disable-pip-version-check uv
-                                                           uvx -p ${pythonVersion} --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
-                                                        """
+                                        try{
+                                            docker.image('python').inside('--mount source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\uvpython --mount source=msvc-runtime,target=c:\\msvc_runtime --mount source=windows-certs,target=c:\\certs'){
+                                                checkout scm
+                                                installMSVCRuntime('c:\\msvc_runtime\\')
+                                                installCerts('c:\\certs\\')
+                                                unstash "python${pythonVersion} windows wheel"
+                                                withEnv([
+                                                    'PIP_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\pipcache',
+                                                    'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\uvtools',
+                                                    'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython',
+                                                    'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\uvcache',
+                                                    'UV_INDEX_STRATEGY=unsafe-best-match',
+                                                ]){
+                                                    findFiles(glob: 'dist/*.whl').each{
+                                                        bat """python -m pip install  --disable-pip-version-check uv
+                                                               uvx -p ${pythonVersion} --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
+                                                            """
+                                                    }
                                                 }
                                             }
+                                        } finally{
+                                            bat "${tool(name: 'Default', type: 'git')} clean -dfx"
                                         }
                                     }
                                 }
