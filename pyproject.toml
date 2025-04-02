@@ -1,6 +1,6 @@
 [build-system]
 requires = [
-    "setuptools>=61.0",
+    "setuptools>=77.0",
     'wheel',
     'conan<2.0',
     'cmake<4.0',
@@ -19,7 +19,8 @@ classifiers = [
 ]
 readme = "README.rst"
 requires-python = ">=3.9"
-license = { file="LICENSE"}
+license = "NCSA"
+license-files = ["LICENSE"]
 description = "Image to text processing using Google Tesseract"
 maintainers = [
     { name="Henry Borchers", email="hborcher@illinois.edu" }
@@ -27,6 +28,7 @@ maintainers = [
 authors = [
     {name="University Library at The University of Illinois at Urbana Champaign: Preservation Services", email="prescons@library.illinois.edu"}
 ]
+
 
 [project.urls]
 Documentation = "https://www.library.illinois.edu/dccdocs/ocr"
