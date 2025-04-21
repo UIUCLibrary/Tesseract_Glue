@@ -44,10 +44,6 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
     refreshenv ; `
     choco cache remove --confirm ; `
-    if (!(Test-Path 'C:\Program Files\Git\cmd\git.exe')) `
-    { `
-        throw 'git.exe not found' ; `
-    }; `
     Write-Host "Finished install packages with Chocolatey"
 
 
