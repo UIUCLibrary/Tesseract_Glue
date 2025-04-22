@@ -1204,8 +1204,8 @@ def call(){
                                                                            }
                                                                        }
                                                                        retry(retryTimes){
-                                                                           dockerImage.inside('--mount type=volume,source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\uvpython'){
-                                                                               try{
+                                                                            try{
+                                                                                dockerImage.inside('--mount type=volume,source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\uvpython'){
                                                                                    checkout scm
                                                                                    unstash 'python sdist'
                                                                                    findFiles(glob: 'dist/*.tar.gz').each{
@@ -1218,10 +1218,10 @@ def call(){
                                                                                                       """
                                                                                        )
                                                                                    }
-                                                                               } finally{
-                                                                                   bat "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                                               }
-                                                                           }
+                                                                                }
+                                                                            } finally{
+                                                                               bat "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                                            }
                                                                        }
 
                                                                    } finally {
