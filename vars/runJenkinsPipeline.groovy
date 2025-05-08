@@ -193,11 +193,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     'UV_INDEX_STRATEGY=unsafe-best-match',
                                                     'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython'
                                                 ]){
-                                                    bat """py -m venv venv
-                                                           venv\\Scripts\\pip install --disable-pip-version-check uv
-                                                           venv\\Scripts\\uv build --python ${pythonVersion} --wheel
-                                                           rmdir /S /Q venv
-                                                        """
+                                                    bat "uv build --python ${pythonVersion} --wheel"
                                                 }
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                                 wheelStashes << "python${pythonVersion} windows wheel"
@@ -1211,11 +1207,7 @@ def call(){
                                                                                    findFiles(glob: 'dist/*.tar.gz').each{
                                                                                        bat(
                                                                                            label: 'Running Tox',
-                                                                                           script: """py -m venv venv
-                                                                                                      venv\\Scripts\\pip install --disable-pip-version-check uv
-                                                                                                      venv\\Scripts\\uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v
-                                                                                                      rmdir /S /Q venv
-                                                                                                      """
+                                                                                           script: "uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v"
                                                                                        )
                                                                                    }
                                                                                 }
