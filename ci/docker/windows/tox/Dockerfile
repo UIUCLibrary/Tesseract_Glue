@@ -1,12 +1,22 @@
 # escape=`
-ARG PIPX_HOME=c:\pipx
-ARG VS_INSTALL_PATH="C:\BuildTools"
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
-ARG UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv
+
+# NOTICE: This Dockerfile needs to be run from the root of the repository. If you run it from the same location as this
+#         file, it will not work because it needs access to files not in this directory. If you need to build this
+#         Dockerfile directly, use the "docker run" command with the "-f ci/docker/windows/tox/Dockerfile" argument.
+
+
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8.1
+
+ARG VS_INSTALL_PATH="C:\BuildTools"
+
 ARG CONAN_USER_HOME=C:/Users/ContainerAdministrator
+
+ARG UV_CACHE_DIR=c:/users/containeradministrator/appdata/local/uv
 ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
+
+ARG CHOCOLATEY_SOURCE=https://chocolatey.org/api/v2
+ARG chocolateyVersion
+
 FROM ${FROM_IMAGE} AS certsgen
 RUN certutil -generateSSTFromWU roots.sst
 
@@ -14,14 +24,16 @@ FROM ${FROM_IMAGE} AS BASE_BUILDER
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
-COPY ci/docker/windows/tox/msvc/startup.bat c:/startup/startup.bat
 COPY ci/docker/windows/tox/msvc/visual_studio_config.json c:/setup/config.vsconfig
 COPY ci/docker/windows/tox/msvc/install_msvc.ps1 c:/scripts/install_msvc.ps1
 ARG VS_INSTALL_PATH
+ARG VS_VERSION="2022"
+ARG VS_DevCmdArguments="-arch=amd64"
+ARG VS_DevPowershellArguments='-arch=amd64'
+RUN c:/scripts/install_msvc.ps1 -InstallPath ${Env:VS_INSTALL_PATH} -VSConfigFile c:/setup/config.vsconfig -DevCmdArguments ${Env:VS_DevCmdArguments} -DevPowershellArguments ${Env:VS_DevPowershellArguments} -VSVersion ${Env:VS_VERSION}; `
+    Write-Host "Note: Exporting This layer can take a while."
 
-RUN c:/scripts/install_msvc.ps1 ${Env:VS_INSTALL_PATH} c:/setup/config.vsconfig; `
-    Get-ChildItem C:\Users\ContainerAdministrator\AppData\Local\Temp | Remove-Item -Recurse -Force -Verbose
-ARG CHOCOLATEY_SOURCE=https://chocolatey.org/api/v2
+ARG CHOCOLATEY_SOURCE
 ARG ChocolateyEnvironmentDebug=false
 ARG chocolateyVersion
 COPY ci/docker/windows/tox/chocolatey/install.ps1 c:/choco/install.ps1
@@ -39,18 +51,23 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     choco cache remove --confirm
 
 COPY ci/docker/windows/tox/chocolatey/packages.config choco/packages.config
+COPY ci/docker/windows/tox/chocolatey/verifyenv.ps1 c:/verifyenv.ps1
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
-    C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress --verbose choco/packages.config ;`
-    Remove-Item C:\Users\ContainerAdministrator\AppData\Local\Temp\chocolatey -Recurse ; `
+    C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress c:/choco/packages.config ;`
     refreshenv ; `
-    choco cache remove --confirm ; `
-    Write-Host "Finished install packages with Chocolatey"
+    choco cache remove --confirm;`
+    Write-Host "Finished install packages with Chocolatey" ;`
+    Write-Host "Verifying installed packages" ;`
+    $env:Path = [System.Environment]::GetEnvironmentVariable(\"Path\",\"Machine\") + \";\" + [System.Environment]::GetEnvironmentVariable(\"Path\",\"User\") ; `
+    c:/verifyenv.ps1
 
 # ==============================================================================
 FROM BASE_BUILDER AS CONAN_BUILDER
+ARG UV_EXTRA_INDEX_URL
+ARG UV_INDEX_URL
 ARG PIP_EXTRA_INDEX_URL
-ARG CONAN_USER_HOME
 ARG PIP_INDEX_URL
+ARG CONAN_USER_HOME
 COPY requirements-dev.txt c:/requirements/requirements-dev.txt
 COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
@@ -66,21 +83,17 @@ RUN uvx --with-requirements c:/requirements/requirements-dev.txt conan config in
 # ==============================================================================
 
 FROM BASE_BUILDER
-
 COPY --from=certsgen c:/roots.sst roots.sst
 RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
-
-ARG PIP_EXTRA_INDEX_URL
-ARG PIP_INDEX_URL
 
 ARG CONAN_USER_HOME
 COPY --from=CONAN_BUILDER ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}
 
-ENV UV_INDEX_STRATEGY=unsafe-best-match
 ARG UV_CACHE_DIR
 ARG PIP_DOWNLOAD_CACHE
+ENV UV_INDEX_STRATEGY=unsafe-best-match
 RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force | Out-Null ; `
     New-Item -type directory -path ${Env:UV_CACHE_DIR} -Force | Out-Null
 
