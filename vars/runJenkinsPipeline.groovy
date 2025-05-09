@@ -994,11 +994,9 @@ def call(){
                                                                         image.inside("--mount source=uv_python_install_dir,target=${env.UV_PYTHON_INSTALL_DIR}"){
                                                                             checkout scm
                                                                             bat(label: 'Running Tox',
-                                                                                 script: """python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv
-                                                                                        call venv\\Scripts\\activate.bat
-                                                                                        uv python install cpython-${version}
-                                                                                        uvx -p ${version} --with-requirements requirements-dev.txt --with tox-uv tox run -e ${toxEnv}
-                                                                                     """
+                                                                                 script: """uv python install cpython-${version}
+                                                                                            uvx -p ${version} --with-requirements requirements-dev.txt --with tox-uv tox run -e ${toxEnv}
+                                                                                         """
                                                                             )
                                                                         }
                                                                     } finally{

@@ -46,7 +46,6 @@ RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     choco cache remove --confirm ; `
     Write-Host "Finished install packages with Chocolatey"
 
-
 # ==============================================================================
 FROM BASE_BUILDER AS CONAN_BUILDER
 ARG PIP_EXTRA_INDEX_URL
@@ -57,17 +56,13 @@ COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
 
-RUN python -m venv venv --upgrade-deps; `
-    .\\venv\\Scripts\\activate.ps1 ; `
-    pip install --disable-pip-version-check --no-cache-dir  uv ; `
-    uv pip install -r c:/requirements/requirements-dev.txt --no-cache-dir; `
-    conan config init ; `
-    conan config set general.revisions_enabled=1 ; `
-    conan install c:/temp/ --build missing --no-import; `
-    conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import  ; `
-    conan remove "*" -b --src -f ; `
-    conan remove --lock ; `
-    Remove-Item venv -Force -Recurse
+RUN uvx --with-requirements c:/requirements/requirements-dev.txt conan config init ; `
+    uvx --with-requirements c:/requirements/requirements-dev.txt conan config set general.revisions_enabled=1 ; `
+    uvx --with-requirements c:/requirements/requirements-dev.txt conan install c:/temp/ --build missing --no-import; `
+    uvx --with-requirements c:/requirements/requirements-dev.txt conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import  ; `
+    uvx --with-requirements c:/requirements/requirements-dev.txt conan remove "*" -b --src -f ; `
+    uvx --with-requirements c:/requirements/requirements-dev.txt conan remove --lock ; `
+    uv cache clean --no-progress
 # ==============================================================================
 
 FROM BASE_BUILDER
@@ -86,8 +81,8 @@ ENV CONAN_USER_HOME=${CONAN_USER_HOME}
 ENV UV_INDEX_STRATEGY=unsafe-best-match
 ARG UV_CACHE_DIR
 ARG PIP_DOWNLOAD_CACHE
-RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force; `
-    New-Item -type directory -path ${Env:UV_CACHE_DIR} -Force
+RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force | Out-Null ; `
+    New-Item -type directory -path ${Env:UV_CACHE_DIR} -Force | Out-Null
 
 
 WORKDIR C:/src
