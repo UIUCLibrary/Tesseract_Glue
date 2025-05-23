@@ -177,39 +177,25 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                             stage("Build Wheel (${pythonVersion} Windows)"){
                                 node('windows && docker && x86_64'){
                                     def retryTimes = 3
-                                    def dockerImage
                                     def dockerImageName = "${currentBuild.fullProjectName}_${UUID.randomUUID().toString()}".replaceAll("-", '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase()
-                                    checkout scm
                                     try{
-                                        lock("docker build-${env.NODE_NAME}"){
-                                            retry(retryTimes){
-                                                dockerImage = docker.build(dockerImageName, '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip --build-arg UV_CACHE_DIR=c:/users/ContainerUser/appdata/local/uv' + (env.DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE ? " --build-arg FROM_IMAGE=${env.DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE} ": ' ') + ' .')
-                                            }
-                                        }
                                         retry(retryTimes){
                                             checkout scm
-                                            dockerImage.inside('--mount source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\uvpython'){
-                                                withEnv([
-                                                    'UV_INDEX_STRATEGY=unsafe-best-match',
-                                                    'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\uvpython'
-                                                ]){
-                                                    bat """py -m venv venv
-                                                           venv\\Scripts\\pip install --disable-pip-version-check uv
-                                                           venv\\Scripts\\uv build --python ${pythonVersion} --wheel
-                                                           rmdir /S /Q venv
-                                                        """
-                                                }
+                                            try{
+                                                powershell(label: 'Building Wheel for Windows', script: "contrib/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName}")
                                                 stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                                 wheelStashes << "python${pythonVersion} windows wheel"
+                                            } finally {
+                                                bat "${tool(name: 'Default', type: 'git')} clean -dfx"
                                             }
                                         }
                                     } finally {
                                         powershell(
                                             label: 'Untagging Docker Image used',
-                                            script: "docker image rm --no-prune ${dockerImage.imageName()}",
+                                            script: "docker image rm --no-prune ${dockerImageName}",
                                             returnStatus: true
                                         )
-                                        bat "${tool(name: 'Default', type: 'git')} clean -dfx"
+
                                     }
                                 }
                             }
@@ -998,11 +984,9 @@ def call(){
                                                                         image.inside("--mount source=uv_python_install_dir,target=${env.UV_PYTHON_INSTALL_DIR}"){
                                                                             checkout scm
                                                                             bat(label: 'Running Tox',
-                                                                                 script: """python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv
-                                                                                        call venv\\Scripts\\activate.bat
-                                                                                        uv python install cpython-${version}
-                                                                                        uvx -p ${version} --with-requirements requirements-dev.txt --with tox-uv tox run -e ${toxEnv}
-                                                                                     """
+                                                                                 script: """uv python install cpython-${version}
+                                                                                            uvx -p ${version} --with-requirements requirements-dev.txt --with tox-uv tox run -e ${toxEnv}
+                                                                                         """
                                                                             )
                                                                         }
                                                                     } finally{
@@ -1211,11 +1195,7 @@ def call(){
                                                                                    findFiles(glob: 'dist/*.tar.gz').each{
                                                                                        bat(
                                                                                            label: 'Running Tox',
-                                                                                           script: """py -m venv venv
-                                                                                                      venv\\Scripts\\pip install --disable-pip-version-check uv
-                                                                                                      venv\\Scripts\\uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v
-                                                                                                      rmdir /S /Q venv
-                                                                                                      """
+                                                                                           script: "uvx --python ${pythonVersion} --with-requirements requirements-dev.txt --with tox-uv tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -v"
                                                                                        )
                                                                                    }
                                                                                 }
