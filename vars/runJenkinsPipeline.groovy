@@ -521,7 +521,7 @@ def call(){
                             dockerfile {
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
-                                additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                                additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V1_URL'
                                 args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                             }
                         }
