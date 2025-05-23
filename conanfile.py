@@ -6,7 +6,7 @@ class Exiv2BindConan(ConanFile):
     requires = [
         "tesseract/4.1.1@#d816dfa99a51974f851f579b1b384e21",
         "leptonica/1.82.0@#acb0265f3ffe6f0517a344920ef661ca",
-        "zlib/1.2.13",
+        "zlib/1.3.1",
     ]
     settings = "os", "arch", "compiler", "build_type"
 
