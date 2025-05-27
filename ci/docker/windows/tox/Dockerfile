@@ -10,6 +10,7 @@ ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8.1
 ARG VS_INSTALL_PATH="C:\BuildTools"
 
 ARG CONAN_USER_HOME=C:/Users/ContainerAdministrator
+ARG CONAN_CENTER_PROXY_V1_URL
 
 ARG UV_CACHE_DIR=c:/users/containeradministrator/appdata/local/uv
 ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
@@ -72,14 +73,26 @@ COPY requirements-dev.txt c:/requirements/requirements-dev.txt
 COPY conanfile.py c:/temp/conanfile.py
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
 COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
-
-RUN uvx --with-requirements c:/requirements/requirements-dev.txt conan config init ; `
-    uvx --with-requirements c:/requirements/requirements-dev.txt conan config set general.revisions_enabled=1 ; `
-    uvx --with-requirements c:/requirements/requirements-dev.txt conan install c:/temp/ --build missing --no-import; `
-    uvx --with-requirements c:/requirements/requirements-dev.txt conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import  ; `
-    uvx --with-requirements c:/requirements/requirements-dev.txt conan remove "*" -b --src -f ; `
-    uvx --with-requirements c:/requirements/requirements-dev.txt conan remove --lock ; `
-    uv cache clean --no-progress
+ARG CONAN_CENTER_PROXY_V1_URL
+ENV CONAN_REVISIONS_ENABLED=1
+RUN uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan config init ; `
+    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan config set general.revisions_enabled=1 ; `
+    if ( -not ([string]::IsNullOrEmpty($Env:CONAN_CENTER_PROXY_V1_URL ))) `
+    { `
+      Write-Host "Using a proxy for conan center: $Env:CONAN_CENTER_PROXY_V1_URL" ; `
+      Copy-Item -Path "${Env:CONAN_USER_HOME}\.conan\remotes.json" -Destination "c:\remotes.json" ; `
+      uvx --constraint=c:/requirements/requirements-dev.txt --with cmake conan remote remove conan-center ; `
+      uvx --constraint=c:/requirements/requirements-dev.txt --with cmake conan remote add conan-center ${Env:CONAN_CENTER_PROXY_V1_URL} ; `
+    }; `
+    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import -pr:b=default ; `
+    if ($LASTEXITCODE -eq 1) { throw 'Exit code is 1' };`
+    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan remove "*" -b --src -f ; `
+    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan remove --lock ; `
+    uv cache clean --no-progress;`
+    if ( -not ([string]::IsNullOrEmpty($Env:CONAN_CENTER_PROXY_V1_URL ))) `
+    {`
+       Move-Item -Path "c:\remotes.json" -Destination "${Env:CONAN_USER_HOME}\.conan\remotes.json" -Force ;`
+    }
 # ==============================================================================
 
 FROM BASE_BUILDER
