@@ -17,15 +17,12 @@ generate_venv(){
     virtual_env=$2
     trap "remove_venv $virtual_env" ERR SIGINT SIGTERM
     $base_python -m venv $virtual_env
-    . $virtual_env/bin/activate
-    pip install uv
-    UV_INDEX_STRATEGY=unsafe-best-match uv pip install wheel==0.37 build delocate
+    $virtual_env/bin/pip install --disable-pip-version-check uv
 }
 
 generate_wheel(){
     virtual_env=$1
-    . $virtual_env/bin/activate
-    python --version
+    $virtual_env/bin/python --version
 
     # Get the processor type
     processor_type=$(uname -m)
@@ -55,7 +52,7 @@ generate_wheel(){
     out_temp_wheels_dir=$(mktemp -d /tmp/python_wheels.XXXXXX)
     output_path="./dist"
     trap "rm -rf $out_temp_wheels_dir" ERR SIGINT SIGTERM RETURN
-    UV_INDEX_STRATEGY=unsafe-best-match _PYTHON_HOST_PLATFORM=$_PYTHON_HOST_PLATFORM MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET ARCHFLAGS=$ARCHFLAGS python -m build --wheel --installer=uv --outdir=$out_temp_wheels_dir
+    UV_INDEX_STRATEGY=unsafe-best-match _PYTHON_HOST_PLATFORM=$_PYTHON_HOST_PLATFORM MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET ARCHFLAGS=$ARCHFLAGS $virtual_env/bin/uv build --build-constraints=requirements-dev.txt --wheel --out-dir=$out_temp_wheels_dir
     pattern="$out_temp_wheels_dir/*.whl"
     files=( $pattern )
     undelocate_wheel="${files[0]}"
@@ -63,10 +60,10 @@ generate_wheel(){
     echo ""
     echo "================================================================================"
     echo "${undelocate_wheel} is linked to the following:"
-    delocate-listdeps --depending "${undelocate_wheel}"
+    $virtual_env/bin/uvx --constraint requirements-dev.txt --from delocate delocate-listdeps --depending "${undelocate_wheel}"
     echo ""
     echo "================================================================================"
-    delocate-wheel -w $output_path --require-archs $REQUIRED_ARCH --verbose "$undelocate_wheel"
+    $virtual_env/bin/uvx --constraint requirements-dev.txt --from delocate delocate-wheel -w $output_path --require-archs $REQUIRED_ARCH --verbose "$undelocate_wheel"
 }
 
 print_usage(){
