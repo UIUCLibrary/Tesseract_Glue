@@ -268,15 +268,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     },
                                                     post:[
                                                         cleanup: {
-                                                            cleanWs(
-                                                                patterns: [
-                                                                        [pattern: 'build/', type: 'INCLUDE'],
-                                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                                        [pattern: 'dist/', type: 'INCLUDE'],
-                                                                    ],
-                                                                notFailBuild: true,
-                                                                deleteDirs: true
-                                                            )
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                         },
                                                         success: {
                                                             stash includes: 'dist/*.whl', name: "python${pythonVersion} ${arch} mac wheel"
@@ -303,7 +295,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                                   trap "rm -rf venv" EXIT
                                                                                   ./venv/bin/pip install --disable-pip-version-check uv
                                                                                   trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                  ./venv/bin/uvx --python ${pythonVersion} --constraint requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                  ./venv/bin/uvx --python ${pythonVersion} --constraint requirements-dev.txt --with tox-uv tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
                                                                                """
                                                                     )
                                                                 }
@@ -312,15 +304,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                         },
                                                         post:[
                                                             cleanup: {
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                                                            [pattern: '.tox/', type: 'INCLUDE'],
-                                                                        ],
-                                                                    notFailBuild: true,
-                                                                    deleteDirs: true
-                                                                )
+                                                                sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                             },
                                                             success: {
                                                                  archiveArtifacts artifacts: 'dist/*.whl'
