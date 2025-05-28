@@ -1,6 +1,10 @@
+[CmdletBinding()]
 param (
+    [ValidateNotNullOrEmpty()]
     [string]$DockerImageName = "uiucprescon_ocr_builder",
-    [string]$PythonVersion = "3.11"
+    [ValidateNotNullOrEmpty()]
+    [string]$PythonVersion = "3.11",
+    [ValidateNotNullOrEmpty()][switch]$Verify
 )
 
 function Build-DockerImage {
@@ -21,6 +25,7 @@ function Build-DockerImage {
         "--build-arg PIP_EXTRA_INDEX_URL",
         "--build-arg PIP_INDEX_URL",
         "--build-arg CHOCOLATEY_SOURCE",
+        "--build-arg CONAN_CENTER_PROXY_V1_URL",
         "--build-arg UV_INDEX_URL",
         "--build-arg UV_EXTRA_INDEX_URL",
         "--build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip",
@@ -43,6 +48,55 @@ function Build-DockerImage {
     }
 }
 
+function Test-Wheel {
+    [CmdletBinding()]
+    param (
+        [string]$WheelFile,
+        [string]$SourcePath,
+        [string]$PythonVersion,
+        [string]$DockerExec = "docker.exe",
+        [string]$DockerIsolation = "process",
+        [string]$ContainerName = "uiucprescon_ocr_tester"
+    )
+    Write-Host "Testing wheel file: $WheelFile"
+    if (!(Test-Path -Path $WheelFile)) {
+        throw "Wheel file not found at path: $WheelFile"
+    }
+    $wheelInfo = Get-Item $WheelFile
+    if ($wheelInfo.Extension -ne ".whl") {
+        throw "The specified file is not a valid wheel file: $WheelFile"
+    }
+    $containerWorkingPath = 'c:\src'
+    $containerDistPath = "c:\wheels"
+    $containerCacheDir = "C:\Users\ContainerUser\Documents\cache"
+    $local:UV_PYTHON_INSTALL_DIR = "${containerCacheDir}\uvpython"
+    $local:UV_TOOL_DIR = "${containerCacheDir}\uvtools"
+    $hostWheelPath = Split-Path -Path $WheelFile -Parent
+    $wheelFileName = Split-Path -Path $WheelFile -Leaf
+    $wheelInContainer = Join-Path -Path $containerDistPath -ChildPath $wheelFileName
+    $dockerArgsList = @(
+        "run",
+        "--isolation", $DockerIsolation,
+        "--platform windows/amd64",
+        "--rm",
+        "--workdir=${containerWorkingPath}",
+        "--mount type=volume,source=${ContainerName}Cache,target=${containerCacheDir}",
+        "--mount type=bind,source=$(Resolve-Path $projectRootDirectory),target=${containerWorkingPath}",
+        "--mount type=bind,source=$(Resolve-Path $hostWheelPath),target=${containerDistPath}",
+        "-e UV_TOOL_DIR=${local:UV_TOOL_DIR}",
+        "-e UV_PYTHON_INSTALL_DIR=${local:UV_PYTHON_INSTALL_DIR}",
+        '--entrypoint', 'powershell',
+        'python:latest',
+        "-c",
+        "if (-not (Test-Path -Path ${containerCacheDir}\roots.sst)) { certutil -generateSSTFromWU ${containerCacheDir}\roots.sst }; certutil -addstore -f root ${containerCacheDir}\roots.sst; python -m pip install --disable-pip-version-check uv; uvx --constraint ${containerWorkingPath}\requirements-dev.txt --with tox-uv tox run -e py${PythonVersion} --installpkg $wheelInContainer --workdir `$env:TEMP"
+    )
+    $local:dockerVerifyProcess = Start-Process -FilePath $DockerExec -ArgumentList $dockerArgsList -NoNewWindow -PassThru -Wait
+    if ($local:dockerVerifyProcess.ExitCode -ne 0) {
+        throw "Verification failed with exit code: $($local:dockerVerifyProcess.ExitCode)"
+    }
+    Write-Host "Wheel file validation successful: $WheelFilePath"
+}
+
 function Build-Wheel {
     [CmdletBinding()]
     param (
@@ -56,15 +110,15 @@ function Build-Wheel {
     $projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
     $outputDirectory = Join-Path -Path $projectRootDirectory -ChildPath "dist"
     if (!(Test-Path -Path $outputDirectory)) {
-      New-Item -ItemType Directory -Path $outputDirectory
+      New-Item -ItemType Directory -Path $outputDirectory | Out-Null
     }
     $containerSourcePath = "c:\src"
     $containerWorkingPath = "c:\build"
     $containerCacheDir = "C:\Users\ContainerUser\Documents\cache"
     $venv = "${containerCacheDir}\venv"
 
-    $UV_TOOL_DIR = "${containerCacheDir}\uvtools"
-    $UV_PYTHON_INSTALL_DIR = "${containerCacheDir}\uvpython"
+    $local:UV_PYTHON_INSTALL_DIR = "${containerCacheDir}\uvpython"
+    $local:UV_TOOL_DIR = "${containerCacheDir}\uvtools"
 
     # This makes a symlink copy of the files mounted in the source. Any changes to the files will not affect outside the container
     $createShallowCopy = "foreach (`$item in `$(Get-ChildItem -Path $containerSourcePath)) { `
@@ -82,8 +136,8 @@ function Build-Wheel {
         "--mount type=volume,source=${ContainerName}Cache,target=${containerCacheDir}",
         "--mount type=bind,source=$(Resolve-Path $projectRootDirectory),target=${containerSourcePath}",
         "--mount type=bind,source=$(Resolve-Path $outputDirectory),target=${containerDistPath}",
-        "-e UV_TOOL_DIR=${UV_TOOL_DIR}",
-        "-e UV_PYTHON_INSTALL_DIR=${UV_PYTHON_INSTALL_DIR}",
+        "-e UV_TOOL_DIR=${local:UV_TOOL_DIR}",
+        "-e UV_PYTHON_INSTALL_DIR=${local:UV_PYTHON_INSTALL_DIR}",
         '--entrypoint', 'powershell',
         $DockerImageName
         "-c",
@@ -99,7 +153,37 @@ function Build-Wheel {
 }
 
 
+function Get-Wheel {
+    [CmdletBinding()]
+    param (
+        [string]$SearchPath,
+        [string]$PythonVersion
+    )
+    if (!(Test-Path -Path $SearchPath)) {
+        throw "Wheel file not found at path: $SearchPath"
+    }
+    $regex = "uiucprescon_ocr-.*cp$($PythonVersion -replace '\.', '').*\.whl$"
+    $wheelFile = Get-ChildItem -Path $SearchPath -File | Where-Object { $_.Name -match $regex } | Select-Object -First 1
+    if (-not $wheelFile) {
+        throw "No wheel file for Python $PythonVersion in: $SearchPath"
+    }
+    $wheelInfo = Get-Item $wheelFile.FullName
+    if ($wheelInfo.Extension -ne ".whl") {
+        throw "The specified file is not a valid wheel file: $SearchPath"
+    }
+    return $wheelInfo
+}
+
+
 
 Build-DockerImage -ImageName $DockerImageName
 
 Build-Wheel -PythonVersion $PythonVersion -DockerImageName $DockerImageName
+
+if ($Verify) {
+    $local:distDirectory = Join-Path -Path (Get-Item $PSScriptRoot).Parent.FullName -ChildPath "dist"
+    $local:wheelFile = Get-Wheel -SearchPath $local:distDirectory -PythonVersion $PythonVersion
+    $local:projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
+    Test-Wheel -WheelFile $local:wheelFile -SourcePath $local:projectRootDirectory -PythonVersion $PythonVersion
+
+}
