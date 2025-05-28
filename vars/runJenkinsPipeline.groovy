@@ -263,7 +263,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     retries: 3,
                                                     buildCmd: {
                                                         sh(label: 'Building wheel',
-                                                           script: "contrib/build_mac_wheel.sh . --venv-path=./venv --base-python=python${pythonVersion}"
+                                                           script: "contrib/build_mac_wheel.sh . --python-version=${pythonVersion}"
                                                         )
                                                     },
                                                     post:[
