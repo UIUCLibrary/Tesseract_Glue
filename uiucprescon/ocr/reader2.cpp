@@ -47,7 +47,7 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
 
 static constexpr bool string_contains_no_text(const std::string &str) {
 
-    for (char ch : str) {
+    for (const char ch : str) {
         if (!std::isspace(static_cast<unsigned char>(ch))) {
             return false;
         }
