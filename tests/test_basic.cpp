@@ -18,8 +18,7 @@ TEST_CASE("dummy2 blank page"){
     Reader2 reader(TESS_DATA, "eng");
 //    std::string d = reader2.get_ocr(TEST_IMAGE);
     std::string d = reader.get_ocr(TEST_IMAGE_PATH "/" "blankpage.tif");
-    std::cout  << d << std::endl;
-    REQUIRE(!d.empty());
+    REQUIRE(d.empty());
 }
 
 TEST_CASE("Reader2"){
