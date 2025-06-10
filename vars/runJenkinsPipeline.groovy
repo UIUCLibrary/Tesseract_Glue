@@ -505,7 +505,7 @@ def call(){
                             dockerfile {
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
-                                additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                                additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
                                 args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                             }
                         }
@@ -578,8 +578,14 @@ def call(){
                                             sh(
                                                 label: 'Building C++ project for metrics',
                                                 script: '''. ./venv/bin/activate
-                                                           conan install . -if build/cpp -g cmake_find_package
-                                                           cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                                           conan install conanfile.py -of build/cpp --build=missing -pr:b=default
+                                                           cmake --preset conan-release -B build/cpp \
+                                                            -S ./ \
+                                                            -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
+                                                            -DCMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
+                                                            -DCMAKE_MODULE_PATH=./build/cpp
                                                            make -C build/cpp clean tester
                                                            '''
                                             )

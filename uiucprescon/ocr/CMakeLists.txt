@@ -4,6 +4,7 @@ target_include_directories(glue PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(glue PUBLIC
         Tesseract::Tesseract
+        leptonica
         )
 
 add_library(tesseractwrap MODULE tesseractwrap.cpp)
