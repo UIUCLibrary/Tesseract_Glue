@@ -18,9 +18,6 @@ PYBIND11_MODULE(tesseractwrap, m){
             .def_property_readonly("w", &Image::get_w)
             .def_property_readonly("h", &Image::get_h);
 
-    pybind11::class_<Pix, std::shared_ptr<Pix>>(m, "Pix", pybind11::module_local())
-            .def(pybind11::init<>());
-
     pybind11::class_<Reader2>(m, "Reader")
             .def(pybind11::init<const std::string &, const std::string &>())
             .def("get_ocr", &Reader2::get_ocr_from_image);
