@@ -9,7 +9,7 @@
 using std::endl;
 using std::cerr;
 
-static bool string_contains_no_text(const std::string &);
+static constexpr bool string_contains_no_text(const std::string &);
 
 Reader2::Reader2(const std::string &tessdata, const std::string &lang):
     language(lang),
@@ -45,7 +45,7 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
     return string_contains_no_text(result) ?  std::string() : result;
 }
 
-static bool string_contains_no_text(const std::string &str) {
+static constexpr bool string_contains_no_text(const std::string &str) {
 
     for (char ch : str) {
         if (!std::isspace(static_cast<unsigned char>(ch))) {
