@@ -737,13 +737,13 @@ def call(){
                                         post{
                                             always{
                                                 sh(script: '''mkdir -p build/coverage
-                                                              find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=$WORKSPACE/ \\;
-                                                              mv *.gcov build/coverage/
                                                               . ./venv/bin/activate
                                                               coverage combine
                                                               coverage xml -o ./reports/coverage-python.xml
-                                                              gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
-                                                              gcovr --filter uiucprescon/ocr --print-summary --keep
+                                                              mkdir -p reports/coverage
+                                                              gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
+                                                              gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
+                                                              gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --xml -o reports/coverage/coverage_cpp.xml --sonarqube -o reports/coverage/coverage_cpp_sonar.xml
                                                               '''
                                                     )
                                                 recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage.xml']])
