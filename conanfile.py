@@ -2,17 +2,17 @@
 from conan import ConanFile
 
 
-class Exiv2BindConan(ConanFile):
+class TesseractBindConan(ConanFile):
     requires = [
-        "tesseract/4.1.1@#d816dfa99a51974f851f579b1b384e21",
-        "leptonica/1.82.0@#acb0265f3ffe6f0517a344920ef661ca",
-        "zlib/1.3.1",
-        "libpng/1.6.44",
+        "tesseract/5.2.0",
+        "leptonica/1.83.1"
     ]
     settings = "os", "arch", "compiler", "build_type"
+    generators = ["CMakeToolchain", "CMakeDeps"]
 
-    generators = ["json", "cmake_paths"]
-    default_options = {}
+    default_options = {
+        "tesseract/*:with_libcurl": False
+    }
 
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")
@@ -28,6 +28,7 @@ class Exiv2BindConan(ConanFile):
         self.copy("libcharset.so", src="lib")
         self.copy("libcharset.so.*", src="lib")
         self.copy("tesseract", dst="", src="bin", keep_path=True)
+
     def configure(self):
         if self.settings.os == "Windows":
             self.options['leptonica'].shared = True

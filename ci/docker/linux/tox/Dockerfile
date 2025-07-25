@@ -1,5 +1,6 @@
 ARG PIPX_HOME=/pipx
 ARG CONAN_USER_HOME=/conan
+ARG CONAN_HOME=${CONAN_USER_HOME}/.conan2
 ARG PIP_DOWNLOAD_CACHE=/.cache/pip
 ARG PIP_INDEX_URL
 ARG PIP_TRUSTED_HOST
@@ -25,36 +26,31 @@ FROM base AS conan_builder
 ARG CONAN_USER_HOME
 COPY requirements-dev.txt /tmp/requirements/requirements-dev.txt
 
-COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
+ARG CONAN_HOME
+COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
+COPY ci/docker/linux/tox/conan/profile.ini ${CONAN_HOME}/profiles/default
 COPY conanfile.py /tmp/conanfile.py
-COPY ci/docker/linux/tox/update_conan_compiler.py  /tmp/update_conan_compiler.py
+ENV UV_CONSTRAINT=/tmp/requirements/requirements-dev.txt
 RUN python3 -m venv venv --upgrade-deps && \
-     . ./venv/bin/activate && \
-    pip install --disable-pip-version-check uv && \
-    uv pip install --no-cache-dir  -r /tmp/requirements/requirements-dev.txt && \
-    conan config init && \
-    conan config set general.revisions_enabled=1 && \
-    conan profile update settings.compiler.version=$(cc -dumpfullversion -dumpversion | grep -oE  "^([0-9]+(\.)?)([0-9]+?)") default && \
-    python /tmp/update_conan_compiler.py ${CONAN_USER_HOME}/.conan/settings.yml gcc $(cc -dumpfullversion -dumpversion | grep -oE  "^([0-9]+(\.)?)([0-9]+?)") && \
-    conan install /tmp -pr:b=default --build outdated --build=openjpeg --no-import && \
-    conan remove "*" -b --src -f && \
-    conan remove --locks  && \
-    uv cache prune && \
+    ./venv/bin/pip install --disable-pip-version-check uv && \
+    ./venv/bin/uvx --with cmake conan profile detect --exist-ok &&  \
+    ./venv/bin/uvx --with cmake conan install /tmp -pr:b=default --build missing && \
+    ./venv/bin/uvx --with cmake conan cache clean "*" -b --source --build --temp && \
+    ./venv/bin/uv cache clean && \
     rm -rf venv
 
 # ==============================================================================
 
 FROM base
 ARG CONAN_USER_HOME
+ARG CONAN_HOME
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ARG PIP_TRUSTED_HOST
 
-COPY --from=conan_builder ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
-COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
-COPY conanfile.py /tmp/conanfile.py
-RUN chmod -R 777 ${CONAN_USER_HOME}
-ENV CONAN_USER_HOME=${CONAN_USER_HOME}
+COPY --from=conan_builder ${CONAN_HOME}/ ${CONAN_HOME}/
+RUN chmod -R 777 ${CONAN_HOME}
+
 
 ARG PIP_DOWNLOAD_CACHE
 ARG UV_CACHE_DIR
@@ -63,10 +59,10 @@ RUN mkdir -p ${PIP_DOWNLOAD_CACHE} && \
     mkdir -p ${UV_CACHE_DIR} && \
     chmod -R 777 ${UV_CACHE_DIR}
 
-ENV PIP_DOWNLOAD_CACHE=${PIP_DOWNLOAD_CACHE}
-ENV UV_CACHE_DIR=${UV_CACHE_DIR}
-
-ENV UV_INDEX_STRATEGY=unsafe-best-match
-
+ENV PIP_DOWNLOAD_CACHE=${PIP_DOWNLOAD_CACHE} \
+    UV_CACHE_DIR=${UV_CACHE_DIR} \
+    UV_INDEX_STRATEGY=unsafe-best-match \
+    CONAN_USER_HOME=${CONAN_USER_HOME}\
+    CONAN_HOME=${CONAN_HOME}
 WORKDIR /src
 CMD ["tox", "--workdir", "/tmp/tox/",  "-p=auto", "--parallel--safe-build", "--recreate"]

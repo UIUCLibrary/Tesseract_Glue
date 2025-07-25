@@ -9,6 +9,8 @@
 using std::endl;
 using std::cerr;
 
+static  bool string_contains_no_text(const std::string &);
+
 Reader2::Reader2(const std::string &tessdata, const std::string &lang):
     language(lang),
     tessdata(tessdata)
@@ -39,5 +41,16 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
     }
     tess.SetImage(image->getPix().get());
     tess.Recognize(nullptr);
-    return std::string (std::unique_ptr<char[]>(tess.GetUTF8Text(), std::default_delete<char[]>()).get());
+    auto result =  std::string (std::unique_ptr<char[]>(tess.GetUTF8Text(), std::default_delete<char[]>()).get());
+    return string_contains_no_text(result) ?  std::string() : result;
+}
+
+static bool string_contains_no_text(const std::string &str) {
+
+    for (const char &ch : str) {
+        if (!std::isspace(static_cast<unsigned char>(ch))) {
+            return false;
+        }
+    }
+    return true;
 }

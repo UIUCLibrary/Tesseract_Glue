@@ -505,7 +505,7 @@ def call(){
                             dockerfile {
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
-                                additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                                additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_DOWNLOAD_CACHE=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
                                 args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache'
                             }
                         }
@@ -578,8 +578,14 @@ def call(){
                                             sh(
                                                 label: 'Building C++ project for metrics',
                                                 script: '''. ./venv/bin/activate
-                                                           conan install . -if build/cpp -g cmake_find_package
-                                                           cmake -B ./build/cpp -S ./ -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON -D CMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -D CMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" -DBUILD_TESTING:BOOL=ON -D CMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON -DCMAKE_MODULE_PATH=./build/cpp
+                                                           conan install conanfile.py -of build/cpp --build=missing -pr:b=default
+                                                           cmake --preset conan-release -B build/cpp \
+                                                            -S ./ \
+                                                            -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
+                                                            -DCMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
+                                                            -DCMAKE_MODULE_PATH=./build/cpp
                                                            make -C build/cpp clean tester
                                                            '''
                                             )
@@ -647,6 +653,9 @@ def call(){
                                                         label: 'Running cpp tests',
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
+                                                    sh '''. ./venv/bin/activate
+                                                         mkdir -p reports/coverage && gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml
+                                                      '''
                                                 }
                                                 post{
                                                     always{
@@ -737,16 +746,16 @@ def call(){
                                         post{
                                             always{
                                                 sh(script: '''mkdir -p build/coverage
-                                                              find ./build -name '*.gcno' -exec gcov {} -p --source-prefix=$WORKSPACE/ \\;
-                                                              mv *.gcov build/coverage/
                                                               . ./venv/bin/activate
                                                               coverage combine
-                                                              coverage xml -o ./reports/coverage-python.xml
-                                                              gcovr --filter uiucprescon/ocr --print-summary --keep --xml -o reports/coverage_cpp.xml
-                                                              gcovr --filter uiucprescon/ocr --print-summary --keep
+                                                              mkdir -p reports/coverage
+                                                              coverage xml -o ./reports/coverage/coverage-python.xml
+                                                              gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
+                                                              gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
+                                                              gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --xml -o reports/coverage_cpp.xml --sonarqube -o reports/coverage/coverage_cpp_sonar.xml
                                                               '''
                                                     )
-                                                recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage.xml']])
+                                                recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage/*.xml']])
                                             }
                                         }
                                     }
@@ -817,18 +826,19 @@ def call(){
                         }
                         post{
                             cleanup{
-                                cleanWs(
-                                    patterns: [
-                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                            [pattern: 'build/', type: 'INCLUDE'],
-                                            [pattern: 'build/', type: 'INCLUDE'],
-                                            [pattern: 'logs/', type: 'INCLUDE'],
-                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                            [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
-                                        ],
-                                    notFailBuild: true,
-                                    deleteDirs: true
-                                    )
+                                sh "git clean -dfx"
+//                                 cleanWs(
+//                                     patterns: [
+//                                             [pattern: 'venv/', type: 'INCLUDE'],
+//                                             [pattern: 'build/', type: 'INCLUDE'],
+//                                             [pattern: 'build/', type: 'INCLUDE'],
+//                                             [pattern: 'logs/', type: 'INCLUDE'],
+//                                             [pattern: '**/__pycache__/', type: 'INCLUDE'],
+//                                             [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
+//                                         ],
+//                                     notFailBuild: true,
+//                                     deleteDirs: true
+//                                     )
                             }
                         }
                     }

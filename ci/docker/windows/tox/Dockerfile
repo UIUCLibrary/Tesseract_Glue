@@ -10,7 +10,13 @@ ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8.1
 ARG VS_INSTALL_PATH="C:\BuildTools"
 
 ARG CONAN_USER_HOME=C:/Users/ContainerAdministrator
-ARG CONAN_CENTER_PROXY_V1_URL
+# Path where conan data will be stored
+
+ARG CONAN_HOME=${CONAN_USER_HOME}/.conan2
+
+ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
+# If you want to use a diffrent remote for Conan, such as a proxy. Set the CONAN_CENTER_PROXY_V2_URL
+# Not this is only for building the image. The actual conan center proxy URL is set in the remotes.json file.
 
 ARG UV_CACHE_DIR=c:/users/containeradministrator/appdata/local/uv
 ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
@@ -68,30 +74,28 @@ ARG UV_EXTRA_INDEX_URL
 ARG UV_INDEX_URL
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
-ARG CONAN_USER_HOME
+ARG CONAN_HOME
 COPY requirements-dev.txt c:/requirements/requirements-dev.txt
 COPY conanfile.py c:/temp/conanfile.py
-COPY ci/docker/shared/conan/remotes.json  ${CONAN_USER_HOME}/.conan/remotes.json
-COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_USER_HOME}/.conan/profiles/default
-ARG CONAN_CENTER_PROXY_V1_URL
-ENV CONAN_REVISIONS_ENABLED=1
-RUN uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan config init ; `
-    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan config set general.revisions_enabled=1 ; `
-    if ( -not ([string]::IsNullOrEmpty($Env:CONAN_CENTER_PROXY_V1_URL ))) `
-    { `
-      Write-Host "Using a proxy for conan center: $Env:CONAN_CENTER_PROXY_V1_URL" ; `
-      Copy-Item -Path "${Env:CONAN_USER_HOME}\.conan\remotes.json" -Destination "c:\remotes.json" ; `
-      uvx --constraint=c:/requirements/requirements-dev.txt --with cmake conan remote remove conan-center ; `
-      uvx --constraint=c:/requirements/requirements-dev.txt --with cmake conan remote add conan-center ${Env:CONAN_CENTER_PROXY_V1_URL} ; `
+COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
+COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_HOME}/profiles/default
+
+ENV UV_CONSTRAINT=c:/requirements/requirements-dev.txt
+ARG CONAN_CENTER_PROXY_V2_URL
+RUN uvx --with cmake --with ninja conan profile detect --exist-ok ; `
+    if (${env:CONAN_CENTER_PROXY_V2_URL} -ne $(Get-Content -Raw -Path ${Env:CONAN_HOME}\remotes.json)) { `
+      Write-Host "Using a proxy for conan center: $Env:CONAN_CENTER_PROXY_V2_URL" ; `
+      Copy-Item -Path "${Env:CONAN_HOME}\remotes.json" -Destination "c:\remotes.json" ; `
+      uvx --with cmake --with ninja conan remote update conan-center --url ${env:CONAN_CENTER_PROXY_V2_URL}; `
     }; `
-    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan install c:/temp/ --build missing -o "tesseract:shared=True" --no-import -pr:b=default ; `
-    if ($LASTEXITCODE -eq 1) { throw 'Exit code is 1' };`
-    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan remove "*" -b --src -f ; `
-    uvx --constraint c:/requirements/requirements-dev.txt --with cmake conan remove --lock ; `
-    uv cache clean --no-progress;`
-    if ( -not ([string]::IsNullOrEmpty($Env:CONAN_CENTER_PROXY_V1_URL ))) `
-    {`
-       Move-Item -Path "c:\remotes.json" -Destination "${Env:CONAN_USER_HOME}\.conan\remotes.json" -Force ;`
+    uvx --with cmake --with ninja conan install c:/temp/ --build missing -o "tesseract/*:shared=True" -pr:h=default --conf=tools.cmake.cmaketoolchain:generator=Ninja ; `
+    if ($LASTEXITCODE -ne 0) { `
+      throw \"Command 'conan install' failed with exit code: $LASTEXITCODE\"`
+    } ;`
+    uvx --with cmake --with ninja conan cache clean "*" -b --source --build --temp ; `
+    uv cache clean --no-progress ; `
+    if (${env:CONAN_CENTER_PROXY_V2_URL} -ne $(Get-Content -Raw -Path ${Env:CONAN_HOME}\remotes.json)) { `
+      Move-Item -Path "c:\remotes.json" -Destination "${Env:CONAN_HOME}\remotes.json" -Force ;`
     }
 # ==============================================================================
 
@@ -101,8 +105,10 @@ RUN certutil -addstore -f root roots.sst ; `
     del roots.sst
 
 ARG CONAN_USER_HOME
-COPY --from=CONAN_BUILDER ${CONAN_USER_HOME}/.conan/ ${CONAN_USER_HOME}/.conan/
-ENV CONAN_USER_HOME=${CONAN_USER_HOME}
+ARG CONAN_HOME
+COPY --from=CONAN_BUILDER ${CONAN_HOME}/ ${CONAN_HOME}/
+ENV CONAN_USER_HOME=${CONAN_USER_HOME}`
+    CONAN_HOME=${CONAN_HOME}
 
 ARG UV_CACHE_DIR
 ARG PIP_DOWNLOAD_CACHE
