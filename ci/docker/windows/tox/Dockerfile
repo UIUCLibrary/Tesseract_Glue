@@ -18,9 +18,6 @@ ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
 # If you want to use a diffrent remote for Conan, such as a proxy. Set the CONAN_CENTER_PROXY_V2_URL
 # Not this is only for building the image. The actual conan center proxy URL is set in the remotes.json file.
 
-ARG UV_CACHE_DIR=c:/users/containeradministrator/appdata/local/uv
-ARG PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip
-
 ARG CHOCOLATEY_SOURCE=https://chocolatey.org/api/v2
 ARG chocolateyVersion
 
@@ -83,18 +80,18 @@ COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_HOME}/profiles/default
 ENV UV_CONSTRAINT=c:/requirements/requirements-dev.txt
 ARG CONAN_CENTER_PROXY_V2_URL
 RUN uvx --with cmake --with ninja conan profile detect --exist-ok ; `
-    if (${env:CONAN_CENTER_PROXY_V2_URL} -ne $(Get-Content -Raw -Path ${Env:CONAN_HOME}\remotes.json)) { `
+    if (${env:CONAN_CENTER_PROXY_V2_URL} -ne ($(Get-Content -Raw -Path "${Env:CONAN_HOME}/remotes.json") | ConvertFrom-Json).remotes[0].url) { `
       Write-Host "Using a proxy for conan center: $Env:CONAN_CENTER_PROXY_V2_URL" ; `
       Copy-Item -Path "${Env:CONAN_HOME}\remotes.json" -Destination "c:\remotes.json" ; `
       uvx --with cmake --with ninja conan remote update conan-center --url ${env:CONAN_CENTER_PROXY_V2_URL}; `
     }; `
-    uvx --with cmake --with ninja conan install c:/temp/ --build missing -o "tesseract/*:shared=True" -pr:h=default --conf=tools.cmake.cmaketoolchain:generator=Ninja ; `
+    uvx --with cmake --with ninja conan install c:/temp/ --build missing -pr:h=default --conf=tools.cmake.cmaketoolchain:generator=Ninja ; `
     if ($LASTEXITCODE -ne 0) { `
       throw \"Command 'conan install' failed with exit code: $LASTEXITCODE\"`
     } ;`
     uvx --with cmake --with ninja conan cache clean "*" -b --source --build --temp ; `
     uv cache clean --no-progress ; `
-    if (${env:CONAN_CENTER_PROXY_V2_URL} -ne $(Get-Content -Raw -Path ${Env:CONAN_HOME}\remotes.json)) { `
+    if (${env:CONAN_CENTER_PROXY_V2_URL} -ne ($(Get-Content -Raw -Path "${Env:CONAN_HOME}/remotes.json") | ConvertFrom-Json).remotes[0].url) { `
       Move-Item -Path "c:\remotes.json" -Destination "${Env:CONAN_HOME}\remotes.json" -Force ;`
     }
 # ==============================================================================
@@ -107,15 +104,8 @@ RUN certutil -addstore -f root roots.sst ; `
 ARG CONAN_USER_HOME
 ARG CONAN_HOME
 COPY --from=CONAN_BUILDER ${CONAN_HOME}/ ${CONAN_HOME}/
+
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}`
-    CONAN_HOME=${CONAN_HOME}
+    CONAN_HOME=${CONAN_HOME} `
+    UV_INDEX_STRATEGY=unsafe-best-match
 
-ARG UV_CACHE_DIR
-ARG PIP_DOWNLOAD_CACHE
-ENV UV_INDEX_STRATEGY=unsafe-best-match
-RUN New-Item -type directory -path ${Env:PIP_DOWNLOAD_CACHE} -Force | Out-Null ; `
-    New-Item -type directory -path ${Env:UV_CACHE_DIR} -Force | Out-Null
-
-
-WORKDIR C:/src
-CMD tox --workdir %TEMP%\tox\ -vv  --recreate
