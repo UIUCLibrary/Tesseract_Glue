@@ -4,20 +4,29 @@ param (
     [string]$DockerImageName = "uiucprescon_ocr_builder",
     [ValidateNotNullOrEmpty()]
     [string]$PythonVersion = "3.11",
+    [string]$PIPDowndloadCachePathInContainer,
+    [string]$UVCacheDirPathInContainer,
+    [string]$UVPythonInstallDirPathInContainer,
+    [string]$UVToolDirPathInContainer,
     [ValidateNotNullOrEmpty()][switch]$Verify
 )
 
 function Build-DockerImage {
     [CmdletBinding()]
     param (
+        [ValidateScript({
+            if (-not (Test-Path -Path $_ -PathType Leaf)) {
+                throw "The specified file '$_' does not exist."
+            }
+            return $true
+        })]
         [string]$DockerfilePath = "ci/docker/windows/tox/Dockerfile",
         [string]$ImageName = "uiucprescon_ocr_builder",
         [string]$DockerExec = "docker.exe",
         [string]$DockerIsolation = "process"
     )
-
     $projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
-    $dockerArgsList = @(
+    $local:dockerArgsList = @(
         "build",
         "--isolation", $DockerIsolation,
         "--platform windows/amd64",
@@ -27,21 +36,20 @@ function Build-DockerImage {
         "--build-arg CHOCOLATEY_SOURCE",
         "--build-arg CONAN_CENTER_PROXY_V2_URL",
         "--build-arg UV_INDEX_URL",
-        "--build-arg UV_EXTRA_INDEX_URL",
-        "--build-arg PIP_DOWNLOAD_CACHE=c:/users/containeradministrator/appdata/local/pip",
-        "--build-arg UV_CACHE_DIR=c:/users/containeradministrator/appdata/local/uv"
+        "--build-arg UV_EXTRA_INDEX_URL"
     )
+
     if (Test-Path Env:DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE) {
-        $dockerArgsList += @(
+        $local:dockerArgsList += @(
             "--build-arg", "FROM_IMAGE=${env:DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE}"
         )
     }
-    $dockerArgsList += @(
+    $local:dockerArgsList += @(
         "-t", $ImageName,
         "."
     )
 
-    $local:dockerBuildProcess = Start-Process -FilePath $DockerExec -WorkingDirectory $projectRootDirectory -ArgumentList $dockerArgsList -NoNewWindow -PassThru -Wait
+    $local:dockerBuildProcess = Start-Process -FilePath $DockerExec -WorkingDirectory $projectRootDirectory -ArgumentList $local:dockerArgsList -NoNewWindow -PassThru -Wait
     if ($local:dockerBuildProcess.ExitCode -ne 0)
     {
         throw "An error creating docker image occurred. Exit code: $($local:dockerBuildProcess.ExitCode)"
@@ -69,12 +77,15 @@ function Test-Wheel {
     $containerWorkingPath = 'c:\src'
     $containerDistPath = "c:\wheels"
     $containerCacheDir = "C:\Users\ContainerUser\Documents\cache"
+    $local:PIP_CACHE_DIR = "${containerCacheDir}\pip_cache"
     $local:UV_PYTHON_INSTALL_DIR = "${containerCacheDir}\uvpython"
+    $local:UV_CACHE_DIR = "${containerCacheDir}\uv_cache"
     $local:UV_TOOL_DIR = "${containerCacheDir}\uvtools"
     $hostWheelPath = Split-Path -Path $WheelFile -Parent
     $wheelFileName = Split-Path -Path $WheelFile -Leaf
     $wheelInContainer = Join-Path -Path $containerDistPath -ChildPath $wheelFileName
-    $dockerArgsList = @(
+
+    $local:dockerArgsList = @(
         "run",
         "--isolation", $DockerIsolation,
         "--platform windows/amd64",
@@ -85,12 +96,37 @@ function Test-Wheel {
         "--mount type=bind,source=$(Resolve-Path $hostWheelPath),target=${containerDistPath}",
         "-e UV_TOOL_DIR=${local:UV_TOOL_DIR}",
         "-e UV_PYTHON_INSTALL_DIR=${local:UV_PYTHON_INSTALL_DIR}",
+        "-e UV_CACHE_DIR=${local:UV_CACHE_DIR}",
+        "-e PIP_CACHE_DIR=${local:PIP_CACHE_DIR}"
+    )
+
+    $local:installCertsScript = "if (-not (Test-Path -Path ${containerCacheDir}\roots.sst)) { `
+        Write-Host 'Generating root certificates...'; `
+        certutil -generateSSTFromWU ${containerCacheDir}\roots.sst `
+        Write-Host 'Generating root certificates... Done'; `
+    };`
+    certutil -addstore -f root ${containerCacheDir}\roots.sst | Out-Null;`
+    Write-Host 'Certificate store updated successfully.'; `
+    "
+    $local:installRuntime = "if (-not (Test-Path -Path ${containerCacheDir}\vc_redist.x64.exe)) {
+        Write-Host 'Downloading Visual C++ Redistributable...'; `
+        [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12;Invoke-WebRequest https://aka.ms/vs/17/release/vc_redist.x64.exe -OutFile ${containerCacheDir}\vc_redist.x64.exe; `
+        Write-Host 'Downloading Visual C++ Redistributable... Done'; `
+    };`
+    Write-Host 'Installing Visual C++ Redistributable.';
+    Start-Process -filepath ${containerCacheDir}\vc_redist.x64.exe -ArgumentList '/install', '/passive', '/norestart' -Passthru | Wait-Process;`
+    Write-Host 'Visual C++ Redistributable installed successfully.';
+    "
+
+    $local:dockerArgsList += @(
         '--entrypoint', 'powershell',
         'python:latest',
         "-c",
-        "if (-not (Test-Path -Path ${containerCacheDir}\roots.sst)) { certutil -generateSSTFromWU ${containerCacheDir}\roots.sst }; certutil -addstore -f root ${containerCacheDir}\roots.sst; python -m pip install --disable-pip-version-check uv; uvx --constraint ${containerWorkingPath}\requirements-dev.txt --with tox-uv tox run -e py${PythonVersion} --installpkg $wheelInContainer --workdir `$env:TEMP"
+        "${local:installCertsScript};`
+        ${local:installRuntime};`
+        python -m pip install --disable-pip-version-check uv; uvx --constraint ${containerWorkingPath}\requirements-dev.txt --with tox-uv tox run -e py${PythonVersion} --installpkg $wheelInContainer --workdir `$env:TEMP"
     )
-    $local:dockerVerifyProcess = Start-Process -FilePath $DockerExec -ArgumentList $dockerArgsList -NoNewWindow -PassThru -Wait
+    $local:dockerVerifyProcess = Start-Process -FilePath $DockerExec -ArgumentList $local:dockerArgsList -NoNewWindow -PassThru -Wait
     if ($local:dockerVerifyProcess.ExitCode -ne 0) {
         throw "Verification failed with exit code: $($local:dockerVerifyProcess.ExitCode)"
     }
@@ -104,7 +140,19 @@ function Build-Wheel {
         [string]$DockerExec = "docker.exe",
         [string]$DockerIsolation = "process",
         [string]$PythonVersion = "3.11",
-        [string]$ContainerName = "uiucprescon_ocr_builder"
+        [string]$ContainerName = "uiucprescon_ocr_builder",
+        [Parameter(Mandatory=$False)]
+        [ValidateScript({ [string]::IsNullOrWhiteSpace($_) })]
+        [string]$UVCacheDirPathInContainer,
+        [Parameter(Mandatory=$False)]
+        [ValidateScript({ [string]::IsNullOrWhiteSpace($_) })]
+        [string]$PIPDowndloadCachePathInContainer,
+        [Parameter(Mandatory=$False)]
+        [ValidateScript({ ![string]::IsNullOrWhiteSpace($_) })]
+        [string]$UVToolDirPathInContainer,
+        [Parameter(Mandatory=$False)]
+        [ValidateScript({ ![string]::IsNullOrWhiteSpace($_) })]
+        [string]$UVPythonInstallDirPathInContainer
     )
     $containerDistPath = "c:\dist"
     $projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
@@ -127,7 +175,7 @@ function Build-Wheel {
         New-Item -ItemType SymbolicLink -Path `$LinkPath -Target `$item.FullName | Out-Null `
     }"
 
-    $dockerArgsList = @(
+    $local:dockerArgsList = @(
         "run",
         "--isolation", $DockerIsolation,
         "--platform windows/amd64",
@@ -135,17 +183,35 @@ function Build-Wheel {
         "--workdir=${containerWorkingPath}",
         "--mount type=volume,source=${ContainerName}Cache,target=${containerCacheDir}",
         "--mount type=bind,source=$(Resolve-Path $projectRootDirectory),target=${containerSourcePath}",
-        "--mount type=bind,source=$(Resolve-Path $outputDirectory),target=${containerDistPath}",
-        "-e UV_TOOL_DIR=${local:UV_TOOL_DIR}",
-        "-e UV_PYTHON_INSTALL_DIR=${local:UV_PYTHON_INSTALL_DIR}",
+        "--mount type=bind,source=$(Resolve-Path $outputDirectory),target=${containerDistPath}"
+    )
+
+    if ($PSBoundParameters.ContainsKey('PIPDowndloadCachePathInContainer')) {
+        Write-Host "Using PIP cache directory: $PIPDowndloadCachePathInContainer"
+        $local:dockerArgsList += @("-e", "PIP_CACHE_DIR=${PIPDowndloadCachePathInContainer}")
+    }
+
+    if ($PSBoundParameters.ContainsKey('UVToolDirPathInContainer')) {
+        $local:dockerArgsList += @("-e", "UV_TOOL_DIR=${UVToolDirPathInContainer}")
+    }
+
+    if ($PSBoundParameters.ContainsKey('UVPythonInstallDirPathInContainer')) {
+        $local:dockerArgsList += @("-e", "UV_PYTHON_INSTALL_DIR=${UVPythonInstallDirPathInContainer}")
+    }
+
+    if ($PSBoundParameters.ContainsKey('UVCacheDirPathInContainer')) {
+        Write-Host "Using UV cache directory: $UVCacheDirPathInContainer"
+        $local:dockerArgsList += @("-e", "UV_CACHE_DIR=${UVCacheDirPathInContainer}")
+    }
+    $local:dockerArgsList += @(
         '--entrypoint', 'powershell',
         $DockerImageName
         "-c",
         ${createShallowCopy};`
-        "uv build --build-constraints=${containerSourcePath}\requirements-dev.txt --python=${PythonVersion} --wheel --out-dir=${containerDistPath} --config-setting=conan_cache=C:/Users/ContainerAdministrator/.conan2 --verbose"
+            "uv build --build-constraints=${containerSourcePath}\requirements-dev.txt --python=${PythonVersion} --wheel --out-dir=${containerDistPath} --config-setting=conan_cache=C:/Users/ContainerAdministrator/.conan2"
     )
 
-    $local:dockerBuildProcess = Start-Process -FilePath $DockerExec -WorkingDirectory $(Get-Item $PSScriptRoot).Parent.FullName -ArgumentList $dockerArgsList -NoNewWindow -PassThru -Wait
+    $local:dockerBuildProcess = Start-Process -FilePath $DockerExec -WorkingDirectory $(Get-Item $PSScriptRoot).Parent.FullName -ArgumentList $local:dockerArgsList -NoNewWindow -PassThru -Wait
     if ($local:dockerBuildProcess.ExitCode -ne 0)
     {
         throw "An error creating docker image occurred. Exit code: $($local:dockerBuildProcess.ExitCode)"
@@ -174,16 +240,52 @@ function Get-Wheel {
     return $wheelInfo
 }
 
+# Build the Docker image for building the wheel
+$local:buildDockerImageParams = @{
+    ImageName = $DockerImageName
+}
 
+Build-DockerImage @local:buildDockerImageParams
 
-Build-DockerImage -ImageName $DockerImageName
+# Build the wheel using the Docker image
+$local:buildWheelParams = @{
+    DockerImageName = $DockerImageName
+    PythonVersion = $PythonVersion
+}
 
-Build-Wheel -PythonVersion $PythonVersion -DockerImageName $DockerImageName
+if($PSBoundParameters.ContainsKey('PIPDowndloadCachePathInContainer')) {
+    $local:buildDockerImageParams['PIPDowndloadCachePathInContainer'] = $PIPDowndloadCachePathInContainer
+}
+
+if($PSBoundParameters.ContainsKey('UVCacheDirPathInContainer')) {
+    $local:buildDockerImageParams['UVCacheDirPathInContainer'] = $UVCacheDirPathInContainer
+}
+
+if($PSBoundParameters.ContainsKey('UVPythonInstallDirPathInContainer')) {
+    $local:buildWheelParams['UVPythonInstallDirPathInContainer'] = $UVPythonInstallDirPathInContainer
+}
+
+if($PSBoundParameters.ContainsKey('UVToolDirPathInContainer')) {
+    $local:buildWheelParams['UVToolDirPathInContainer'] = $UVToolDirPathInContainer
+}
+
+Build-Wheel @local:buildWheelParams
 
 if ($Verify) {
     $local:distDirectory = Join-Path -Path (Get-Item $PSScriptRoot).Parent.FullName -ChildPath "dist"
     $local:wheelFile = Get-Wheel -SearchPath $local:distDirectory -PythonVersion $PythonVersion
     $local:projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
-    Test-Wheel -WheelFile $local:wheelFile -SourcePath $local:projectRootDirectory -PythonVersion $PythonVersion
+    $local:TestWheelParams = @{
+        WheelFile       = $local:wheelFile
+        SourcePath      = $local:projectRootDirectory
+        PythonVersion   = $PythonVersion
+    }
+
+    Test-Wheel @local:TestWheelParams
+
+#    $local:distDirectory = Join-Path -Path (Get-Item $PSScriptRoot).Parent.FullName -ChildPath "dist"
+#    $local:wheelFile = Get-Wheel -SearchPath $local:distDirectory -PythonVersion $PythonVersion
+#    $local:projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
+#    Test-Wheel -WheelFile $local:wheelFile -SourcePath $local:projectRootDirectory -PythonVersion $PythonVersion
 
 }

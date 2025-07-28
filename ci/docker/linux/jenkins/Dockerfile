@@ -4,7 +4,7 @@ ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
 # If you want to use a diffrent remote for Conan, such as a proxy. Set the CONAN_CENTER_PROXY_V2_URL
 # Not this is only for building the image. The actual conan center proxy URL is set in the remotes.json file.
 
-ARG PIP_DOWNLOAD_CACHE=/.cache/pip
+ARG PIP_CACHE_DIR=/.cache/pip
 # PIP Cache directory. Change this only if you need to override the default location.
 
 ARG UV_CACHE_DIR=/.cache/uv
@@ -41,8 +41,8 @@ COPY conanfile.py /tmp/conanfile.py
 ARG CONAN_CENTER_PROXY_V2_URL
 ARG UV_CACHE_DIR
 ENV UV_CONSTRAINT=/tmp/requirements-dev.txt
-ARG PIP_DOWNLOAD_CACHE
-RUN --mount=type=cache,target=${PIP_DOWNLOAD_CACHE} \
+ARG PIP_CACHE_DIR
+RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     --mount=type=cache,target=${UV_CACHE_DIR} \
     python3 -m venv venv && \
     ./venv/bin/pip --disable-pip-version-check install uv && \

@@ -143,8 +143,5 @@ CONAN_COMPILER_LIBCXX="libstdc++11"
 [localbuilder]
 conanfile = 'conanfile.py'
 
-[localbuilder.win32]
-conan_options = ['tesseract:shared=True']
-
 [tool.pylint]
 extension-pkg-allow-list="uiucprescon.ocr.tesseractwrap"
