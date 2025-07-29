@@ -104,16 +104,16 @@ environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION", "CONAN_US
 before-all = [
     'pip install wheel',
     'pip install -r requirements-dev.txt',
-    'conan profile new default --detect --force',
-    'conan config init',
-    'conan config set general.revisions_enabled=1',
-    'conan install ./ --build missing',
+    'conan profile detect --exist-ok',
+    'conan install ./ --build missing -s compiler.cppstd=17',
 ]
 
 [tool.cibuildwheel.macos]
 before-all = [
-    'uvx --constraint=requirements-dev.txt --with cmake conan profile detect --exist-ok',
-    'uvx --constraint=requirements-dev.txt --with cmake conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc',
+    'python3 -m venv /tmp/ciwheelbuilder/uiucprescon_orc/venv',
+    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/pip install --disable-pip-version-check uv',
+    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/uvx --constraint=requirements-dev.txt --with cmake conan profile detect --exist-ok',
+    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/uvx --constraint=requirements-dev.txt --with cmake conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp -s compiler.cppstd=17 --conf=tools.cmake.cmaketoolchain:generator=Ninja',
     'rm -rf /tmp/ciwheelbuilder/uiucprescon_orc/tmp',
 ]
 repair-wheel-command = [
@@ -126,19 +126,28 @@ repair-wheel-command = [
 [tool.cibuildwheel.linux]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 environment-pass = ["CONAN_USER_HOME", "CONAN_COMPILER_VERSION"]
-before-all = [
-    "cc --version", "cc -dumpfullversion -dumpversion",
-    "pip3 install --disable-pip-version-check uv",
-    "uvx --index-strategy unsafe-best-match --constraint=requirements-dev.txt --with cmake conan profile detect --exist-ok",
-    "uvx --index-strategy unsafe-best-match --constraint=requirements-dev.txt --with cmake conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc",
-    "rm -rf /tmp/ciwheelbuilder/uiucprescon_orc/tmp",
-]
-before-build = [
-    "[ -f CMakeUserPresets.json ] && rm CMakeUserPresets.json"
-]
+#before-all = [
+##    'echo "CONAN_USER_HOME = $CONAN_USER_HOME"',
+##    'mkdir -p $CONAN_USER_HOME',
+#    "cc --version", "cc -dumpfullversion -dumpversion",
+##    "pip3 install --disable-pip-version-check uv",
+##    'mkdir -p $CONAN_USER_HOME/.conan2/profiles',
+#    "uvx conan profile detect --exist-ok",
+#    "cp /project/ci/docker/linux/package/conan/profile.ini $(uvx conan profile path default)",
+#    "uvx --with cmake --with ninja conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc --conf=tools.cmake.cmaketoolchain:generator=Ninja",
+#    "rm -rf /tmp/ciwheelbuilder/uiucprescon_orc/tmp",
+#]
+manylinux-x86_64-image = "quay.io/pypa/manylinux2014_x86_64"
+manylinux-aarch64-image = "quay.io/pypa/manylinux2014_aarch64"
+#before-build = [
+#    "[ -f CMakeUserPresets.json ] && rm CMakeUserPresets.json"
+#]
 [tool.cibuildwheel.linux.environment]
 PYTHONFAULTHANDLER="True"
-CONAN_COMPILER_LIBCXX="libstdc++11"
+UV_CONSTRAINT="requirements-dev.txt"
+#CONAN_USER_HOME="/host/Users/hborcher/PycharmProjects/UIUCLibrary/Tesseract_Glue/build/cibuildwheel/linux/conan"
+#CONAN_HOME="/host/Users/hborcher/PycharmProjects/UIUCLibrary/Tesseract_Glue/build/cibuildwheel/linux/conan/.conan2"
+#CONAN_COMPILER_LIBCXX="libstdc++11"
 #
 [localbuilder]
 conanfile = 'conanfile.py'
