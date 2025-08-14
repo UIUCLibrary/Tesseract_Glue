@@ -10,9 +10,8 @@ class TesseractBindConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     generators = ["CMakeToolchain", "CMakeDeps"]
 
-    default_options = {
-        "tesseract/*:with_libcurl": False
-    }
+    def requirements(self):
+        self.requires("libjpeg/9f", override=True)
 
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")
