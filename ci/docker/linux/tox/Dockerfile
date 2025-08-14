@@ -9,6 +9,11 @@ ARG UV_CACHE_DIR=/.cache/uv
 ARG UV_INDEX_URL
 ARG UV_EXTRA_INDEX_URL
 
+ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
+# If you want to use a diffrent remote for Conan, such as a proxy. Set the CONAN_CENTER_PROXY_V2_URL
+# Not this is only for building the image. The actual conan center proxy URL is set in the remotes.json file.
+
+
 FROM ubuntu:22.04 AS base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
@@ -24,19 +29,24 @@ RUN apt-get update && \
 
 FROM base AS conan_builder
 ARG CONAN_USER_HOME
+ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
+ARG CONAN_CENTER_PROXY_V2_URL
 COPY requirements-dev.txt /tmp/requirements/requirements-dev.txt
-
+ARG UV_CACHE_DIR
+ARG PIP_CACHE_DIR
 ARG CONAN_HOME
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 COPY ci/docker/linux/tox/conan/profile.ini ${CONAN_HOME}/profiles/default
 COPY conanfile.py /tmp/conanfile.py
 ENV UV_CONSTRAINT=/tmp/requirements/requirements-dev.txt
-RUN python3 -m venv venv --upgrade-deps && \
+RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
+    --mount=type=cache,target=${UV_CACHE_DIR} \
+    --mount=type=cache,target=${CONAN_DOWNLOAD_CACHE} \
+    python3 -m venv venv --upgrade-deps && \
     ./venv/bin/pip install --disable-pip-version-check uv && \
     ./venv/bin/uvx --with cmake conan profile detect --exist-ok &&  \
     ./venv/bin/uvx --with cmake conan install /tmp -pr:b=default --build missing && \
     ./venv/bin/uvx --with cmake conan cache clean "*" -b --source --build --temp && \
-    ./venv/bin/uv cache clean && \
     rm -rf venv
 
 # ==============================================================================

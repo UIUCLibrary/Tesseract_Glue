@@ -26,7 +26,7 @@ RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
 
 FROM base_python AS conan_builder
-RUN --mount=type=cache,target=/var/cache/apt \
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     apt-get update && \
     apt-get install -y --no-install-recommends jq && \
     apt-get clean && \
@@ -35,6 +35,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ARG CONAN_HOME
+ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
 COPY requirements-dev.txt /tmp/requirements-dev.txt
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 COPY conanfile.py /tmp/conanfile.py
@@ -44,6 +45,7 @@ ENV UV_CONSTRAINT=/tmp/requirements-dev.txt
 ARG PIP_CACHE_DIR
 RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     --mount=type=cache,target=${UV_CACHE_DIR} \
+    --mount=type=cache,target=${CONAN_DOWNLOAD_CACHE} \
     python3 -m venv venv && \
     ./venv/bin/pip --disable-pip-version-check install uv && \
     ./venv/bin/uvx --with cmake conan profile detect --exist-ok &&  \

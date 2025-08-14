@@ -50,7 +50,7 @@ RUN --mount=type=cache,target=/var/cache/yum \
 
 RUN --mount=type=cache,target=/var/cache/yum \
     yum install -y perl-IPC-Cmd perl-Digest-SHA
-
+ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
 ENV UV_CONSTRAINT=/tmp/requirements-dev.txt
 ARG CONAN_HOME
 ARG CPPSTD
@@ -64,6 +64,7 @@ ARG UV_CACHE_DIR
 ARG PIP_CACHE_DIR
 RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     --mount=type=cache,target=${UV_CACHE_DIR} \
+    --mount=type=cache,target=${CONAN_DOWNLOAD_CACHE} \
     uvx --with cmake --with ninja conan profile detect --exist-ok &&  \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
           echo "Setting the conan center url for building cache: ${CONAN_CENTER_PROXY_V2_URL}" && \
