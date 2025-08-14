@@ -35,6 +35,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ARG CONAN_HOME
+COPY ci/docker/linux/jenkins/conan/profile.ini ${CONAN_HOME}/profiles/default
 ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
 COPY requirements-dev.txt /tmp/requirements-dev.txt
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
@@ -49,21 +50,24 @@ RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     python3 -m venv venv && \
     ./venv/bin/pip --disable-pip-version-check install uv && \
     ./venv/bin/uvx --with cmake conan profile detect --exist-ok &&  \
+    cp ${CONAN_HOME}/global.conf /tmp/global.conf.original && \
+    echo "core.sources:download_cache = $CONAN_DOWNLOAD_CACHE" >> ${CONAN_HOME}/global.conf && \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
         echo "Setting the conan center url for building cache: ${CONAN_CENTER_PROXY_V2_URL}" && \
         cp ${CONAN_HOME}/remotes.json /tmp/remotes.json && \
         ./venv/bin/uvx --with cmake conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
     fi && \
-    ./venv/bin/uvx --with cmake conan install /tmp -pr:b=default --build missing -pr:b=default && \
+    ./venv/bin/uvx --with cmake conan install /tmp -pr:b=default --build missing && \
     ./venv/bin/uvx --with cmake conan cache clean "*" -b --source --build --temp && \
     rm -rf venv && \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
       mv -f /tmp/remotes.json ${CONAN_HOME}/remotes.json; \
-    fi
+    fi && \
+    mv -f /tmp/global.conf.original ${CONAN_HOME}/global.conf
 
 #==============================================================================
 
-FROM base_python AS SONAR_BUILDER
+FROM base_python AS sonar_builder
 ARG SONAR_USER_HOME
 
 RUN case $(uname -m) in \
@@ -82,7 +86,7 @@ RUN case $(uname -m) in \
 # ==============================================================================
 FROM base_python
 
-COPY --from=SONAR_BUILDER /opt/build-wrapper-linux /opt/build-wrapper-linux/
+COPY --from=sonar_builder /opt/build-wrapper-linux /opt/build-wrapper-linux/
 
 RUN case $(uname -m) in \
         x86_64) ln -s /opt/build-wrapper-linux/build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/build-wrapper-linux  ;; \

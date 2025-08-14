@@ -89,7 +89,7 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                         checkout scm
                                                         def dockerImageName = "${currentBuild.fullProjectName}_${UUID.randomUUID().toString()}".replaceAll("-", '_').replaceAll('/', '_').replaceAll(' ', "").toLowerCase()
                                                         lock("docker build-${env.NODE_NAME}"){
-                                                            dockerImage = docker.build(dockerImageName, "-f ci/docker/linux/package/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=${arch=='x86_64'? 'quay.io/pypa/manylinux2014_x86_64': 'quay.io/pypa/manylinux2014_aarch64'} .")
+                                                            dockerImage = docker.build(dockerImageName, "-f ci/docker/linux/package/Dockerfile --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg manylinux_image=${arch=='x86_64'? 'quay.io/pypa/manylinux2014_x86_64': 'quay.io/pypa/manylinux2014_aarch64'} .")
                                                         }
                                                     }
                                                     retry(retryTimes){
@@ -930,29 +930,34 @@ def call(){
                                                         node('docker && linux'){
                                                             checkout scm
                                                             def image
-                                                            lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
-                                                                image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
-                                                            }
                                                             try{
-                                                                image.inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
-                                                                    retry(3){
-                                                                        sh( label: 'Running Tox',
-                                                                            script: """python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv
-                                                                                       venv/bin/uvx --python ${version} --python-preference system --with tox-uv tox run -e ${toxEnv} -vv
-                                                                                    """
-                                                                            )
+                                                                lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
+                                                                    image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
+                                                                }
+                                                                try{
+                                                                    image.inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                                        retry(3){
+                                                                            sh( label: 'Running Tox',
+                                                                                script: """python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv
+                                                                                           venv/bin/uvx --python ${version} --python-preference system --with tox-uv tox run -e ${toxEnv} -vv
+                                                                                        """
+                                                                                )
+                                                                        }
                                                                     }
+                                                                }finally{
+                                                                    sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                                    cleanWs(
+                                                                        patterns: [
+                                                                            [pattern: 'venv/', type: 'INCLUDE'],
+                                                                            [pattern: '.tox', type: 'INCLUDE'],
+                                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                        ]
+                                                                    )
                                                                 }
                                                             } finally {
-                                                                sh "docker rmi ${image.id}"
-                                                                sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                                        [pattern: '.tox', type: 'INCLUDE'],
-                                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                    ]
-                                                                )
+                                                                if (image){
+                                                                    sh "docker rmi ${image.id}"
+                                                                }
                                                             }
                                                         }
                                                     }
@@ -1014,7 +1019,7 @@ def call(){
                                                             def image
                                                             checkout scm
                                                             lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
-                                                                image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE ' + (env.DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE ? " --build-arg FROM_IMAGE=${env.DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE} ": ' ') + '.')
+                                                                image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                             }
                                                             try{
                                                                 retry(3){
@@ -1233,7 +1238,7 @@ def call(){
                                                                            def retryTimes = 3
                                                                            retry(retryTimes){
                                                                                lock("docker build-${env.NODE_NAME}"){
-                                                                                   dockerImage = docker.build(dockerImageName, '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg PIP_CACHE_DIR --build-arg UV_CACHE_DIR ' + (env.DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE ? " --build-arg FROM_IMAGE=${env.DEFAULT_DOCKER_DOTNET_SDK_BASE_IMAGE} ": ' ') + '.')
+                                                                                   dockerImage = docker.build(dockerImageName, '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                                                }
                                                                            }
                                                                            retry(retryTimes){
@@ -1293,7 +1298,7 @@ def call(){
                                                                        dockerfile: [
                                                                            label: "linux && docker && ${arch}",
                                                                            filename: 'ci/docker/linux/tox/Dockerfile',
-                                                                           additionalBuildArgs: '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
+                                                                           additionalBuildArgs: '--build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
                                                                        ]
                                                                    ],
                                                                    retries: 3,
