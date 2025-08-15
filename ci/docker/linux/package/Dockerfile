@@ -2,8 +2,6 @@ ARG manylinux_image=quay.io/pypa/manylinux2014_x86_64
 ARG CONAN_USER_HOME=/conan
 ARG CONAN_HOME=${CONAN_USER_HOME}/.conan2
 
-ARG CPPSTD=17
-
 ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
 # If you want to use a diffrent remote for Conan, such as a proxy. Set the CONAN_CENTER_PROXY_V2_URL
 # Not this is only for building the image. The actual conan center proxy URL is set in the remotes.json file.
@@ -46,15 +44,12 @@ RUN --mount=type=cache,target=/var/cache/yum \
                mv /tmp/jq-linux-arm64 /usr/local/bin/jq && \
                chmod +x /usr/local/bin/jq ;; \
     esac; \
-    jq --version
-
-RUN --mount=type=cache,target=/var/cache/yum \
+    jq --version && \
     yum install -y perl-IPC-Cmd perl-Digest-SHA
-
+ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
 ENV UV_CONSTRAINT=/tmp/requirements-dev.txt
 ARG CONAN_HOME
-ARG CPPSTD
-COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/.remotes.json
+COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 COPY ci/docker/linux/package/conan/profile.ini ${CONAN_HOME}/profiles/default
 COPY conanfile.py /tmp/conanfile.py
 COPY requirements-dev.txt /tmp/requirements-dev.txt
@@ -64,18 +59,27 @@ ARG UV_CACHE_DIR
 ARG PIP_CACHE_DIR
 RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     --mount=type=cache,target=${UV_CACHE_DIR} \
+    --mount=type=cache,target=${CONAN_DOWNLOAD_CACHE} \
     uvx --with cmake --with ninja conan profile detect --exist-ok &&  \
-    if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
+    cp ${CONAN_HOME}/global.conf /tmp/global.conf.original && \
+    echo "core.sources:download_cache = $CONAN_DOWNLOAD_CACHE" >> ${CONAN_HOME}/global.conf && \
+    if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json)" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
           echo "Setting the conan center url for building cache: ${CONAN_CENTER_PROXY_V2_URL}" && \
           cp ${CONAN_HOME}/remotes.json /tmp/remotes.json && \
           uvx --with cmake --with ninja conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
     fi && \
-    uvx --with cmake --with ninja conan install -pr:b=default --build missing --build tesseract /tmp  --conf=tools.cmake.cmaketoolchain:generator=Ninja --settings:host=compiler.cppstd=${CPPSTD} && \
+    uvx --with cmake --with ninja conan install -pr:b=default --build missing /tmp  --conf=tools.cmake.cmaketoolchain:generator=Ninja && \
     uvx --with cmake --with ninja conan cache clean "*" -b --source --build --temp && \
-    chmod -R 777 ${CONAN_HOME}
+    chmod -R 777 ${CONAN_HOME} && \
+    if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
+      mv -f /tmp/remotes.json ${CONAN_HOME}/remotes.json; \
+    fi && \
+    mv -f /tmp/global.conf.original ${CONAN_HOME}/global.conf
 
 FROM base_python
 ARG CONAN_HOME
 ARG CONAN_USER_HOME
-ENV CONAN_USER_HOME=${CONAN_USER_HOME}
-COPY --from=conan_builder ${CONAN_HOME} ${CONAN_HOME}
+ENV CONAN_USER_HOME=${CONAN_USER_HOME} \
+    CONAN_HOME=${CONAN_HOME}
+COPY --from=conan_builder ${CONAN_HOME}/ ${CONAN_HOME}/
+
