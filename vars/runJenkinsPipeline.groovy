@@ -1008,33 +1008,37 @@ def call(){
                                                                 image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                             }
                                                             try{
-                                                                retry(3){
-                                                                    try{
-                                                                        checkout scm
-                                                                        image.inside(
-                                                                            "--mount source=uv_python_install_dir,target=${env.UV_PYTHON_INSTALL_DIR} " +
-                                                                            "--mount source=pipcache,target=${env.PIP_CACHE_DIR} " +
-                                                                            "--mount source=uv_cache_dir,target=${env.UV_CACHE_DIR}"
-                                                                        ){
-                                                                            bat(label: 'Running Tox',
-                                                                                 script: """uv python install cpython-${version}
-                                                                                            uvx -p ${version} --constraint requirements-dev.txt --with tox-uv tox run -e ${toxEnv} -vv
-                                                                                         """
-                                                                            )
+                                                                try{
+                                                                    image.inside(
+                                                                        "--mount source=uv_python_install_dir,target=${env.UV_PYTHON_INSTALL_DIR} " +
+                                                                        "--mount source=pipcache,target=${env.PIP_CACHE_DIR} " +
+                                                                        "--mount source=uv_cache_dir,target=${env.UV_CACHE_DIR}"
+                                                                    ){
+                                                                        retry(3){
+                                                                            try{
+                                                                                bat(label: 'Running Tox',
+                                                                                     script: """uv python install cpython-${version}
+                                                                                                uvx -p ${version} --constraint requirements-dev.txt --with tox-uv tox run -e ${toxEnv} -vv
+                                                                                             """
+                                                                                )
+                                                                            } finally{
+                                                                                cleanWs(
+                                                                                    patterns: [
+                                                                                        [pattern: 'venv/', type: 'INCLUDE'],
+                                                                                        [pattern: '.tox', type: 'INCLUDE'],
+                                                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                                    ]
+                                                                                )
+                                                                            }
                                                                         }
-                                                                    } finally{
-                                                                        bat "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                                    }
+                                                                } finally {
+                                                                    if(image){
+                                                                        bat "docker rmi --no-prune ${image.id}"
                                                                     }
                                                                 }
                                                             } finally {
-                                                                bat "docker rmi --no-prune ${image.id}"
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                                        [pattern: '.tox', type: 'INCLUDE'],
-                                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                    ]
-                                                                )
+                                                                bat "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                             }
                                                          }
                                                      }
