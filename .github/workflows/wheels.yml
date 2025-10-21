@@ -17,7 +17,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-22.04, windows-latest, macOS-latest]
+        os: [ubuntu-24.04, windows-latest, macOS-latest]
 
     steps:
       - uses: actions/github-script@v6
@@ -39,14 +39,11 @@ jobs:
                 return `${WORKSPACE}/ciwheelbuilder/conan`
             }
       - uses: actions/checkout@v3
-
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
           cache: 'pip' # caching pip dependencies
-          cache-dependency-path: |
-            requirements-cibuildwheel.txt
-            requirements-dev.txt
+
       # Used to host cibuildwheel
       - name: Install cibuildwheel
         run: |
@@ -60,15 +57,15 @@ jobs:
         if: contains(matrix.os, 'windows')
         shell: cmd
         run: |
-          "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 && uvx --constraints=requirements-cibuildwheel.txt cibuildwheel --output-dir wheelhouse
-          uvx --constraints=requirements-dev.txt conan cache clean
+          "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 && uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
+          uv run --only-group conan --isolated conan cache clean
         env:
            CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
            CONAN_HOME: ${{steps.conan-path-script.outputs.result}}\.conan2
       - name: Build wheels
         if: "!contains(matrix.os, 'windows')"
         run: |
-          uvx --constraints=requirements-cibuildwheel.txt cibuildwheel --output-dir wheelhouse
+          uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
         env:
            CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
            CONAN_HOME: ${{steps.conan-path-script.outputs.result}}/.conan2

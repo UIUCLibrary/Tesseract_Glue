@@ -1,21 +1,30 @@
 on: [push, pull_request]
 name: Multi-platform Compatibility Test
 jobs:
+  setup:
+    name: Setup
+    runs-on: ubuntu-latest
+    outputs:
+      tox_matrix: ${{ steps.dataStep.outputs.myoutput }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        name: Get tox environments
+        with:
+          cache: 'pip'
+          python-version: '3.13'
+      - id: dataStep
+        run: |
+          python -m pip install tox-uv
+          echo "myoutput=$(uvx --quiet --with tox-uv tox list -d --no-desc | sed -E 's/(.*py)([0-9])([0-9]+)/\2.\3/' | jq  --raw-input . | jq -c --slurp)" >> $GITHUB_OUTPUT
+
   build:
+    needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         os: [ubuntu-latest, macos-latest, windows-latest]
-        python-version: ['3.9', '3.10', '3.11', '3.12']
-        include:
-          - os: macos-latest
-            compiler_version: 14.0
-            compiler_libcxx: libc++
-          - os: ubuntu-latest
-            compiler_version: 11.4
-            compiler_libcxx: libstdc++11
-          - os: windows-latest
-            compiler_version: 16
+        python-version: ${{ fromJson(needs.setup.outputs.tox_matrix) }}
       fail-fast: false
     name: Python ${{ matrix.python-version }} ${{ matrix.os }} build
     steps:
@@ -24,7 +33,7 @@ jobs:
         with:
           result-encoding: string
           script: |
-            if ('${{matrix.os}}' === 'windows-2019'){
+            if ('${{matrix.os}}' === 'windows-latest'){
               return 'C:/Users/runneradmin'
             }
             if ('${{matrix.os}}' === 'ubuntu-latest'){
@@ -39,26 +48,13 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: 'pip' # caching pip dependencies
-          cache-dependency-path: |
-            requirements-ci.txt
-            requirements/requirements-*.txt
       - run: |
-          pip install wheel
-          pip install -r requirements-ci.txt
+          pip install uv
       - uses: actions/cache@v3
         id: cache-conan
         with:
-          path: "${{steps.conan-path-script.outputs.result}}/.conan"
-          key: ${{ runner.os }}-compiler-${{ matrix.compiler_version}} ${{ hashFiles('**/conanfile.py') }}
-      - name: Ensure conan settings has current compiler as valid
-        if: "!contains(matrix.os, 'windows')"
-        env:
-          CONAN_USER_HOME: "${{steps.conan-path-script.outputs.result}}"
-        run: |
-          conan config init
-          python ci/docker/shared/conan/ensure_compiler_support_by_conan.py $(conan config home)/settings.yml ${{matrix.compiler_version}}
-          conan profile update settings.compiler.version=${{matrix.compiler_version}} default
-
+          path: "${{steps.conan-path-script.outputs.result}}/.conan2"
+          key: ${{ runner.os }}${{ hashFiles('**/conanfile.py') }}
       - name: Prebuild Conan packages (Windows)
         if: |
           contains(matrix.os, 'windows') && steps.cache-conan.outputs.cache-hit != 'true'
@@ -66,33 +62,38 @@ jobs:
         env:
           CONAN_USER_HOME: "${{steps.conan-path-script.outputs.result}}"
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          conan profile new default --detect
-          conan config set general.revisions_enabled=1
-          conan install . --build  missing --build=openjpeg --no-import -pr:b=default
+          MD "%CONAN_USER_HOME%\.conan2\profiles"
+          copy "ci\docker\windows\tox\conan\profile.ini" "%CONAN_USER_HOME%\.conan2\profiles\default"
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64
+          uv run --only-group conan --isolated conan profile detect --exist-ok
+          uv run --only-group conan --isolated conan install . --build  missing -pr:b=default
 
       - name: Prebuild Conan packages
         env:
           CONAN_USER_HOME: "${{steps.conan-path-script.outputs.result}}"
         if: "!contains(matrix.os, 'windows') && steps.cache-conan.outputs.cache-hit != 'true'"
         run: |
-          conan config set general.revisions_enabled=1
-          conan install . --build missing --build=openjpeg --no-import -pr:b=default
+          uv run --only-group conan --isolated conan profile detect --exist-ok
+          uv run --only-group conan --isolated conan install . --build missing -pr:b=default
+      - uses: actions/github-script@v7
+        id: tox-env
+        with:
+          result-encoding: string
+          script: |
+            return "py${{matrix.python-version}}".replace('.','')
       - name: Run tox on Windows
         if: contains(matrix.os, 'windows')
         shell: cmd
         run: |
-          call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat"
-          tox -e py
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64
+          uv run --only-group tox --with tox-uv tox -e ${{ steps.tox-env.outputs.result }}
         env:
           CONAN_USER_HOME: "${{steps.conan-path-script.outputs.result}}"
 
-      - name: Run tox on Non-Windows Operating Systems
+      - name: Run tox on ${{ matrix.os }}
         if: "!contains(matrix.os, 'windows')"
-        run: tox -e py -vvv
+        run: uv run --only-group tox --with tox-uv tox -e ${{ steps.tox-env.outputs.result }} -vvv
         env:
-          CONAN_COMPILER_VERSION: ${{ matrix.compiler_version }}
-          CONAN_COMPILER_LIBCXX: ${{ matrix.compiler_libcxx }}
           CONAN_USER_HOME: "${{steps.conan-path-script.outputs.result}}"
 
 

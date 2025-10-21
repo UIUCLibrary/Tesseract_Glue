@@ -124,7 +124,7 @@ function Test-Wheel {
         "-c",
         "${local:installCertsScript};`
         ${local:installRuntime};`
-        python -m pip install --disable-pip-version-check uv; uvx --constraint ${containerWorkingPath}\requirements-dev.txt --with tox-uv tox run -e py${PythonVersion} --installpkg $wheelInContainer --workdir `$env:TEMP"
+        python -m pip install --disable-pip-version-check uv; uv run --only-group tox --with tox-uv tox run -e py${PythonVersion} --installpkg $wheelInContainer --workdir `$env:TEMP"
     )
     $local:dockerVerifyProcess = Start-Process -FilePath $DockerExec -ArgumentList $local:dockerArgsList -NoNewWindow -PassThru -Wait
     if ($local:dockerVerifyProcess.ExitCode -ne 0) {
@@ -208,7 +208,7 @@ function Build-Wheel {
         $DockerImageName
         "-c",
         ${createShallowCopy};`
-            "uv build --build-constraints=${containerSourcePath}\requirements-dev.txt --python=${PythonVersion} --wheel --out-dir=${containerDistPath} --config-setting=conan_cache=C:/Users/ContainerAdministrator/.conan2"
+            "uv build --python=${PythonVersion} --wheel --out-dir=${containerDistPath} --config-setting=conan_cache=C:/Users/ContainerAdministrator/.conan2"
     )
 
     $local:dockerBuildProcess = Start-Process -FilePath $DockerExec -WorkingDirectory $(Get-Item $PSScriptRoot).Parent.FullName -ArgumentList $local:dockerArgsList -NoNewWindow -PassThru -Wait

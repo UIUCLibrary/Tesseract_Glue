@@ -47,29 +47,28 @@ RUN --mount=type=cache,target=/var/cache/yum \
     jq --version && \
     yum install -y perl-IPC-Cmd perl-Digest-SHA perl-Time-Piece
 ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
-ENV UV_CONSTRAINT=/tmp/requirements-dev.txt
 ARG CONAN_HOME
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 COPY ci/docker/linux/package/conan/profile.ini ${CONAN_HOME}/profiles/default
-COPY conanfile.py /tmp/conanfile.py
-COPY requirements-dev.txt /tmp/requirements-dev.txt
-ENV UV_CONSTRAINT=/tmp/requirements-dev.txt
 ARG CONAN_CENTER_PROXY_V2_URL
 ARG UV_CACHE_DIR
 ARG PIP_CACHE_DIR
 RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     --mount=type=cache,target=${UV_CACHE_DIR} \
     --mount=type=cache,target=${CONAN_DOWNLOAD_CACHE} \
-    uvx --with cmake --with ninja conan profile detect --exist-ok &&  \
+    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=conanfile.py,target=/tmp/conanfile.py \
+    uv run --only-group conan --with ninja conan profile detect --exist-ok &&  \
     cp ${CONAN_HOME}/global.conf /tmp/global.conf.original && \
     echo "core.sources:download_cache = $CONAN_DOWNLOAD_CACHE" >> ${CONAN_HOME}/global.conf && \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json)" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
           echo "Setting the conan center url for building cache: ${CONAN_CENTER_PROXY_V2_URL}" && \
           cp ${CONAN_HOME}/remotes.json /tmp/remotes.json && \
-          uvx --with cmake --with ninja conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
+          uv run --only-group conan --with ninja conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
     fi && \
-    uvx --with cmake --with ninja conan install -pr:b=default --build missing /tmp  --conf=tools.cmake.cmaketoolchain:generator=Ninja && \
-    uvx --with cmake --with ninja conan cache clean "*" -b --source --build --temp && \
+    uv run --only-group conan --with ninja conan install -pr:b=default --build missing /tmp  --conf=tools.cmake.cmaketoolchain:generator=Ninja && \
+    uv run --only-group conan --with ninja conan cache clean "*" -b --source --build --temp && \
     chmod -R 777 ${CONAN_HOME} && \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
       mv -f /tmp/remotes.json ${CONAN_HOME}/remotes.json; \
