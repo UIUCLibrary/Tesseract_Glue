@@ -423,11 +423,17 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
         ]
     })
 }
+
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
-
-        def props = readProperties  file: '.scannerwork/report-task.txt'
-        def response = httpRequest url : props['serverUrl'] + "/api/issues/search?componentKeys=" + props['projectKey'] + "&resolved=no"
+        if(! fileExists(report_task_file)){
+            error "Could not find ${report_task_file}"
+        }
+        def props = readProperties  file: report_task_file
+        if(! props['serverUrl'] || ! props['projectKey']){
+            error "Could not find serverUrl or projectKey in ${report_task_file}"
+        }
+        def response = httpRequest url : props['serverUrl'] + '/api/issues/search?componentKeys=' + props['projectKey'] + '&resolved=no'
         def outstandingIssues = readJSON text: response.content
         return outstandingIssues
     }
@@ -803,39 +809,42 @@ def call(){
                                             script{
                                                 def props = readTOML( file: 'pyproject.toml')['project']
                                                 withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
-                                                    if (env.CHANGE_ID){
-                                                        sh(
-                                                            label: 'Running Sonar Scanner',
-                                                            script: """python3 -m venv uv
-                                                                      uv/bin/pip install --disable-pip-version-check uv
-                                                                      trap "rm -rf uv" EXIT
-                                                                      uv/bin/uv venv venv
-                                                                      trap "rm -rf uv && rm -rf venv" EXIT
-                                                                      . ./venv/bin/activate
-                                                                      uv/bin/uv pip install uv
-                                                                      uv tool run pysonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
-                                                                      """
-                                                        )
-                                                    } else {
-                                                        sh(
-                                                            label: 'Running Sonar Scanner',
-                                                            script: """python3 -m venv uv
-                                                                       uv/bin/pip install --disable-pip-version-check uv
-                                                                       uv/bin/uv venv venv
-                                                                       . ./venv/bin/activate
-                                                                       uv/bin/uv pip install uv
-                                                                       uv tool run pysonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
-                                                                   """
-                                                       )
+                                                    withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'token')]) {
+                                                        if (env.CHANGE_ID){
+                                                            sh(
+                                                                label: 'Running Sonar Scanner',
+                                                                script: """python3 -m venv uv
+                                                                          uv/bin/pip install --disable-pip-version-check uv
+                                                                          trap "rm -rf uv" EXIT
+                                                                          uv/bin/uv venv venv
+                                                                          trap "rm -rf uv && rm -rf venv" EXIT
+                                                                          . ./venv/bin/activate
+                                                                          uv/bin/uv pip install uv
+                                                                          uvx pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
+                                                                          """
+                                                            )
+                                                        } else {
+                                                            sh(
+                                                                label: 'Running Sonar Scanner',
+                                                                script: """python3 -m venv uv
+                                                                           uv/bin/pip install --disable-pip-version-check uv
+                                                                           uv/bin/uv venv venv
+                                                                           . ./venv/bin/activate
+                                                                           uv/bin/uv pip install uv
+                                                                           uvx pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
+                                                                       """
+                                                           )
+                                                        }
                                                     }
                                                 }
                                                 timeout(time: 1, unit: 'HOURS') {
-                                                     def sonarqube_result = waitForQualityGate(abortPipeline: false)
-                                                     if (sonarqube_result.status != 'OK') {
-                                                         unstable "SonarQube quality gate: ${sonarqube_result.status}"
-                                                     }
-                                                     def outstandingIssues = get_sonarqube_unresolved_issues('.scannerwork/report-task.txt')
-                                                     writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
+                                                    def sonarqube_result = waitForQualityGate(abortPipeline: false)
+                                                    if (sonarqube_result.status != 'OK') {
+                                                        unstable "SonarQube quality gate: ${sonarqube_result.status}"
+                                                    }
+                                                    if(env.BRANCH_IS_PRIMARY){
+                                                        writeJSON(file: 'reports/sonar-report.json', json: get_sonarqube_unresolved_issues('.sonar/report-task.txt'))
+                                                    }
                                                 }
                                             }
                                         }
