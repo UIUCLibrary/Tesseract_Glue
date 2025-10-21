@@ -15,14 +15,19 @@
 import os
 import re
 import sys
-import tomllib
+
+try:
+    from tomllib import loads as load_toml
+except ImportError:
+    from toml import loads as load_toml
+
 
 sys.path.insert(0, os.path.abspath('../..'))
 
 def get_project_metadata():
     path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../../pyproject.toml"))
-    with open(path, "rb") as f:
-        return tomllib.load(f)['project']
+    with open(path, "r") as f:
+        return load_toml(f.read())['project']
 
 
 

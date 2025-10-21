@@ -45,7 +45,7 @@ RUN --mount=type=cache,target=/var/cache/yum \
                chmod +x /usr/local/bin/jq ;; \
     esac; \
     jq --version && \
-    yum install -y perl-IPC-Cmd perl-Digest-SHA
+    yum install -y perl-IPC-Cmd perl-Digest-SHA perl-Time-Piece
 ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
 ENV UV_CONSTRAINT=/tmp/requirements-dev.txt
 ARG CONAN_HOME
