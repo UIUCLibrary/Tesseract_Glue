@@ -122,7 +122,7 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                                        . ./venv/bin/activate
                                                                                        trap "rm -rf venv" EXIT
                                                                                        pip install --disable-pip-version-check uv
-                                                                                       uvx --constraint requirements-dev.txt --with tox-uv tox
+                                                                                       uv run --only-group tox --with tox-uv tox
                                                                                        rm -rf .tox
                                                                                     '''
                                                                         )
@@ -218,7 +218,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     unstash "python${pythonVersion} windows wheel"
                                                     findFiles(glob: 'dist/*.whl').each{
                                                         bat """python -m pip install  --disable-pip-version-check uv
-                                                               uvx -p ${pythonVersion} --constraint requirements-dev.txt --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
+                                                               uv run --only-group tox -p ${pythonVersion} --with tox-uv tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
                                                             """
                                                     }
                                                 }
@@ -296,7 +296,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                                   trap "rm -rf venv" EXIT
                                                                                   ./venv/bin/pip install --disable-pip-version-check uv
                                                                                   trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                  ./venv/bin/uvx --python ${pythonVersion} --constraint requirements-dev.txt --with tox-uv tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                  ./venv/bin/uv run --only-group tox --python ${pythonVersion} --with tox-uv tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
                                                                                """
                                                                     )
                                                                 }
@@ -339,7 +339,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                       trap "rm -rf venv" EXIT
                                                       ./venv/bin/pip install --disable-pip-version-check uv
                                                       mkdir -p out
-                                                      ./venv/bin/uvx --python ${pythonVersion} --constraint requirements-dev.txt --index-strategy unsafe-best-match --from delocate delocate-merge  ${wheelNames.join(' ')} --verbose -w ./out/
+                                                      ./venv/bin/uv run --only-group package --python ${pythonVersion} delocate-merge  ${wheelNames.join(' ')} --verbose -w ./out/
                                                       rm dist/*.whl
                                                    """
                                            )
@@ -387,7 +387,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                                   trap "rm -rf venv" EXIT
                                                                                   ./venv/bin/python -m pip install --disable-pip-version-check uv
                                                                                   trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                  CONAN_REVISIONS_ENABLED=1 ./venv/bin/uvx --constraint requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                  CONAN_REVISIONS_ENABLED=1 ./venv/bin/uv run --only-group tox --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
                                                                                """
                                                                     )
                                                                 }
@@ -423,11 +423,17 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
         ]
     })
 }
+
 def get_sonarqube_unresolved_issues(report_task_file){
     script{
-
-        def props = readProperties  file: '.scannerwork/report-task.txt'
-        def response = httpRequest url : props['serverUrl'] + "/api/issues/search?componentKeys=" + props['projectKey'] + "&resolved=no"
+        if(! fileExists(report_task_file)){
+            error "Could not find ${report_task_file}"
+        }
+        def props = readProperties  file: report_task_file
+        if(! props['serverUrl'] || ! props['projectKey']){
+            error "Could not find serverUrl or projectKey in ${report_task_file}"
+        }
+        def response = httpRequest url : props['serverUrl'] + '/api/issues/search?componentKeys=' + props['projectKey'] + '&resolved=no'
         def outstandingIssues = readJSON text: response.content
         return outstandingIssues
     }
@@ -471,7 +477,7 @@ def call(){
     def SUPPORTED_WINDOWS_VERSIONS = ['3.9', '3.10', '3.11', '3.12', '3.13']
 
     def DEFAULT_PARAMETER_VALUES = [
-        USE_SONARQUBE: false
+        USE_SONARQUBE: true
     ]
     pipeline {
         agent none
@@ -481,7 +487,7 @@ def call(){
         parameters {
             booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'Run checks on code')
             booleanParam(name: 'TEST_RUN_TOX', defaultValue: false, description: 'Run Tox Tests')
-            booleanParam(name: 'USE_SONARQUBE', defaultValue: DEFAULT_PARAMETER_VALUES.USE_SONARQUBE, description: 'Send data test data to SonarQube')
+            booleanParam(name: 'USE_SONARQUBE', defaultValue: true, description: 'Send data test data to SonarQube')
             booleanParam(name: 'BUILD_PACKAGES', defaultValue: false, description: 'Build Python packages')
             booleanParam(name: 'INCLUDE_MACOS_ARM', defaultValue: false, description: 'Include ARM(m1) architecture for Mac')
             booleanParam(name: 'INCLUDE_MACOS_X86_64', defaultValue: false, description: 'Include x86_64 architecture for Mac')
@@ -532,14 +538,14 @@ def call(){
                                                                        . ./venv/bin/activate
                                                                        bootstrap_uv/bin/uv pip install --index-strategy unsafe-best-match uv
                                                                        rm -rf bootstrap_uv
-                                                                       uv pip install --index-strategy unsafe-best-match -r requirements-dev.txt
+                                                                       uv sync --group ci --no-install-project
                                                                        '''
                                                        )
                                                     } catch(e){
                                                         cleanWs(
                                                             patterns: [
                                                                     [pattern: 'bootstrap_uv/', type: 'INCLUDE'],
-                                                                    [pattern: 'venv/', type: 'INCLUDE'],
+                                                                    [pattern: '.venv/', type: 'INCLUDE'],
                                                                     [pattern: '**/__pycache__/', type: 'INCLUDE'],
                                                                 ],
                                                             notFailBuild: true,
@@ -552,6 +558,10 @@ def call(){
                                         }
                                     }
                                     stage('Installing project as editable module'){
+                                        environment{
+                                            CFLAGS='--coverage -fprofile-arcs -ftest-coverage'
+                                            LFLAGS='-lgcov --coverage'
+                                        }
                                         steps{
                                             timeout(10){
                                                 sh(
@@ -559,8 +569,8 @@ def call(){
                                                     script: '''mkdir -p build/python
                                                                mkdir -p logs
                                                                mkdir -p reports
-                                                               . ./venv/bin/activate
-                                                               CFLAGS="--coverage -fprofile-arcs -ftest-coverage" LFLAGS="-lgcov --coverage" build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --index-strategy unsafe-best-match --verbose -e .
+                                                               . ./.venv/bin/activate
+                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --index-strategy unsafe-best-match --verbose -e .
                                                                '''
                                                 )
                                             }
@@ -572,8 +582,7 @@ def call(){
                                 steps{
                                     timeout(3){
                                         sh '''mkdir -p logs
-                                              . ./venv/bin/activate
-                                              python -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log
+                                              uv run -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log
                                               '''
                                     }
                                 }
@@ -601,9 +610,8 @@ def call(){
                                         steps{
                                             sh(
                                                 label: 'Building C++ project for metrics',
-                                                script: '''. ./venv/bin/activate
-                                                           conan install conanfile.py -of build/cpp --build=missing -pr:b=default
-                                                           cmake --preset conan-release -B build/cpp \
+                                                script: '''./.venv/bin/conan install conanfile.py -of build/cpp --build=missing -pr:b=default
+                                                           ./.venv/bin/cmake --preset conan-release -B build/cpp \
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                             -DCMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
@@ -623,8 +631,7 @@ def call(){
                                                         sh(
                                                             label: 'Running pytest',
                                                             script: '''mkdir -p reports/pytestcoverage
-                                                                       . ./venv/bin/activate
-                                                                       coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
+                                                                       uv run coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                                        '''
                                                         )
                                                     }
@@ -638,14 +645,19 @@ def call(){
                                             stage('Run Doctest Tests'){
                                                 steps {
                                                     timeout(3){
-                                                        sh '''. ./venv/bin/activate
-                                                              python -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log
-                                                           '''
+                                                        sh 'uv run -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log'
                                                     }
                                                 }
                                                 post{
                                                     always {
                                                         recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
+                                                    }
+                                                }
+                                            }
+                                            stage('Audit Lockfile Dependencies'){
+                                                steps{
+                                                    catchError(buildResult: 'SUCCESS', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
+                                                        sh './venv/bin/uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
                                                     }
                                                 }
                                             }
@@ -667,7 +679,7 @@ def call(){
                                                 steps{
                                                     sh(
                                                         label: 'Running CTest',
-                                                        script: '''. ./venv/bin/activate
+                                                        script: '''. ./.venv/bin/activate
                                                                    cd build/cpp && ctest --output-on-failure --no-compress-output -T Test
                                                                 ''',
                                                         returnStatus: true
@@ -677,9 +689,7 @@ def call(){
                                                         label: 'Running cpp tests',
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
-                                                    sh '''. ./venv/bin/activate
-                                                         mkdir -p reports/coverage && gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml
-                                                      '''
+                                                    sh 'mkdir -p reports/coverage && uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml'
                                                 }
                                                 post{
                                                     always{
@@ -709,9 +719,7 @@ def call(){
                                                         catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
                                                             sh(
                                                                 label: 'Running Flake8',
-                                                                script: '''. ./venv/bin/activate
-                                                                           flake8 uiucprescon --tee --output-file logs/flake8.log
-                                                                        '''
+                                                                script: 'uv run flake8 uiucprescon --tee --output-file logs/flake8.log'
                                                             )
                                                         }
                                                     }
@@ -726,11 +734,10 @@ def call(){
                                                 steps{
                                                     sh(
                                                         label: 'Running MyPy',
-                                                        script: '''. ./venv/bin/activate
-                                                                   stubgen uiucprescon -o mypy_stubs
+                                                        script: '''uv run stubgen uiucprescon -o mypy_stubs
                                                                    mkdir -p reports/mypy/html
-                                                                   MYPYPATH="$WORKSPACE/mypy_stubs" mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                                                   '''
+                                                                   MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                                '''
                                                     )
                                                 }
                                                 post {
@@ -746,17 +753,14 @@ def call(){
                                                         sh(label: 'Running pylint',
                                                             script: '''mkdir -p logs
                                                                        mkdir -p reports
-                                                                       . ./venv/bin/activate
-                                                                       pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
+                                                                       uv run pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
                                                                     '''
 
                                                         )
                                                     }
                                                     sh(
                                                         label: 'Running pylint for sonarqube',
-                                                        script: '''. ./venv/bin/activate
-                                                                   pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt
-                                                                ''',
+                                                        script: 'uv run pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
                                                         returnStatus: true
                                                     )
                                                 }
@@ -770,13 +774,12 @@ def call(){
                                         post{
                                             always{
                                                 sh(script: '''mkdir -p build/coverage
-                                                              . ./venv/bin/activate
-                                                              coverage combine
+                                                              uv run coverage combine
                                                               mkdir -p reports/coverage
-                                                              coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
-                                                              gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
-                                                              gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --xml -o reports/coverage_cpp.xml --sonarqube -o reports/coverage/coverage_cpp_sonar.xml
+                                                              uv run coverage xml -o ./reports/coverage/coverage-python.xml
+                                                              uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
+                                                              uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
+                                                              uv run gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --xml -o reports/coverage_cpp.xml --sonarqube -o reports/coverage/coverage_cpp_sonar.xml
                                                               '''
                                                     )
                                                 recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage/*.xml']])
@@ -788,7 +791,19 @@ def call(){
                                             lock('uiucprescon.ocr-sonarcloud')
                                         }
                                         when{
-                                            equals expected: true, actual: params.USE_SONARQUBE
+                                            allOf{
+                                                equals expected: true, actual: params.USE_SONARQUBE
+                                                expression{
+                                                    try{
+                                                        withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'dddd')]) {
+                                                            echo 'Found credentials for sonarqube'
+                                                        }
+                                                    } catch(e){
+                                                        return false
+                                                    }
+                                                    return true
+                                                }
+                                            }
                                             beforeOptions true
                                         }
                                         environment{
@@ -803,39 +818,28 @@ def call(){
                                             script{
                                                 def props = readTOML( file: 'pyproject.toml')['project']
                                                 withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
-                                                    if (env.CHANGE_ID){
-                                                        sh(
-                                                            label: 'Running Sonar Scanner',
-                                                            script: """python3 -m venv uv
-                                                                      uv/bin/pip install --disable-pip-version-check uv
-                                                                      trap "rm -rf uv" EXIT
-                                                                      uv/bin/uv venv venv
-                                                                      trap "rm -rf uv && rm -rf venv" EXIT
-                                                                      . ./venv/bin/activate
-                                                                      uv/bin/uv pip install uv
-                                                                      uv tool run pysonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
-                                                                      """
-                                                        )
-                                                    } else {
-                                                        sh(
-                                                            label: 'Running Sonar Scanner',
-                                                            script: """python3 -m venv uv
-                                                                       uv/bin/pip install --disable-pip-version-check uv
-                                                                       uv/bin/uv venv venv
-                                                                       . ./venv/bin/activate
-                                                                       uv/bin/uv pip install uv
-                                                                       uv tool run pysonar-scanner -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory
-                                                                   """
-                                                       )
+                                                    withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'token')]) {
+                                                        if (env.CHANGE_ID){
+                                                            sh(
+                                                                label: 'Running Sonar Scanner',
+                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
+                                                            )
+                                                        } else {
+                                                            sh(
+                                                                label: 'Running Sonar Scanner',
+                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
+                                                           )
+                                                        }
                                                     }
                                                 }
                                                 timeout(time: 1, unit: 'HOURS') {
-                                                     def sonarqube_result = waitForQualityGate(abortPipeline: false)
-                                                     if (sonarqube_result.status != 'OK') {
-                                                         unstable "SonarQube quality gate: ${sonarqube_result.status}"
-                                                     }
-                                                     def outstandingIssues = get_sonarqube_unresolved_issues('.scannerwork/report-task.txt')
-                                                     writeJSON file: 'reports/sonar-report.json', json: outstandingIssues
+                                                    def sonarqube_result = waitForQualityGate(abortPipeline: false)
+                                                    if (sonarqube_result.status != 'OK') {
+                                                        unstable "SonarQube quality gate: ${sonarqube_result.status}"
+                                                    }
+                                                    if(env.BRANCH_IS_PRIMARY){
+                                                        writeJSON(file: 'reports/sonar-report.json', json: get_sonarqube_unresolved_issues('.sonar/report-task.txt'))
+                                                    }
                                                 }
                                             }
                                         }
@@ -851,18 +855,6 @@ def call(){
                         post{
                             cleanup{
                                 sh "git clean -dfx"
-//                                 cleanWs(
-//                                     patterns: [
-//                                             [pattern: 'venv/', type: 'INCLUDE'],
-//                                             [pattern: 'build/', type: 'INCLUDE'],
-//                                             [pattern: 'build/', type: 'INCLUDE'],
-//                                             [pattern: 'logs/', type: 'INCLUDE'],
-//                                             [pattern: '**/__pycache__/', type: 'INCLUDE'],
-//                                             [pattern: 'uiucprescon/**/*.so', type: 'INCLUDE'],
-//                                         ],
-//                                     notFailBuild: true,
-//                                     deleteDirs: true
-//                                     )
                             }
                         }
                     }
@@ -892,7 +884,7 @@ def call(){
                                                     sh(script: 'python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv')
                                                     envs = sh(
                                                         label: 'Get tox environments',
-                                                        script: './venv/bin/uvx --quiet --with tox-uv tox list -d --no-desc',
+                                                        script: './venv/bin/uv run --only-group tox --quiet --with tox-uv tox list -d --no-desc',
                                                         returnStdout: true,
                                                     ).trim().split('\n')
                                                 }
@@ -925,7 +917,7 @@ def call(){
                                                                         retry(3){
                                                                             sh( label: 'Running Tox',
                                                                                 script: """python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv
-                                                                                           venv/bin/uvx --python ${version} --python-preference system --with tox-uv tox run -e ${toxEnv} -vv
+                                                                                           venv/bin/uv run --only-group tox --python ${version} --python-preference system --with tox-uv tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv
                                                                                         """
                                                                                 )
                                                                         }
@@ -942,7 +934,7 @@ def call(){
                                                                 }
                                                             } finally {
                                                                 if (image){
-                                                                    sh "docker rmi ${image.id}"
+                                                                    sh "docker rmi --no-prune ${image.id}"
                                                                 }
                                                             }
                                                         }
@@ -980,7 +972,7 @@ def call(){
                                                     bat(script: 'python -m venv venv && venv\\Scripts\\pip install --disable-pip-version-check uv')
                                                     envs = bat(
                                                         label: 'Get tox environments',
-                                                        script: '@.\\venv\\Scripts\\uvx --quiet --constraint requirements-dev.txt --with tox-uv tox list -d --no-desc',
+                                                        script: '@.\\venv\\Scripts\\uv run --quiet --only-group tox --with tox-uv tox list -d --no-desc',
                                                         returnStdout: true,
                                                     ).trim().split('\r\n')
                                                 }
@@ -1018,7 +1010,7 @@ def call(){
                                                                             try{
                                                                                 bat(label: 'Running Tox',
                                                                                      script: """uv python install cpython-${version}
-                                                                                                uvx -p ${version} --constraint requirements-dev.txt --with tox-uv tox run -e ${toxEnv} -vv
+                                                                                                uv run --only-group tox -p ${version} --with tox-uv tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv
                                                                                              """
                                                                                 )
                                                                             } finally{
@@ -1113,7 +1105,7 @@ def call(){
                                                script: '''python -m venv venv
                                                           trap "rm -rf venv" EXIT
                                                           venv/bin/pip install --disable-pip-version-check uv
-                                                          venv/bin/uv build --build-constraints=requirements-dev.txt --sdist
+                                                          venv/bin/uv build --sdist
                                                           '''
                                             )
                                             archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
@@ -1173,7 +1165,7 @@ def call(){
                                                                                               trap "rm -rf venv" EXIT
                                                                                               venv/bin/pip install  --disable-pip-version-check uv
                                                                                               trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                              venv/bin/uvx --python ${pythonVersion} --constraint requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                              venv/bin/uv run --only-group tox --python ${pythonVersion} --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
                                                                                            """
                                                                                 )
                                                                             }
@@ -1243,7 +1235,7 @@ def call(){
                                                                                        findFiles(glob: 'dist/*.tar.gz').each{
                                                                                            bat(
                                                                                                label: 'Running Tox',
-                                                                                               script: "uvx --python ${pythonVersion} --constraint requirements-dev.txt --with tox-uv tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -vv"
+                                                                                               script: "uv run --only-group tox --python ${pythonVersion} --with tox-uv tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -vv"
                                                                                            )
                                                                                        }
                                                                                     }
@@ -1311,7 +1303,7 @@ def call(){
                                                                                               trap "rm -rf venv" EXIT
                                                                                               ./venv/bin/pip install --disable-pip-version-check uv
                                                                                               trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                              ./venv/bin/uvx --python ${pythonVersion} --constraint requirements-dev.txt --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                              ./venv/bin/uv run --only-group tox --python ${pythonVersion} --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
                                                                                            """
                                                                                    )
                                                                            }
@@ -1412,7 +1404,7 @@ def call(){
                                                        trap "rm -rf venv" EXIT
                                                        . ./venv/bin/activate
                                                        pip install --disable-pip-version-check uv
-                                                       uvx --constraint=requirements-dev.txt twine upload --disable-progress-bar --non-interactive dist/*
+                                                       uv run --only-group publish twine upload --disable-progress-bar --non-interactive dist/*
                                                     '''
                                         )
                                 }

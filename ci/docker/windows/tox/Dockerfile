@@ -75,22 +75,20 @@ ARG CONAN_HOME
 COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_HOME}/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 
-COPY requirements-dev.txt c:/requirements/requirements-dev.txt
-ENV UV_CONSTRAINT=c:/requirements/requirements-dev.txt
-
-COPY conanfile.py c:/temp/conanfile.py
+COPY conanfile.py pyproject.toml uv.lock c:/temp/
 ARG CONAN_CENTER_PROXY_V2_URL
-RUN uvx --with cmake --with ninja conan profile detect --exist-ok ; `
+ENV UV_PROJECT c:\temp
+RUN uv run --only-group conan conan profile detect --exist-ok ; `
     if (${env:CONAN_CENTER_PROXY_V2_URL} -ne ($(Get-Content -Raw -Path "${Env:CONAN_HOME}/remotes.json") | ConvertFrom-Json).remotes[0].url) { `
       Write-Host "Using a proxy for conan center: $Env:CONAN_CENTER_PROXY_V2_URL" ; `
       Copy-Item -Path "${Env:CONAN_HOME}\remotes.json" -Destination "c:\remotes.json" ; `
-      uvx --with cmake --with ninja conan remote update conan-center --url ${env:CONAN_CENTER_PROXY_V2_URL}; `
+      uv run --only-group conan conan remote update conan-center --url ${env:CONAN_CENTER_PROXY_V2_URL}; `
     }; `
-    uvx --with cmake --with ninja conan install c:/temp/conanfile.py --build missing -pr:b=default --conf=tools.cmake.cmaketoolchain:generator=Ninja ; `
+    uv run --only-group conan conan install c:/temp/conanfile.py --build missing -pr:b=default --conf=tools.cmake.cmaketoolchain:generator=Ninja ; `
     if ($LASTEXITCODE -ne 0) { `
       throw \"Command 'conan install' failed with exit code: $LASTEXITCODE\"`
     } ;`
-    uvx --with cmake --with ninja conan cache clean "*" -b --source --build --temp ; `
+    uv run --only-group conan conan cache clean "*" -b --source --build --temp ; `
     uv cache clean --no-progress ; `
     if (${env:CONAN_CENTER_PROXY_V2_URL} -ne ($(Get-Content -Raw -Path "${Env:CONAN_HOME}/remotes.json") | ConvertFrom-Json).remotes[0].url) { `
       Move-Item -Path "c:\remotes.json" -Destination "${Env:CONAN_HOME}\remotes.json" -Force ;`

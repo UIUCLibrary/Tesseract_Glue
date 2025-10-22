@@ -34,6 +34,35 @@ authors = [
 Documentation = "https://www.library.illinois.edu/dccdocs/ocr"
 Download = "https://github.com/UIUCLibrary/ocr"
 
+[dependency-groups]
+test = [
+    "pytest",
+    "pytest-bdd<9.0",
+    "coverage"
+]
+conan =["conan>=2.0", "cmake<4.0"]
+docs = ["sphinx", "setuptools", "toml; python_version < '3.11'"]
+tox = ["tox"]
+dev = [
+    {include-group = "docs"},
+    {include-group = "tox"},
+    {include-group = "test"},
+    "flake8",
+    "gcovr",
+    "lxml",
+    "mypy",
+    "pylint",
+]
+cibuildwheel = ["cibuildwheel"]
+package = ["delocate ; sys_platform == 'darwin'"]
+publish = ["twine"]
+ci = [
+    {include-group = "dev"},
+    {include-group = "publish"},
+    {include-group = "conan"},
+    "pysonar",
+]
+
 [tool.setuptools]
 packages = [
     "uiucprescon.ocr"
@@ -84,73 +113,58 @@ directory = "reports/coverage"
 init-hook="sys.path.append('.')"
 
 [tool.cibuildwheel]
-test-requires = "pytest"
-test-command = "pytest {project}/tests"
+test-command = "uv run pytest {project}/tests"
 manylinux-x86_64-image = "manylinux2014"
-build-frontend = "build"
+build-frontend = "build[uv]"
 skip = [
-    "cp36-*",
-    "cp37-*",
     "cp38-*",
-    "pp*",
     "*-win32",
     "*-musllinux*",
     "*-manylinux_i686"
 ]
 build-verbosity = 1
-environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION", "CONAN_USER_HOME"]
+environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION"]
 
 [tool.cibuildwheel.windows]
 before-all = [
-    'pip install wheel',
-    'pip install -r requirements-dev.txt',
-    'conan profile detect --exist-ok',
-    'conan install ./ --build missing -s compiler.cppstd=17',
+    'echo Conan user home: %CONAN_USER_HOME%',
+    'uv run --only-group conan --isolated conan profile detect --exist-ok',
+    'uv run --only-group conan --isolated conan install ./ --build missing -s compiler.cppstd=17',
 ]
+environment-pass = ["CONAN_USER_HOME"]
 
 [tool.cibuildwheel.macos]
 before-all = [
-    'python3 -m venv /tmp/ciwheelbuilder/uiucprescon_orc/venv',
-    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/pip install --disable-pip-version-check uv',
-    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/uvx --constraint=requirements-dev.txt --with cmake conan profile detect --exist-ok',
-    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/uvx --constraint=requirements-dev.txt --with cmake conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp -s compiler.cppstd=17 --conf=tools.cmake.cmaketoolchain:generator=Ninja',
-    'rm -rf /tmp/ciwheelbuilder/uiucprescon_orc/tmp',
+    'echo "Conan user home: $CONAN_USER_HOME"',
+    'uv run --only-group conan --isolated conan profile detect --exist-ok',
+    'uv run --only-group conan --isolated conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp -s compiler.cppstd=17 --conf=tools.cmake.cmaketoolchain:generator=Ninja',
 ]
 repair-wheel-command = [
     "delocate-wheel --version",
     "delocate-listdeps {wheel}",
     "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}",
 ]
+environment-pass = ["CONAN_USER_HOME"]
 
+[tool.cibuildwheel.macos.environment]
+MACOSX_DEPLOYMENT_TARGET = "10.14"
+CONAN_USER_HOME="$(bash -c 'echo ${CONAN_USER_HOME:-${CIBW_CACHE_PATH:-$HOME/Library/Caches/cibuildwheel}/conan/macos}')"
 
 [tool.cibuildwheel.linux]
+before-all = [
+    'yum install -y perl-IPC-Cmd perl-Digest-SHA perl-Time-Piece'
+]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
-environment-pass = ["CONAN_USER_HOME", "CONAN_COMPILER_VERSION"]
-#before-all = [
-##    'echo "CONAN_USER_HOME = $CONAN_USER_HOME"',
-##    'mkdir -p $CONAN_USER_HOME',
-#    "cc --version", "cc -dumpfullversion -dumpversion",
-##    "pip3 install --disable-pip-version-check uv",
-##    'mkdir -p $CONAN_USER_HOME/.conan2/profiles',
-#    "uvx conan profile detect --exist-ok",
-#    "cp /project/ci/docker/linux/package/conan/profile.ini $(uvx conan profile path default)",
-#    "uvx --with cmake --with ninja conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc --conf=tools.cmake.cmaketoolchain:generator=Ninja",
-#    "rm -rf /tmp/ciwheelbuilder/uiucprescon_orc/tmp",
-#]
-manylinux-x86_64-image = "quay.io/pypa/manylinux2014_x86_64"
-manylinux-aarch64-image = "quay.io/pypa/manylinux2014_aarch64"
-#before-build = [
-#    "[ -f CMakeUserPresets.json ] && rm CMakeUserPresets.json"
-#]
+environment-pass = ["CONAN_COMPILER_VERSION", "HOME"]
+manylinux-x86_64-image = "quay.io/pypa/manylinux2014"
+manylinux-aarch64-image = "quay.io/pypa/manylinux2014"
 [tool.cibuildwheel.linux.environment]
+#CONAN_USER_HOME="$(bash -c 'echo ${CIBW_CACHE_PATH:-$HOME/Library/Caches/cibuildwheel}/conan/manylinux2014')"
 PYTHONFAULTHANDLER="True"
-UV_CONSTRAINT="requirements-dev.txt"
-#CONAN_USER_HOME="/host/Users/hborcher/PycharmProjects/UIUCLibrary/Tesseract_Glue/build/cibuildwheel/linux/conan"
-#CONAN_HOME="/host/Users/hborcher/PycharmProjects/UIUCLibrary/Tesseract_Glue/build/cibuildwheel/linux/conan/.conan2"
-#CONAN_COMPILER_LIBCXX="libstdc++11"
-#
+
 [localbuilder]
 conanfile = 'conanfile.py'
+
 
 [tool.pylint]
 extension-pkg-allow-list="uiucprescon.ocr.tesseractwrap"
