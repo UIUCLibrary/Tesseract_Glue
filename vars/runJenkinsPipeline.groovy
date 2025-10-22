@@ -654,6 +654,13 @@ def call(){
                                                     }
                                                 }
                                             }
+                                            stage('Audit Lockfile Dependencies'){
+                                                steps{
+                                                    catchError(buildResult: 'SUCCESS', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
+                                                        sh './venv/bin/uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                    }
+                                                }
+                                            }
                                             stage('Clang Tidy Analysis') {
                                                 steps{
                                                     tee('logs/clang-tidy.log') {
@@ -927,7 +934,7 @@ def call(){
                                                                 }
                                                             } finally {
                                                                 if (image){
-                                                                    sh "docker rmi ${image.id}"
+                                                                    sh "docker rmi --no-prune ${image.id}"
                                                                 }
                                                             }
                                                         }
