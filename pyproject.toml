@@ -113,10 +113,9 @@ directory = "reports/coverage"
 init-hook="sys.path.append('.')"
 
 [tool.cibuildwheel]
-test-requires = "pytest"
-test-command = "pytest {project}/tests"
+test-command = "uv run pytest {project}/tests"
 manylinux-x86_64-image = "manylinux2014"
-build-frontend = "build"
+build-frontend = "build[uv]"
 skip = [
     "cp38-*",
     "*-win32",
@@ -128,7 +127,6 @@ environment-pass = ["CONAN_COMPILER_LIBCXX", "CONAN_COMPILER_VERSION"]
 
 [tool.cibuildwheel.windows]
 before-all = [
-    'pip install uv',
     'echo Conan user home: %CONAN_USER_HOME%',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
     'uv run --only-group conan --isolated conan install ./ --build missing -s compiler.cppstd=17',
@@ -138,11 +136,8 @@ environment-pass = ["CONAN_USER_HOME"]
 [tool.cibuildwheel.macos]
 before-all = [
     'echo "Conan user home: $CONAN_USER_HOME"',
-    'python3 -m venv /tmp/ciwheelbuilder/uiucprescon_orc/venv',
-    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/pip install --disable-pip-version-check uv',
-    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/uv run --only-group conan --isolated conan profile detect --exist-ok',
-    '/tmp/ciwheelbuilder/uiucprescon_orc/venv/bin/uv run --only-group conan --isolated conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp -s compiler.cppstd=17 --conf=tools.cmake.cmaketoolchain:generator=Ninja',
-    'rm -rf /tmp/ciwheelbuilder/uiucprescon_orc/tmp',
+    'uv run --only-group conan --isolated conan profile detect --exist-ok',
+    'uv run --only-group conan --isolated conan install conanfile.py --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp -s compiler.cppstd=17 --conf=tools.cmake.cmaketoolchain:generator=Ninja',
 ]
 repair-wheel-command = [
     "delocate-wheel --version",
