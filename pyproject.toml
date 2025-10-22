@@ -37,7 +37,7 @@ Download = "https://github.com/UIUCLibrary/ocr"
 [dependency-groups]
 test = [
     "pytest",
-    "pytest-bdd<4.0",
+    "pytest-bdd<9.0",
     "coverage"
 ]
 conan =["conan>=2.0", "cmake<4.0"]
