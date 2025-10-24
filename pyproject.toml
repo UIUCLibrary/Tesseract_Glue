@@ -114,7 +114,7 @@ init-hook="sys.path.append('.')"
 
 [tool.cibuildwheel]
 test-command = "pytest {project}/tests"
-test-groups = ["test"]
+
 manylinux-x86_64-image = "manylinux2014"
 build-frontend = "build[uv]"
 skip = [
@@ -132,11 +132,14 @@ before-all = [
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
     'uv run --only-group conan --isolated conan install ./ --build missing -s compiler.cppstd=17',
 ]
-environment-pass = ["CONAN_USER_HOME"]
+environment-pass = ["CONAN_USER_HOME", "CONAN_HOME"]
+test-requires = ["pytest", "pytest-bdd"]
 
 [tool.cibuildwheel.macos]
+test-groups = ["test"]
 before-all = [
     'echo "Conan user home: $CONAN_USER_HOME"',
+    'echo "Conan home: $CONAN_HOME"',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
     'uv run --only-group conan --with ninja --isolated conan install conanfile.py -pr:h {package}/ci/cibuildwheel/conan_profiles/Macos/mac_build_profile.ini --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp --conf=tools.cmake.cmaketoolchain:generator=Ninja',
 ]
@@ -145,16 +148,18 @@ repair-wheel-command = [
     "delocate-listdeps {wheel}",
     "delocate-wheel --require-archs {delocate_archs} -w {dest_dir} -v {wheel}",
 ]
-environment-pass = ["CONAN_USER_HOME"]
+environment-pass = ["CONAN_USER_HOME", "CONAN_HOME"]
 
 [tool.cibuildwheel.macos.environment]
 MACOSX_DEPLOYMENT_TARGET = "10.14"
-CONAN_USER_HOME="$(bash -c 'echo ${CONAN_USER_HOME:-${CIBW_CACHE_PATH:-$HOME/Library/Caches/cibuildwheel}/conan/macos}')"
+CONAN_USER_HOME="$(bash -c 'echo ${CONAN_HOME:-${CIBW_CACHE_PATH:-$HOME/Library/Caches/cibuildwheel}/conan/macos}')"
+CONAN_HOME="$(bash -c 'echo ${CONAN_HOME:-${CIBW_CACHE_PATH:-$HOME/Library/Caches/cibuildwheel}/conan/macos/.conan2}')"
 
 [tool.cibuildwheel.linux]
 before-all = [
     'yum install -y perl-IPC-Cmd perl-Digest-SHA perl-Time-Piece'
 ]
+test-groups = ["test"]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 environment-pass = ["CONAN_COMPILER_VERSION", "HOME"]
 manylinux-x86_64-image = "quay.io/pypa/manylinux2014"
