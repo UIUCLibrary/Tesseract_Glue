@@ -132,6 +132,7 @@ before-all = [
     'echo Conan home: %CONAN_HOME%',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
     'uv run --only-group conan --isolated conan install ./ --build missing -s compiler.cppstd=17',
+    'uv run --only-group conan --isolated conan cache clean',
 ]
 environment-pass = ["CONAN_USER_HOME", "CONAN_HOME"]
 test-requires = ["pytest", "pytest-bdd"]
@@ -143,6 +144,7 @@ before-all = [
     'echo "Conan home: $CONAN_HOME"',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
     'uv run --only-group conan --with ninja --isolated conan install conanfile.py -pr:h {package}/ci/cibuildwheel/conan_profiles/Macos/mac_host_profile.ini --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp --conf=tools.cmake.cmaketoolchain:generator=Ninja',
+    'uv run --only-group conan --isolated conan cache clean',
 ]
 repair-wheel-command = [
     "delocate-wheel --version",
@@ -163,6 +165,7 @@ before-all = [
     'echo "Conan home: $CONAN_HOME"',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
     'uv run --only-group conan --with ninja --isolated conan install conanfile.py -pr:h {package}/ci/cibuildwheel/conan_profiles/Linux/linux_build_profile.ini --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp --conf=tools.cmake.cmaketoolchain:generator=Ninja',
+    'uv run --only-group conan --isolated conan cache clean',
 ]
 test-groups = ["test"]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
