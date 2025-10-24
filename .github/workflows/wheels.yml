@@ -11,6 +11,10 @@ on:
         type: boolean
 
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
@@ -65,7 +69,7 @@ jobs:
       - name: Build wheels
         if: "!contains(matrix.os, 'windows')"
         run: |
-          uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
+          uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse 
         env:
            CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
            CONAN_HOME: ${{steps.conan-path-script.outputs.result}}/.conan2
