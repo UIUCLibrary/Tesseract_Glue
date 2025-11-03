@@ -18,7 +18,7 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 readme = "README.rst"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = "NCSA"
 license-files = ["LICENSE"]
 description = "Image to text processing using Google Tesseract"
