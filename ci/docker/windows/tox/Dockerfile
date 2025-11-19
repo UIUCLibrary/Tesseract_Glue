@@ -109,7 +109,6 @@ ARG CONAN_HOME
 COPY --from=conan_builder ${CONAN_HOME}/ ${CONAN_HOME}/
 
 ENV CONAN_USER_HOME=${CONAN_USER_HOME}`
-    CONAN_HOME=${CONAN_HOME} `
-    UV_INDEX_STRATEGY=unsafe-best-match
+    CONAN_HOME=${CONAN_HOME}
 
 LABEL purpose=ci

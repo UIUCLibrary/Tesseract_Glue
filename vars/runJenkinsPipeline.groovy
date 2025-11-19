@@ -111,7 +111,6 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                             unstash "python${pythonVersion} linux - ${arch} - wheel"
                                                             try{
                                                                 withEnv([
-                                                                    'UV_INDEX_STRATEGY=unsafe-best-match',
                                                                     "TOX_INSTALL_PKG=${findFiles(glob:'dist/*.whl')[0].path}",
                                                                     "TOX_ENV=py${pythonVersion.replace('.', '')}"
                                                                 ]){
@@ -168,7 +167,6 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                     'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\cache\\uvtools',
                     'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\cache\\uvpython',
                     'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\cache\\uvcache',
-                    'UV_INDEX_STRATEGY=unsafe-best-match',
                 ]){
                     stage("Windows - Python ${pythonVersion}"){
                         if(params.INCLUDE_WINDOWS_X86_64 == true){
@@ -289,19 +287,16 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                             unstash "python${pythonVersion} ${arch} mac wheel"
                                                         },
                                                         testCommand: {
-                                                            withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                                findFiles(glob: 'dist/*.whl').each{
-                                                                    sh(label: 'Running Tox',
-                                                                       script: """python${pythonVersion} -m venv venv
-                                                                                  trap "rm -rf venv" EXIT
-                                                                                  ./venv/bin/pip install --disable-pip-version-check uv
-                                                                                  trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                  ./venv/bin/uv run --only-group tox --python ${pythonVersion} --with tox-uv tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                               """
-                                                                    )
-                                                                }
+                                                            findFiles(glob: 'dist/*.whl').each{
+                                                                sh(label: 'Running Tox',
+                                                                   script: """python${pythonVersion} -m venv venv
+                                                                              trap "rm -rf venv" EXIT
+                                                                              ./venv/bin/pip install --disable-pip-version-check uv
+                                                                              trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                              ./venv/bin/uv run --only-group tox --python ${pythonVersion} --with tox-uv tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                           """
+                                                                )
                                                             }
-
                                                         },
                                                         post:[
                                                             cleanup: {
@@ -380,17 +375,15 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                         },
                                                         retries: 3,
                                                         testCommand: {
-                                                            withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                                findFiles(glob: 'dist/*.whl').each{
-                                                                    sh(label: 'Running Tox',
-                                                                       script: """python${pythonVersion} -m venv venv
-                                                                                  trap "rm -rf venv" EXIT
-                                                                                  ./venv/bin/python -m pip install --disable-pip-version-check uv
-                                                                                  trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                  CONAN_REVISIONS_ENABLED=1 ./venv/bin/uv run --only-group tox --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                               """
-                                                                    )
-                                                                }
+                                                            findFiles(glob: 'dist/*.whl').each{
+                                                                sh(label: 'Running Tox',
+                                                                   script: """python${pythonVersion} -m venv venv
+                                                                              trap "rm -rf venv" EXIT
+                                                                              ./venv/bin/python -m pip install --disable-pip-version-check uv
+                                                                              trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                              CONAN_REVISIONS_ENABLED=1 ./venv/bin/uv run --only-group tox --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                           """
+                                                                )
                                                             }
                                                         },
                                                         post:[
@@ -536,7 +529,7 @@ def call(){
                                                                        bootstrap_uv/bin/pip install --disable-pip-version-check uv
                                                                        bootstrap_uv/bin/uv venv venv
                                                                        . ./venv/bin/activate
-                                                                       bootstrap_uv/bin/uv pip install --index-strategy unsafe-best-match uv
+                                                                       bootstrap_uv/bin/uv pip install uv
                                                                        rm -rf bootstrap_uv
                                                                        uv sync --group ci --no-install-project
                                                                        '''
@@ -570,7 +563,7 @@ def call(){
                                                                mkdir -p logs
                                                                mkdir -p reports
                                                                . ./.venv/bin/activate
-                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --index-strategy unsafe-best-match --verbose -e .
+                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --verbose -e .
                                                                '''
                                                 )
                                             }
@@ -807,7 +800,6 @@ def call(){
                                             beforeOptions true
                                         }
                                         environment{
-                                            UV_INDEX_STRATEGY='unsafe-best-match'
                                             SONAR_SCANNER_HOME='/tmp/sonar'
                                             UV_TOOL_DIR='/tmp/uvtools'
                                             UV_PYTHON_INSTALL_DIR='/tmp/uvpython'
@@ -866,7 +858,6 @@ def call(){
                             stage('Linux'){
                                 environment{
                                     PIP_CACHE_DIR='/tmp/pipcache'
-                                    UV_INDEX_STRATEGY='unsafe-best-match'
                                     UV_TOOL_DIR='/tmp/uvtools'
                                     UV_PYTHON_INSTALL_DIR='/tmp/uvpython'
                                     UV_CACHE_DIR='/tmp/uvcache'
@@ -950,7 +941,6 @@ def call(){
                                      expression {return nodesByLabel('windows && docker && x86').size() > 0}
                                  }
                                  environment{
-                                     UV_INDEX_STRATEGY='unsafe-best-match'
                                      PIP_CACHE_DIR='C:\\Users\\ContainerUser\\Documents\\cache\\pipcache'
                                      UV_TOOL_DIR='C:\\Users\\ContainerUser\\Documents\\cache\\uvtools'
                                      UV_PYTHON_INSTALL_DIR='C:\\Users\\ContainerUser\\Documents\\cache\\uvpython'
@@ -1095,7 +1085,6 @@ def call(){
                                }
                                 environment{
                                     PIP_CACHE_DIR='/tmp/pipcache'
-                                    UV_INDEX_STRATEGY='unsafe-best-match'
                                     UV_CACHE_DIR='/tmp/uvcache'
                                 }
                                 steps{
@@ -1158,17 +1147,15 @@ def call(){
                                                                     },
                                                                     retries: 3,
                                                                     testCommand: {
-                                                                        withEnv(['UV_INDEX_STRATEGY=unsafe-best-match']){
-                                                                            findFiles(glob: 'dist/*.tar.gz').each{
-                                                                                sh(label: 'Running Tox',
-                                                                                   script: """python3 -m venv venv
-                                                                                              trap "rm -rf venv" EXIT
-                                                                                              venv/bin/pip install  --disable-pip-version-check uv
-                                                                                              trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                              venv/bin/uv run --only-group tox --python ${pythonVersion} --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                                           """
-                                                                                )
-                                                                            }
+                                                                        findFiles(glob: 'dist/*.tar.gz').each{
+                                                                            sh(label: 'Running Tox',
+                                                                               script: """python3 -m venv venv
+                                                                                          trap "rm -rf venv" EXIT
+                                                                                          venv/bin/pip install  --disable-pip-version-check uv
+                                                                                          trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                          venv/bin/uv run --only-group tox --python ${pythonVersion} --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                       """
+                                                                            )
                                                                         }
                                                                    },
                                                                    post:[
@@ -1209,7 +1196,6 @@ def call(){
                                                               'UV_TOOL_DIR=C:\\Users\\ContainerUser\\Documents\\cache\\uvtools',
                                                               'UV_PYTHON_INSTALL_DIR=C:\\Users\\ContainerUser\\Documents\\cache\\uvpython',
                                                               'UV_CACHE_DIR=C:\\Users\\ContainerUser\\Documents\\cache\\uvcache',
-                                                              'UV_INDEX_STRATEGY=unsafe-best-match',
                                                            ]){
                                                                 stage(newStageName){
                                                                     node("windows && docker && ${arch}"){
@@ -1291,7 +1277,6 @@ def call(){
                                                                    testCommand: {
                                                                        withEnv([
                                                                            'PIP_CACHE_DIR=/tmp/pipcache',
-                                                                           'UV_INDEX_STRATEGY=unsafe-best-match',
                                                                            'UV_TOOL_DIR=/tmp/uvtools',
                                                                            'UV_PYTHON_INSTALL_DIR=/tmp/uvpython',
                                                                            'UV_CACHE_DIR=/tmp/uvcache',
@@ -1344,7 +1329,6 @@ def call(){
                     stage('Deploy to pypi') {
                         environment{
                             PIP_CACHE_DIR='/tmp/pipcache'
-                            UV_INDEX_STRATEGY='unsafe-best-match'
                             UV_TOOL_DIR='/tmp/uvtools'
                             UV_PYTHON_INSTALL_DIR='/tmp/uvpython'
                             UV_CACHE_DIR='/tmp/uvcache'
@@ -1384,12 +1368,7 @@ def call(){
                                     unstash it
                                 }
                             }
-                             withEnv(
-                                [
-                                    "TWINE_REPOSITORY_URL=${SERVER_URL}",
-                                    'UV_INDEX_STRATEGY=unsafe-best-match'
-                                ]
-                            ){
+                             withEnv(["TWINE_REPOSITORY_URL=${SERVER_URL}"]){
                                 withCredentials(
                                     [
                                         usernamePassword(
