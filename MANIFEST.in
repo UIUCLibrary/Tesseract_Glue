@@ -1,4 +1,4 @@
-include LICENSE README.rst tox.ini CMakeLists.txt CHANGELOG.rst conanfile.py tests/features/engine.feature
+include LICENSE README.rst tox.ini CMakeLists.txt CHANGELOG.rst conanfile.py conan.lock tests/features/engine.feature
 
 recursive-include uiucprescon *.cpp *.h CMakeLists.txt
 recursive-include tests *.py *.cpp *.feature CMakeLists.txt *.feature

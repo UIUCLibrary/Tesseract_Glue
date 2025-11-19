@@ -75,7 +75,7 @@ ARG CONAN_HOME
 COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_HOME}/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 
-COPY conanfile.py pyproject.toml uv.lock c:/temp/
+COPY conanfile.py pyproject.toml uv.lock conan.lock c:/temp/
 ARG CONAN_CENTER_PROXY_V2_URL
 ENV UV_PROJECT c:\temp
 ENV UV_PROJECT_ENVIRONMENT c:\temp\conanbuild

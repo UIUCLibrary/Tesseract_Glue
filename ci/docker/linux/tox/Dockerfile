@@ -50,6 +50,7 @@ RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     --mount=type=bind,source=conanfile.py,target=/tmp/conanfile.py \
+    --mount=type=bind,source=conan.lock,target=/tmp/conan.lock \
     uv run --only-group conan conan profile detect --exist-ok &&  \
     cp ${CONAN_HOME}/global.conf /tmp/global.conf.original && \
     echo "core.sources:download_cache = $CONAN_DOWNLOAD_CACHE" >> ${CONAN_HOME}/global.conf && \
