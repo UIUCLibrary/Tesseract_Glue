@@ -83,3 +83,4 @@ ENV CONAN_USER_HOME=${CONAN_USER_HOME} \
     CONAN_HOME=${CONAN_HOME}
 COPY --from=conan_builder ${CONAN_HOME}/ ${CONAN_HOME}/
 
+LABEL purpose=ci

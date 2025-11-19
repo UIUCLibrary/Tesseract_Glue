@@ -112,3 +112,4 @@ ENV CONAN_USER_HOME=${CONAN_USER_HOME}`
     CONAN_HOME=${CONAN_HOME} `
     UV_INDEX_STRATEGY=unsafe-best-match
 
+LABEL purpose=ci
