@@ -519,20 +519,21 @@ def call(){
                             stage('Setup'){
                                 stages{
                                     stage('Setup Testing Environment'){
+                                        environment{
+                                            CFLAGS='--coverage -fprofile-arcs -ftest-coverage'
+                                            LFLAGS='-lgcov --coverage'
+                                        }
                                         steps{
                                             retry(3){
                                                 script{
                                                     try{
                                                         sh(
                                                             label: 'Create virtual environment',
-                                                            script: '''python3 -m venv bootstrap_uv
-                                                                       bootstrap_uv/bin/pip install --disable-pip-version-check uv
-                                                                       bootstrap_uv/bin/uv venv venv
-                                                                       . ./venv/bin/activate
-                                                                       bootstrap_uv/bin/uv pip install uv
-                                                                       rm -rf bootstrap_uv
-                                                                       uv sync --group ci --no-install-project
-                                                                       '''
+                                                            script: '''mkdir -p build/python
+                                                                       build-wrapper-linux --out-dir build/build_wrapper_output_directory uv sync --group ci --refresh-package=uiucprescon-ocr
+                                                                       mkdir -p logs
+                                                                       mkdir -p reports
+                                                                    '''
                                                        )
                                                     } catch(e){
                                                         cleanWs(
@@ -547,25 +548,6 @@ def call(){
                                                         raise e
                                                     }
                                                 }
-                                            }
-                                        }
-                                    }
-                                    stage('Installing project as editable module'){
-                                        environment{
-                                            CFLAGS='--coverage -fprofile-arcs -ftest-coverage'
-                                            LFLAGS='-lgcov --coverage'
-                                        }
-                                        steps{
-                                            timeout(10){
-                                                sh(
-                                                    label: 'Build python package',
-                                                    script: '''mkdir -p build/python
-                                                               mkdir -p logs
-                                                               mkdir -p reports
-                                                               . ./.venv/bin/activate
-                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --verbose -e .
-                                                               '''
-                                                )
                                             }
                                         }
                                     }
@@ -603,8 +585,8 @@ def call(){
                                         steps{
                                             sh(
                                                 label: 'Building C++ project for metrics',
-                                                script: '''./.venv/bin/conan install conanfile.py -of build/cpp --build=missing -pr:b=default
-                                                           ./.venv/bin/cmake --preset conan-release -B build/cpp \
+                                                script: '''uv run conan install conanfile.py -of build/cpp --build=missing -pr:b=default
+                                                           uv run cmake --preset conan-release -B build/cpp \
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                             -DCMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
@@ -650,7 +632,7 @@ def call(){
                                             stage('Audit Lockfile Dependencies'){
                                                 steps{
                                                     catchError(buildResult: 'SUCCESS', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                        sh './venv/bin/uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                        sh 'uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
                                                     }
                                                 }
                                             }
@@ -672,9 +654,7 @@ def call(){
                                                 steps{
                                                     sh(
                                                         label: 'Running CTest',
-                                                        script: '''. ./.venv/bin/activate
-                                                                   cd build/cpp && ctest --output-on-failure --no-compress-output -T Test
-                                                                ''',
+                                                        script: 'cd build/cpp && uv run ctest --output-on-failure --no-compress-output -T Test',
                                                         returnStatus: true
                                                     )
 
