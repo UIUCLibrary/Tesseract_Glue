@@ -129,14 +129,6 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                 }
                                                             } finally {
                                                                 sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                        [pattern: '.tox/', type: 'INCLUDE'],
-                                                                        [pattern: 'dist/', type: 'INCLUDE'],
-                                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                        ]
-                                                                )
                                                             }
                                                         }
                                                     }
@@ -255,38 +247,27 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                     stage("Python ${pythonVersion} MacOS ${arch}"){
                                         if(selectedArches.contains(arch)){
                                             stage("Build Wheel (${pythonVersion} ${arch}"){
-                                                buildPythonPkg(
-                                                    agent: [
-                                                        label: "mac && python${pythonVersion} && ${arch}",
-                                                    ],
-                                                    retries: 3,
-                                                    buildCmd: {
-                                                        sh(label: 'Building wheel',
-                                                           script: "scripts/build_mac_wheel.sh . --python-version=${pythonVersion}"
-                                                        )
-                                                    },
-                                                    post:[
-                                                        cleanup: {
-                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                        },
-                                                        success: {
+                                                node("mac && python${pythonVersion} && ${arch}"){
+                                                    checkout scm
+                                                    retry(3){
+                                                        try{
+                                                            sh(label: 'Building wheel',
+                                                               script: "scripts/build_mac_wheel.sh . --python-version=${pythonVersion}"
+                                                            )
                                                             stash includes: 'dist/*.whl', name: "python${pythonVersion} ${arch} mac wheel"
                                                             wheelStashes << "python${pythonVersion} ${arch} mac wheel"
+                                                        } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                         }
-                                                    ]
-                                                )
+                                                    }
+                                                }
                                             }
                                             if(testPackages == true){
                                                 stage("Test Wheel (${pythonVersion} MacOS ${arch})"){
-                                                    testPythonPkg(
-                                                        agent: [
-                                                            label: "mac && python${pythonVersion} && ${arch}",
-                                                        ],
-                                                        testSetup: {
-                                                            checkout scm
-                                                            unstash "python${pythonVersion} ${arch} mac wheel"
-                                                        },
-                                                        testCommand: {
+                                                    node("mac && python${pythonVersion} && ${arch}"){
+                                                        checkout scm
+                                                        unstash "python${pythonVersion} ${arch} mac wheel"
+                                                        try{
                                                             findFiles(glob: 'dist/*.whl').each{
                                                                 sh(label: 'Running Tox',
                                                                    script: """python${pythonVersion} -m venv venv
@@ -297,16 +278,11 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                            """
                                                                 )
                                                             }
-                                                        },
-                                                        post:[
-                                                            cleanup: {
-                                                                sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                            },
-                                                            success: {
-                                                                 archiveArtifacts artifacts: 'dist/*.whl'
-                                                            }
-                                                        ]
-                                                    )
+                                                            archiveArtifacts artifacts: 'dist/*.whl'
+                                                        } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                        }
+                                                    }
                                                 }
                                             }
                                         } else {
@@ -365,44 +341,25 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                         [
                                             "Test Python ${pythonVersion} universal2 Wheel on ${arch} mac": {
                                                 stage("Test Python ${pythonVersion} universal2 Wheel on ${arch} mac"){
-                                                    testPythonPkg(
-                                                        agent: [
-                                                            label: "mac && python${pythonVersion} && ${arch}",
-                                                        ],
-                                                        testSetup: {
-                                                            checkout scm
-                                                            unstash "python${pythonVersion} mac-universal2 wheel"
-                                                        },
-                                                        retries: 3,
-                                                        testCommand: {
+                                                    node("mac && python${pythonVersion} && ${arch}"){
+                                                        checkout scm
+                                                        unstash "python${pythonVersion} mac-universal2 wheel"
+                                                        try{
                                                             findFiles(glob: 'dist/*.whl').each{
                                                                 sh(label: 'Running Tox',
                                                                    script: """python${pythonVersion} -m venv venv
                                                                               trap "rm -rf venv" EXIT
                                                                               ./venv/bin/python -m pip install --disable-pip-version-check uv
                                                                               trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                              CONAN_REVISIONS_ENABLED=1 ./venv/bin/uv run --only-group tox --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                              ./venv/bin/uv run --only-group tox --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
                                                                            """
                                                                 )
                                                             }
-                                                        },
-                                                        post:[
-                                                            cleanup: {
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                                                            [pattern: '.tox/', type: 'INCLUDE'],
-                                                                        ],
-                                                                    notFailBuild: true,
-                                                                    deleteDirs: true
-                                                                )
-                                                            },
-                                                            success: {
-                                                                 archiveArtifacts artifacts: 'dist/*.whl'
-                                                            }
-                                                        ]
-                                                    )
+                                                            archiveArtifacts artifacts: 'dist/*.whl'
+                                                        } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                        }
+                                                    }
                                                 }
                                             }
                                         ]
