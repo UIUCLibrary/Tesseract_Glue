@@ -607,7 +607,7 @@ def call(){
                                                         sh(
                                                             label: 'Running pytest',
                                                             script: '''mkdir -p reports/pytestcoverage
-                                                                       uv run coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
+                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                                        '''
                                                         )
                                                     }
@@ -641,7 +641,7 @@ def call(){
                                                 steps{
                                                     tee('logs/clang-tidy.log') {
                                                         catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
-                                                            sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./uiucprescon/ocr')
+                                                            sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./src/uiucprescon/ocr')
                                                         }
                                                     }
                                                 }
@@ -663,7 +663,7 @@ def call(){
                                                         label: 'Running cpp tests',
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
-                                                    sh 'mkdir -p reports/coverage && uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml'
+                                                    sh 'mkdir -p reports/coverage && uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml'
                                                 }
                                                 post{
                                                     always{
@@ -693,7 +693,7 @@ def call(){
                                                         catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
                                                             sh(
                                                                 label: 'Running Flake8',
-                                                                script: 'uv run flake8 uiucprescon --tee --output-file logs/flake8.log'
+                                                                script: 'uv run flake8 src --tee --output-file logs/flake8.log'
                                                             )
                                                         }
                                                     }
@@ -708,9 +708,9 @@ def call(){
                                                 steps{
                                                     sh(
                                                         label: 'Running MyPy',
-                                                        script: '''uv run stubgen uiucprescon -o mypy_stubs
+                                                        script: '''uv run stubgen src -o mypy_stubs
                                                                    mkdir -p reports/mypy/html
-                                                                   MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                                   MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy src --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
                                                                 '''
                                                     )
                                                 }
@@ -727,7 +727,7 @@ def call(){
                                                         sh(label: 'Running pylint',
                                                             script: '''mkdir -p logs
                                                                        mkdir -p reports
-                                                                       uv run pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
+                                                                       uv run pylint src -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
                                                                     '''
 
                                                         )
@@ -751,8 +751,8 @@ def call(){
                                                               uv run coverage combine
                                                               mkdir -p reports/coverage
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
-                                                              uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
+                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
+                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
                                                               uv run gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --xml -o reports/coverage_cpp.xml --sonarqube -o reports/coverage/coverage_cpp_sonar.xml
                                                               '''
                                                     )

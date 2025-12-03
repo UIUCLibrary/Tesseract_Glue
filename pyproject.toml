@@ -68,6 +68,7 @@ ci = [
 packages = [
     "uiucprescon.ocr"
 ]
+package-dir = {"uiucprescon.ocr" = "src/uiucprescon/ocr"}
 include-package-data = false
 zip-safe = false
 
@@ -180,6 +181,8 @@ PYTHONFAULTHANDLER="True"
 [localbuilder]
 conanfile = 'conanfile.py'
 
+[tool.mypy]
+mypy_path = "src"
 
 [tool.pylint]
 extension-pkg-allow-list="uiucprescon.ocr.tesseractwrap"
