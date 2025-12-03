@@ -481,6 +481,7 @@ def call(){
             booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'Run checks on code')
             booleanParam(name: 'TEST_RUN_TOX', defaultValue: false, description: 'Run Tox Tests')
             booleanParam(name: 'USE_SONARQUBE', defaultValue: true, description: 'Send data test data to SonarQube')
+            credentials(name: 'SONARCLOUD_TOKEN', credentialType: 'org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl', defaultValue: 'sonarcloud_token', required: false)
             booleanParam(name: 'BUILD_PACKAGES', defaultValue: false, description: 'Build Python packages')
             booleanParam(name: 'INCLUDE_MACOS_ARM', defaultValue: false, description: 'Include ARM(m1) architecture for Mac')
             booleanParam(name: 'INCLUDE_MACOS_X86_64', defaultValue: false, description: 'Include x86_64 architecture for Mac')
@@ -519,20 +520,21 @@ def call(){
                             stage('Setup'){
                                 stages{
                                     stage('Setup Testing Environment'){
+                                        environment{
+                                            CFLAGS='--coverage -fprofile-arcs -ftest-coverage'
+                                            LFLAGS='-lgcov --coverage'
+                                        }
                                         steps{
                                             retry(3){
                                                 script{
                                                     try{
                                                         sh(
                                                             label: 'Create virtual environment',
-                                                            script: '''python3 -m venv bootstrap_uv
-                                                                       bootstrap_uv/bin/pip install --disable-pip-version-check uv
-                                                                       bootstrap_uv/bin/uv venv venv
-                                                                       . ./venv/bin/activate
-                                                                       bootstrap_uv/bin/uv pip install uv
-                                                                       rm -rf bootstrap_uv
-                                                                       uv sync --group ci --no-install-project
-                                                                       '''
+                                                            script: '''mkdir -p build/python
+                                                                       build-wrapper-linux --out-dir build/build_wrapper_output_directory uv sync --group ci --refresh-package=uiucprescon-ocr
+                                                                       mkdir -p logs
+                                                                       mkdir -p reports
+                                                                    '''
                                                        )
                                                     } catch(e){
                                                         cleanWs(
@@ -547,25 +549,6 @@ def call(){
                                                         raise e
                                                     }
                                                 }
-                                            }
-                                        }
-                                    }
-                                    stage('Installing project as editable module'){
-                                        environment{
-                                            CFLAGS='--coverage -fprofile-arcs -ftest-coverage'
-                                            LFLAGS='-lgcov --coverage'
-                                        }
-                                        steps{
-                                            timeout(10){
-                                                sh(
-                                                    label: 'Build python package',
-                                                    script: '''mkdir -p build/python
-                                                               mkdir -p logs
-                                                               mkdir -p reports
-                                                               . ./.venv/bin/activate
-                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory uv pip install --verbose -e .
-                                                               '''
-                                                )
                                             }
                                         }
                                     }
@@ -603,8 +586,8 @@ def call(){
                                         steps{
                                             sh(
                                                 label: 'Building C++ project for metrics',
-                                                script: '''./.venv/bin/conan install conanfile.py -of build/cpp --build=missing -pr:b=default
-                                                           ./.venv/bin/cmake --preset conan-release -B build/cpp \
+                                                script: '''uv run conan install conanfile.py -of build/cpp --build=missing -pr:b=default
+                                                           uv run cmake --preset conan-release -B build/cpp \
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                             -DCMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
@@ -650,7 +633,7 @@ def call(){
                                             stage('Audit Lockfile Dependencies'){
                                                 steps{
                                                     catchError(buildResult: 'SUCCESS', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                        sh './venv/bin/uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                        sh 'uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
                                                     }
                                                 }
                                             }
@@ -672,9 +655,7 @@ def call(){
                                                 steps{
                                                     sh(
                                                         label: 'Running CTest',
-                                                        script: '''. ./.venv/bin/activate
-                                                                   cd build/cpp && ctest --output-on-failure --no-compress-output -T Test
-                                                                ''',
+                                                        script: 'cd build/cpp && uv run ctest --output-on-failure --no-compress-output -T Test',
                                                         returnStatus: true
                                                     )
 
@@ -987,7 +968,9 @@ def call(){
                                                             def image
                                                             checkout scm
                                                             lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
-                                                                image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                retry(2){
+                                                                    image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                }
                                                             }
                                                             try{
                                                                 try{
