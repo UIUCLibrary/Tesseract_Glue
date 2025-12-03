@@ -186,3 +186,13 @@ mypy_path = "src"
 
 [tool.pylint]
 extension-pkg-allow-list="uiucprescon.ocr.tesseractwrap"
+
+[tool.uv]
+cache-keys = [
+    { file = "pyproject.toml" },
+    { file = "conanfile.py" },
+    { file = "setup.py" },
+    { file = "src/**/CMakeLists.txt" },
+    { file = "src/**/*.h" },
+    { file = "src/**/*.cpp" },
+]
