@@ -81,6 +81,8 @@ ARG CONAN_HOME
 ARG CONAN_USER_HOME
 ENV CONAN_USER_HOME=${CONAN_USER_HOME} \
     CONAN_HOME=${CONAN_HOME}
+
 COPY --from=conan_builder ${CONAN_HOME}/ ${CONAN_HOME}/
+COPY ci/docker/linux/package/make-wheel.sh /usr/local/bin/make-wheel
 
 LABEL purpose=ci

@@ -46,8 +46,8 @@ generate_wheel(){
     local docker_image_name_to_use=$2
     local python_versions_to_use=("${@:3}")
     declare -A platform_images
-    platform_images['linux/amd64']='quay.io/pypa/manylinux2014_x86_64'
-    platform_images['linux/arm64']='quay.io/pypa/manylinux2014_aarch64'
+    platform_images['linux/amd64']='quay.io/pypa/manylinux2014'
+    platform_images['linux/arm64']='quay.io/pypa/manylinux2014'
     supported_platforms=("${!platform_images[@]}")
     found=0
 
@@ -81,52 +81,13 @@ generate_wheel(){
     echo "Building wheels for Python versions: ${python_versions_to_use[*]}"
     CONTAINER_WORKSPACE=/tmp/workspace
 
-    COMMAND="echo 'Making a shadow copy to prevent modifying local files' && \
-            prune_expr=() && \
-            for name in "${SKIP_DIRS_NAMED[@]}"; do \
-                prune_expr+=(-name \"\$name\" -type d -prune -o); \
-            done && \
-            mkdir -p ${CONTAINER_WORKSPACE} && \
-            (cd /project/ && \
-            find . \"\${prune_expr[@]}\" -type d -print | while read -r dir; do \
-                mkdir -p \"${CONTAINER_WORKSPACE}/\$dir\"
-            done && \
-            find . \"\${prune_expr[@]}\" \( -type f -o -type l \) -print | while read -r file; do \
-                echo \"\$file\"
-                ln -sf "/project/\$file" \"${CONTAINER_WORKSPACE}/\$file\"
-            done) && \
-            for f in "${REMOVE_FILES_FIRST[@]}"; do
-                OFFENDING_FILE=${CONTAINER_WORKSPACE}/\$f
-                if [ -f \"\$OFFENDING_FILE\" ]; then
-                  echo \"Removing copy from temporary working path to avoid issues: \$OFFENDING_FILE\";
-                  rm \$OFFENDING_FILE;
-                fi; \
-            done && \
-            echo 'Removing Python cache files' && \
-            find ${CONTAINER_WORKSPACE} -type d -name '__pycache__' -exec rm -rf {} + && \
-            find ${CONTAINER_WORKSPACE} -type f -name '*.pyc' -exec rm -f {} + && \
-            for i in "${python_versions_to_use[@]}"; do
-                echo \"Creating wheel for Python version: \$i\";
-                uv build --python=\$i --python-preference=system --wheel --out-dir=/tmp/dist ${CONTAINER_WORKSPACE};
-                if [ \$? -ne 0 ]; then
-                  echo \"Failed to build wheel for Python \$i\";
-                  exit 1;
-                fi; \
-            done && \
-            echo 'Fixing up wheels' && \
-            auditwheel -v repair /tmp/dist/*.whl -w /dist/;
-            for file in /dist/*manylinux*.whl; do
-                auditwheel show \$file
-            done && \
-            echo 'Done'
-            "
     docker run --rm \
         --platform=$platform \
         -v "$PROJECT_ROOT":/project:ro \
         -v $OUTPUT_PATH:/dist \
         --entrypoint="/bin/bash" \
         $docker_image_name_to_use \
-        -c "$COMMAND"
+        make-wheel /project ${python_versions_to_use[@]}
     echo "Built wheel can be found in '$OUTPUT_PATH'"
 }
 
