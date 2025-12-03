@@ -99,7 +99,7 @@ branch = true
 
 [tool.coverage.paths]
 source = [
-    "uiucprescon/"
+    "src/"
 ]
 
 [tool.coverage.report]
