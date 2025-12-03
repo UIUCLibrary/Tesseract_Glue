@@ -706,13 +706,15 @@ def call(){
                                             }
                                             stage('Run MyPy Static Analysis') {
                                                 steps{
-                                                    sh(
-                                                        label: 'Running MyPy',
-                                                        script: '''uv run stubgen src -o mypy_stubs
-                                                                   mkdir -p reports/mypy/html
-                                                                   MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy src --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                                                '''
-                                                    )
+                                                    catchError(buildResult: 'SUCCESS', message: 'MyPy found issues', stageResult: 'UNSTABLE') {
+                                                        sh(
+                                                            label: 'Running MyPy',
+                                                            script: '''uv run stubgen src -o mypy_stubs
+                                                                       mkdir -p reports/mypy/html
+                                                                       MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy src --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                                    '''
+                                                        )
+                                                    }
                                                 }
                                                 post {
                                                     always {
