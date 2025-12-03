@@ -4,7 +4,8 @@ requires = [
     'wheel',
     'conan>=2.0',
     'cmake<4.0',
-    'uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.2.9/uiucprescon_build-0.2.9-py3-none-any.whl'
+    "pybind11>=2.13",
+    "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl",
 ]
 build-backend = "uiucprescon.build"
 

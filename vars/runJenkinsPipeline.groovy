@@ -465,9 +465,9 @@ def call(){
        ])
     def wheelStashes = []
     def SONARQUBE_CREDENTIAL_ID = 'sonarcloud_token'
-    def SUPPORTED_MAC_VERSIONS = ['3.10', '3.11', '3.12', '3.13']
-    def SUPPORTED_LINUX_VERSIONS = ['3.10', '3.11', '3.12', '3.13']
-    def SUPPORTED_WINDOWS_VERSIONS = ['3.10', '3.11', '3.12', '3.13']
+    def SUPPORTED_MAC_VERSIONS = ['3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
+    def SUPPORTED_LINUX_VERSIONS = ['3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
+    def SUPPORTED_WINDOWS_VERSIONS = ['3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
 
     def DEFAULT_PARAMETER_VALUES = [
         USE_SONARQUBE: true

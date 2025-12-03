@@ -8,12 +8,12 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-PYBIND11_MODULE(tesseractwrap, m){
+PYBIND11_MODULE(tesseractwrap, m,  pybind11::mod_gil_not_used()){
     pybind11::options options;
     options.enable_function_signatures();
     m.doc() = R"pbdoc(Wrapper to Tesseract's C++ API)pbdoc";
 
-    // the classes need to before the  functions otherwise you get an generic_type is already registered error
+    // the classes need to be declared before the functions, otherwise you get a generic_type is already registered error
     pybind11::class_<Image, std::shared_ptr<Image>>(m, "Image", pybind11::module_local())
             .def_property_readonly("w", &Image::get_w)
             .def_property_readonly("h", &Image::get_h);
