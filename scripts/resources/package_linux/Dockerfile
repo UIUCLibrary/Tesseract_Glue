@@ -14,13 +14,9 @@ FROM ${manylinux_image} AS base_python
 RUN --mount=type=cache,target=/var/cache/yum \
     yum install -y lndir
 
-# This needed to use uvx with --constraint option
-RUN --mount=type=cache,target=/path/to/pipx/cache \
-    pipx install "uv>=0.6.5" --force
-
-ENV PATH=/opt/python/cp311-cp311/bin:/opt/python/cp310-cp310/bin:/opt/python/cp39-cp39/bin:/opt/python/cp38-cp38/bin:/opt/python/cp37-cp37m/bin:/opt/python/cp36-cp36m/bin:/opt/python/cp35-cp35m/bin:$PATH
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
+
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ARG CONAN_USER_HOME
@@ -49,7 +45,7 @@ RUN --mount=type=cache,target=/var/cache/yum \
 ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
 ARG CONAN_HOME
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
-COPY ci/docker/linux/package/conan/profile.ini ${CONAN_HOME}/profiles/default
+COPY scripts/resources/package_linux/conan/profile.ini ${CONAN_HOME}/profiles/default
 ARG CONAN_CENTER_PROXY_V2_URL
 ARG UV_CACHE_DIR
 ARG PIP_CACHE_DIR
@@ -83,6 +79,6 @@ ENV CONAN_USER_HOME=${CONAN_USER_HOME} \
     CONAN_HOME=${CONAN_HOME}
 
 COPY --from=conan_builder ${CONAN_HOME}/ ${CONAN_HOME}/
-COPY ci/docker/linux/package/make-wheel.sh /usr/local/bin/make-wheel
+COPY scripts/resources/package_linux/make-wheel.sh /usr/local/bin/make-wheel
 
 LABEL purpose=ci

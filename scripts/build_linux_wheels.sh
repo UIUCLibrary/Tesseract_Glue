@@ -4,7 +4,7 @@ set -e
 scriptDir=$(dirname -- "$(readlink -f -- "$BASH_SOURCE")")
 PROJECT_ROOT=$(realpath "$scriptDir/..")
 DEFAULT_PYTHON_VERSION="3.10"
-DOCKERFILE=$(realpath "$scriptDir/../ci/docker/linux/package/Dockerfile")
+DOCKERFILE=$(realpath "$scriptDir/resources/package_linux/Dockerfile")
 DEFAULT_DOCKER_IMAGE_NAME="uiucprescon_ocr_builder"
 OUTPUT_PATH="$PROJECT_ROOT/dist"
 SKIP_DIRS_NAMED=(\

@@ -89,7 +89,7 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                         retry(retryTimes){
                                                             try{
                                                                 checkout scm
-                                                                sh(label:'Build Linux Wheel', script: "contrib/build_linux_wheels.sh --python-version ${pythonVersion} --docker-image-name ${dockerImageName}")
+                                                                sh(label:'Build Linux Wheel', script: "scripts/build_linux_wheels.sh --python-version ${pythonVersion} --docker-image-name ${dockerImageName}")
                                                                 stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux - ${arch} - wheel"
                                                                 wheelStashes << "python${pythonVersion} linux - ${arch} - wheel"
                                                                 archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
@@ -179,7 +179,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                             retry(retryTimes){
                                                 checkout scm
                                                 try{
-                                                    powershell(label: 'Building Wheel for Windows', script: "contrib/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName} -UVCacheDirPathInContainer \$ENV:UV_CACHE_DIR -PIPDowndloadCachePathInContainer \$ENV:PIP_CACHE_DIR -UVPythonInstallDirPathInContainer \$Env:UV_PYTHON_INSTALL_DIR -UVToolDirPathInContainer \$Env:UV_TOOL_DIR")
+                                                    powershell(label: 'Building Wheel for Windows', script: "scripts/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName} -UVCacheDirPathInContainer \$ENV:UV_CACHE_DIR -PIPDowndloadCachePathInContainer \$ENV:PIP_CACHE_DIR -UVPythonInstallDirPathInContainer \$Env:UV_PYTHON_INSTALL_DIR -UVToolDirPathInContainer \$Env:UV_TOOL_DIR")
                                                     stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                                     wheelStashes << "python${pythonVersion} windows wheel"
                                                 } catch (e){
@@ -262,7 +262,7 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     retries: 3,
                                                     buildCmd: {
                                                         sh(label: 'Building wheel',
-                                                           script: "contrib/build_mac_wheel.sh . --python-version=${pythonVersion}"
+                                                           script: "scripts/build_mac_wheel.sh . --python-version=${pythonVersion}"
                                                         )
                                                     },
                                                     post:[
@@ -969,7 +969,7 @@ def call(){
                                                             checkout scm
                                                             lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
                                                                 retry(2){
-                                                                    image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                    image = docker.build(UUID.randomUUID().toString(), '-f scripts/resources/windows/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                                 }
                                                             }
                                                             try{
@@ -1189,7 +1189,7 @@ def call(){
                                                                            def retryTimes = 3
                                                                            retry(retryTimes){
                                                                                lock("docker build-${env.NODE_NAME}"){
-                                                                                   dockerImage = docker.build(dockerImageName, '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                                   dockerImage = docker.build(dockerImageName, '-f scripts/resources/windows/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                                                }
                                                                            }
                                                                            retry(retryTimes){

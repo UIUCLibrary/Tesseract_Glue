@@ -20,7 +20,7 @@ function Build-DockerImage {
             }
             return $true
         })]
-        [string]$DockerfilePath = "ci/docker/windows/tox/Dockerfile",
+        [string]$DockerfilePath = "scripts/resources/windows/Dockerfile",
         [string]$ImageName = "uiucprescon_ocr_builder",
         [string]$DockerExec = "docker.exe",
         [string]$DockerIsolation = "process"

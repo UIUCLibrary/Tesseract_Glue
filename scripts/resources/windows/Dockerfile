@@ -2,7 +2,7 @@
 
 # NOTICE: This Dockerfile needs to be run from the root of the repository. If you run it from the same location as this
 #         file, it will not work because it needs access to files not in this directory. If you need to build this
-#         Dockerfile directly, use the "docker run" command with the "-f ci/docker/windows/tox/Dockerfile" argument.
+#         Dockerfile directly, use the "docker run" command with the "-f scripts/resources/windows/Dockerfile" argument.
 
 
 ARG FROM_IMAGE=mcr.microsoft.com/dotnet/framework/sdk:4.8.1
@@ -28,8 +28,8 @@ FROM ${FROM_IMAGE} AS base_builder
 
 SHELL ["powershell", "-Command", "$ErrorActionPreference = 'Stop';"]
 
-COPY ci/docker/windows/tox/msvc/visual_studio_config.json c:/setup/config.vsconfig
-COPY ci/docker/windows/tox/msvc/install_msvc.ps1 c:/scripts/install_msvc.ps1
+COPY scripts/resources/windows/msvc/visual_studio_config.json c:/setup/config.vsconfig
+COPY scripts/resources/windows/msvc/install_msvc.ps1 c:/scripts/install_msvc.ps1
 ARG VS_INSTALL_PATH
 ARG VS_VERSION="2022"
 ARG VS_DevCmdArguments="-arch=amd64"
@@ -40,8 +40,8 @@ RUN c:/scripts/install_msvc.ps1 -InstallPath ${Env:VS_INSTALL_PATH} -VSConfigFil
 ARG CHOCOLATEY_SOURCE
 ARG ChocolateyEnvironmentDebug=false
 ARG chocolateyVersion
-COPY ci/docker/windows/tox/chocolatey/install.ps1 c:/choco/install.ps1
-COPY ci/docker/windows/tox/chocolatey/get_latest_chocolatey_url.ps1 c:/choco/get_latest_chocolatey_url.ps1
+COPY scripts/resources/windows/chocolatey/install.ps1 c:/choco/install.ps1
+COPY scripts/resources/windows/chocolatey/get_latest_chocolatey_url.ps1 c:/choco/get_latest_chocolatey_url.ps1
 RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     $chocolateyDownloadUrl = c:/choco/get_latest_chocolatey_url.ps1 -packageRepo $env:CHOCOLATEY_SOURCE; `
     c:/choco/install.ps1 -ChocolateyDownloadUrl $chocolateyDownloadUrl;`
@@ -54,8 +54,8 @@ RUN Set-ExecutionPolicy Bypass -Scope Process -Force; `
     choco feature disable -n=showDownloadProgress ; `
     choco cache remove --confirm
 
-COPY ci/docker/windows/tox/chocolatey/packages.config choco/packages.config
-COPY ci/docker/windows/tox/chocolatey/verifyenv.ps1 c:/verifyenv.ps1
+COPY scripts/resources/windows/chocolatey/packages.config choco/packages.config
+COPY scripts/resources/windows/chocolatey/verifyenv.ps1 c:/verifyenv.ps1
 RUN C:\ProgramData\chocolatey\bin\choco.exe sources ; `
     C:\ProgramData\chocolatey\bin\choco.exe install -y --stoponfirstfailure --no-progress c:/choco/packages.config ;`
     refreshenv ; `
@@ -72,7 +72,7 @@ ARG UV_INDEX_URL
 ARG PIP_EXTRA_INDEX_URL
 ARG PIP_INDEX_URL
 ARG CONAN_HOME
-COPY ci/docker/windows/tox/conan/profile.ini  ${CONAN_HOME}/profiles/default
+COPY scripts/resources/windows/conan/profile.ini  ${CONAN_HOME}/profiles/default
 COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 
 COPY conanfile.py pyproject.toml uv.lock conan.lock c:/temp/
