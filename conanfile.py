@@ -10,6 +10,10 @@ class TesseractBindConan(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     generators = ["CMakeToolchain", "CMakeDeps"]
 
+
+    def build_requirements(self):
+        self.test_requires('catch2/3.11.0')
+
     def requirements(self):
         self.requires("libjpeg/9f", override=True)
 

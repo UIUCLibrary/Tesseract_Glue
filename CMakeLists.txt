@@ -10,6 +10,8 @@ set(CMAKE_INSTALL_OPENMP_LIBRARIES TRUE)
 set(CMAKE_INSTALL_SYSTEM_RUNTIME_DESTINATION uiucprescon/ocr/tesseract/bin)
 include(InstallRequiredSystemLibraries)
 find_package(Tesseract REQUIRED)
+find_package(Catch2)
+
 set(CMAKE_CXX_STANDARD 14)
 # If google isn't going to make importable targets, then I am
 if(NOT TARGET Tesseract::Tesseract)
@@ -27,8 +29,9 @@ include(FetchContent)
 
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)
 FetchContent_Declare(libpybind11
-        URL https://github.com/pybind/pybind11/archive/v2.7.1.tar.gz
-        URL_HASH SHA1=8ddca54a17e646aa3e42488b0a0cb250f8b8ed83
+        URL https://github.com/pybind/pybind11/archive/refs/tags/v2.13.6.tar.gz
+        URL_HASH SHA1=8c7e3e8fec829ced31a495dec281153511f33c63
+        DOWNLOAD_EXTRACT_TIMESTAMP true
         )
 
 FetchContent_GetProperties(libpybind11)
