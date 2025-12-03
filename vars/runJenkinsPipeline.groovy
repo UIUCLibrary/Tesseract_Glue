@@ -481,6 +481,7 @@ def call(){
             booleanParam(name: 'RUN_CHECKS', defaultValue: true, description: 'Run checks on code')
             booleanParam(name: 'TEST_RUN_TOX', defaultValue: false, description: 'Run Tox Tests')
             booleanParam(name: 'USE_SONARQUBE', defaultValue: true, description: 'Send data test data to SonarQube')
+            credentials(name: 'SONARCLOUD_TOKEN', credentialType: 'org.jenkinsci.plugins.plaincredentials.impl.StringCredentialsImpl', defaultValue: 'sonarcloud_token', required: false)
             booleanParam(name: 'BUILD_PACKAGES', defaultValue: false, description: 'Build Python packages')
             booleanParam(name: 'INCLUDE_MACOS_ARM', defaultValue: false, description: 'Include ARM(m1) architecture for Mac')
             booleanParam(name: 'INCLUDE_MACOS_X86_64', defaultValue: false, description: 'Include x86_64 architecture for Mac')
