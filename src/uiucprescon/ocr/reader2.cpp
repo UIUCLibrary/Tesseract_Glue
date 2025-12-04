@@ -1,7 +1,8 @@
 #include "Image.h"
 #include "fileLoader.h"
-#include "glueExceptions.h"
 #include "reader2.h"
+#include <algorithm>
+#include <cctype>
 #include <iostream>
 #include <memory>
 #include <string>
@@ -9,7 +10,7 @@
 using std::endl;
 using std::cerr;
 
-static  bool string_contains_no_text(const std::string &);
+static bool string_contains_no_text(const std::string &str);
 
 Reader2::Reader2(const std::string &tessdata, const std::string &lang):
     language(lang),
@@ -46,11 +47,5 @@ std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
 }
 
 static bool string_contains_no_text(const std::string &str) {
-
-    for (const char &ch : str) {
-        if (!std::isspace(static_cast<unsigned char>(ch))) {
-            return false;
-        }
-    }
-    return true;
+    return std::all_of(std::begin(str), std::end(str), [](const char character) { return std::isspace(character); });
 }

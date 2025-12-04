@@ -6,9 +6,11 @@
 #define OCR_IMAGELOADERSTRATEGIES_H
 
 #include <leptonica/allheaders.h>
-
+#include <memory>
 #include <string>
-#include "Image.h"
+
+class Image;
+
 class abcImageLoaderStrategy {
 
 public:
@@ -16,8 +18,7 @@ public:
     virtual std::shared_ptr<Image> load(const std::string &filename) = 0;
 };
 
-class ImageLoaderStrategyStandard : public abcImageLoaderStrategy {
-private:
+class ImageLoaderStrategyStandard final : public abcImageLoaderStrategy {
     static void freePix(Pix *src);
 public:
     std::shared_ptr<Image> load(const std::string &filename) override;
