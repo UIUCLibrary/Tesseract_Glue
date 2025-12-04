@@ -3,10 +3,8 @@
 //
 #include "Capabilities.h"
 #include <leptonica/allheaders.h>
-#include <memory>
 #include <string>
 
-std::string Capabilities::ImagelibVersions() {
-    const std::unique_ptr<char> ptr(getImagelibVersions(), std::default_delete<char>());
-    return std::string(ptr.get());
+std::string Capabilities::ImagelibVersions() noexcept {
+    return std::string(getImagelibVersions());
 }
