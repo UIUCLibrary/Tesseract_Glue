@@ -736,7 +736,7 @@ def call(){
                                                               uv run coverage combine
                                                               mkdir -p reports/coverage
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json build/temp/src/uiucprescon/ocr
+                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
                                                               uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
                                                               uv run gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --sonarqube reports/coverage_cpp_sonar.xml
                                                               '''
