@@ -573,8 +573,8 @@ def call(){
                                                            uv run cmake --preset conan-release -B build/cpp \
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
-                                                            -DCMAKE_C_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
-                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
                                                             -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
                                                             -DCMAKE_MODULE_PATH=./build/cpp
                                                            make -C build/cpp clean tester
@@ -646,7 +646,10 @@ def call(){
                                                         label: 'Running cpp tests',
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
-                                                    sh 'mkdir -p reports/coverage && uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml'
+                                                    sh '''mkdir -p reports/coverage
+                                                          uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json reports/coverage/coverage_cpp_tests.json --txt reports/coverage/text_cpp_tests_summary.txt
+                                                          cat reports/coverage/text_cpp_tests_summary.txt
+                                                          '''
                                                 }
                                                 post{
                                                     always{
@@ -736,9 +739,9 @@ def call(){
                                                               uv run coverage combine
                                                               mkdir -p reports/coverage
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json build/temp/src/uiucprescon/ocr
-                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
-                                                              uv run gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --sonarqube reports/coverage_cpp_sonar.xml
+                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension_tests.json
+                                                              uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
+                                                              cat reports/coverage/text_merged_summary.txt
                                                               '''
                                                     )
                                                 recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage/*.xml']])
@@ -777,17 +780,13 @@ def call(){
                                                 def props = readTOML( file: 'pyproject.toml')['project']
                                                 withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
                                                     withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'token')]) {
-                                                        if (env.CHANGE_ID){
-                                                            sh(
-                                                                label: 'Running Sonar Scanner',
-                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.coverageReportPaths=reports/coverage_cpp_sonar.xml"
-                                                            )
-                                                        } else {
-                                                            sh(
-                                                                label: 'Running Sonar Scanner',
-                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.coverageReportPaths=reports/coverage_cpp_sonar.xml"
-                                                           )
-                                                        }
+                                                        sh(
+                                                            label: 'Running Sonar Scanner',
+                                                            script: 'uv run pysonar -t $token ' +
+                                                                    "-Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" " +
+                                                                    (env.CHANGE_ID ? '-Dsonar.pullrequest.key=$CHANGE_ID -Dsonar.pullrequest.base=$CHANGE_TARGET' : '-Dsonar.branch.name=$BRANCH_NAME') +
+                                                                    ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml'
+                                                        )
                                                     }
                                                 }
                                                 timeout(time: 1, unit: 'HOURS') {
