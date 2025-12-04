@@ -41,6 +41,6 @@ if (NOT libpybind11_POPULATED)
     add_subdirectory(${libpybind11_SOURCE_DIR} ${libpybind11_BINARY_DIR})
 endif ()
 
-add_subdirectory(uiucprescon/ocr)
+add_subdirectory(src/uiucprescon/ocr)
 include(CTest)
 add_subdirectory(tests)

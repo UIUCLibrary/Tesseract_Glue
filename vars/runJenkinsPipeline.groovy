@@ -89,7 +89,7 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                         retry(retryTimes){
                                                             try{
                                                                 checkout scm
-                                                                sh(label:'Build Linux Wheel', script: "contrib/build_linux_wheels.sh --python-version ${pythonVersion} --docker-image-name ${dockerImageName}")
+                                                                sh(label:'Build Linux Wheel', script: "scripts/build_linux_wheels.sh --python-version ${pythonVersion} --docker-image-name ${dockerImageName}")
                                                                 stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux - ${arch} - wheel"
                                                                 wheelStashes << "python${pythonVersion} linux - ${arch} - wheel"
                                                                 archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
@@ -129,14 +129,6 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                 }
                                                             } finally {
                                                                 sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                        [pattern: '.tox/', type: 'INCLUDE'],
-                                                                        [pattern: 'dist/', type: 'INCLUDE'],
-                                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                        ]
-                                                                )
                                                             }
                                                         }
                                                     }
@@ -179,7 +171,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                             retry(retryTimes){
                                                 checkout scm
                                                 try{
-                                                    powershell(label: 'Building Wheel for Windows', script: "contrib/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName} -UVCacheDirPathInContainer \$ENV:UV_CACHE_DIR -PIPDowndloadCachePathInContainer \$ENV:PIP_CACHE_DIR -UVPythonInstallDirPathInContainer \$Env:UV_PYTHON_INSTALL_DIR -UVToolDirPathInContainer \$Env:UV_TOOL_DIR")
+                                                    powershell(label: 'Building Wheel for Windows', script: "scripts/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName} -UVCacheDirPathInContainer \$ENV:UV_CACHE_DIR -PIPDowndloadCachePathInContainer \$ENV:PIP_CACHE_DIR -UVPythonInstallDirPathInContainer \$Env:UV_PYTHON_INSTALL_DIR -UVToolDirPathInContainer \$Env:UV_TOOL_DIR")
                                                     stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                                     wheelStashes << "python${pythonVersion} windows wheel"
                                                 } catch (e){
@@ -255,38 +247,27 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                     stage("Python ${pythonVersion} MacOS ${arch}"){
                                         if(selectedArches.contains(arch)){
                                             stage("Build Wheel (${pythonVersion} ${arch}"){
-                                                buildPythonPkg(
-                                                    agent: [
-                                                        label: "mac && python${pythonVersion} && ${arch}",
-                                                    ],
-                                                    retries: 3,
-                                                    buildCmd: {
-                                                        sh(label: 'Building wheel',
-                                                           script: "contrib/build_mac_wheel.sh . --python-version=${pythonVersion}"
-                                                        )
-                                                    },
-                                                    post:[
-                                                        cleanup: {
-                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                        },
-                                                        success: {
+                                                node("mac && python${pythonVersion} && ${arch}"){
+                                                    checkout scm
+                                                    retry(3){
+                                                        try{
+                                                            sh(label: 'Building wheel',
+                                                               script: "scripts/build_mac_wheel.sh . --python-version=${pythonVersion}"
+                                                            )
                                                             stash includes: 'dist/*.whl', name: "python${pythonVersion} ${arch} mac wheel"
                                                             wheelStashes << "python${pythonVersion} ${arch} mac wheel"
+                                                        } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                         }
-                                                    ]
-                                                )
+                                                    }
+                                                }
                                             }
                                             if(testPackages == true){
                                                 stage("Test Wheel (${pythonVersion} MacOS ${arch})"){
-                                                    testPythonPkg(
-                                                        agent: [
-                                                            label: "mac && python${pythonVersion} && ${arch}",
-                                                        ],
-                                                        testSetup: {
-                                                            checkout scm
-                                                            unstash "python${pythonVersion} ${arch} mac wheel"
-                                                        },
-                                                        testCommand: {
+                                                    node("mac && python${pythonVersion} && ${arch}"){
+                                                        checkout scm
+                                                        unstash "python${pythonVersion} ${arch} mac wheel"
+                                                        try{
                                                             findFiles(glob: 'dist/*.whl').each{
                                                                 sh(label: 'Running Tox',
                                                                    script: """python${pythonVersion} -m venv venv
@@ -297,16 +278,11 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                            """
                                                                 )
                                                             }
-                                                        },
-                                                        post:[
-                                                            cleanup: {
-                                                                sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                            },
-                                                            success: {
-                                                                 archiveArtifacts artifacts: 'dist/*.whl'
-                                                            }
-                                                        ]
-                                                    )
+                                                            archiveArtifacts artifacts: 'dist/*.whl'
+                                                        } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                        }
+                                                    }
                                                 }
                                             }
                                         } else {
@@ -365,44 +341,25 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                         [
                                             "Test Python ${pythonVersion} universal2 Wheel on ${arch} mac": {
                                                 stage("Test Python ${pythonVersion} universal2 Wheel on ${arch} mac"){
-                                                    testPythonPkg(
-                                                        agent: [
-                                                            label: "mac && python${pythonVersion} && ${arch}",
-                                                        ],
-                                                        testSetup: {
-                                                            checkout scm
-                                                            unstash "python${pythonVersion} mac-universal2 wheel"
-                                                        },
-                                                        retries: 3,
-                                                        testCommand: {
+                                                    node("mac && python${pythonVersion} && ${arch}"){
+                                                        checkout scm
+                                                        unstash "python${pythonVersion} mac-universal2 wheel"
+                                                        try{
                                                             findFiles(glob: 'dist/*.whl').each{
                                                                 sh(label: 'Running Tox',
                                                                    script: """python${pythonVersion} -m venv venv
                                                                               trap "rm -rf venv" EXIT
                                                                               ./venv/bin/python -m pip install --disable-pip-version-check uv
                                                                               trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                              CONAN_REVISIONS_ENABLED=1 ./venv/bin/uv run --only-group tox --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                              ./venv/bin/uv run --only-group tox --with tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
                                                                            """
                                                                 )
                                                             }
-                                                        },
-                                                        post:[
-                                                            cleanup: {
-                                                                cleanWs(
-                                                                    patterns: [
-                                                                            [pattern: 'dist/', type: 'INCLUDE'],
-                                                                            [pattern: 'venv/', type: 'INCLUDE'],
-                                                                            [pattern: '.tox/', type: 'INCLUDE'],
-                                                                        ],
-                                                                    notFailBuild: true,
-                                                                    deleteDirs: true
-                                                                )
-                                                            },
-                                                            success: {
-                                                                 archiveArtifacts artifacts: 'dist/*.whl'
-                                                            }
-                                                        ]
-                                                    )
+                                                            archiveArtifacts artifacts: 'dist/*.whl'
+                                                        } finally {
+                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                        }
+                                                    }
                                                 }
                                             }
                                         ]
@@ -465,9 +422,9 @@ def call(){
        ])
     def wheelStashes = []
     def SONARQUBE_CREDENTIAL_ID = 'sonarcloud_token'
-    def SUPPORTED_MAC_VERSIONS = ['3.10', '3.11', '3.12', '3.13']
-    def SUPPORTED_LINUX_VERSIONS = ['3.10', '3.11', '3.12', '3.13']
-    def SUPPORTED_WINDOWS_VERSIONS = ['3.10', '3.11', '3.12', '3.13']
+    def SUPPORTED_MAC_VERSIONS = ['3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
+    def SUPPORTED_LINUX_VERSIONS = ['3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
+    def SUPPORTED_WINDOWS_VERSIONS = ['3.10', '3.11', '3.12', '3.13', '3.14', '3.14t']
 
     def DEFAULT_PARAMETER_VALUES = [
         USE_SONARQUBE: true
@@ -607,7 +564,7 @@ def call(){
                                                         sh(
                                                             label: 'Running pytest',
                                                             script: '''mkdir -p reports/pytestcoverage
-                                                                       uv run coverage run --parallel-mode --source=uiucprescon -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
+                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                                        '''
                                                         )
                                                     }
@@ -641,7 +598,7 @@ def call(){
                                                 steps{
                                                     tee('logs/clang-tidy.log') {
                                                         catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
-                                                            sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./uiucprescon/ocr')
+                                                            sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./src/uiucprescon/ocr')
                                                         }
                                                     }
                                                 }
@@ -663,7 +620,7 @@ def call(){
                                                         label: 'Running cpp tests',
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
-                                                    sh 'mkdir -p reports/coverage && uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml'
+                                                    sh 'mkdir -p reports/coverage && uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary  --xml -o reports/coverage/coverage_cpp.xml'
                                                 }
                                                 post{
                                                     always{
@@ -693,7 +650,7 @@ def call(){
                                                         catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
                                                             sh(
                                                                 label: 'Running Flake8',
-                                                                script: 'uv run flake8 uiucprescon --tee --output-file logs/flake8.log'
+                                                                script: 'uv run flake8 src --tee --output-file logs/flake8.log'
                                                             )
                                                         }
                                                     }
@@ -706,13 +663,15 @@ def call(){
                                             }
                                             stage('Run MyPy Static Analysis') {
                                                 steps{
-                                                    sh(
-                                                        label: 'Running MyPy',
-                                                        script: '''uv run stubgen uiucprescon -o mypy_stubs
-                                                                   mkdir -p reports/mypy/html
-                                                                   MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy -p uiucprescon --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                                                '''
-                                                    )
+                                                    catchError(buildResult: 'SUCCESS', message: 'MyPy found issues', stageResult: 'UNSTABLE') {
+                                                        sh(
+                                                            label: 'Running MyPy',
+                                                            script: '''uv run stubgen src -o mypy_stubs
+                                                                       mkdir -p reports/mypy/html
+                                                                       MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy src --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                                    '''
+                                                        )
+                                                    }
                                                 }
                                                 post {
                                                     always {
@@ -727,7 +686,7 @@ def call(){
                                                         sh(label: 'Running pylint',
                                                             script: '''mkdir -p logs
                                                                        mkdir -p reports
-                                                                       uv run pylint uiucprescon -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
+                                                                       uv run pylint src -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
                                                                     '''
 
                                                         )
@@ -751,8 +710,8 @@ def call(){
                                                               uv run coverage combine
                                                               mkdir -p reports/coverage
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
-                                                              uv run gcovr --root . --filter uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
+                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
+                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
                                                               uv run gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --xml -o reports/coverage_cpp.xml --sonarqube -o reports/coverage/coverage_cpp_sonar.xml
                                                               '''
                                                     )
@@ -969,7 +928,7 @@ def call(){
                                                             checkout scm
                                                             lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
                                                                 retry(2){
-                                                                    image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                    image = docker.build(UUID.randomUUID().toString(), '-f scripts/resources/windows/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                                 }
                                                             }
                                                             try{
@@ -1189,7 +1148,7 @@ def call(){
                                                                            def retryTimes = 3
                                                                            retry(retryTimes){
                                                                                lock("docker build-${env.NODE_NAME}"){
-                                                                                   dockerImage = docker.build(dockerImageName, '-f ci/docker/windows/tox/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                                   dockerImage = docker.build(dockerImageName, '-f scripts/resources/windows/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CHOCOLATEY_SOURCE --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                                                }
                                                                            }
                                                                            retry(retryTimes){

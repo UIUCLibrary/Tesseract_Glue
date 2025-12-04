@@ -39,10 +39,10 @@ Building Portable Python Wheels For Mac
 ---------------------------------------
 
 Since this package links to Tesseract library, to make sure that these files are generated in a portable manner and
-will run on other machines, please use the included shell script (contrib/build_mac_wheel.sh) provided to generate
+will run on other machines, please use the included shell script (scripts/build_mac_wheel.sh) provided to generate
 them.
 
 
 .. code-block:: console
 
-    ./contrib/build_mac_wheel.sh .
+    ./scripts/build_mac_wheel.sh .
