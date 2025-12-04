@@ -18,7 +18,7 @@ Reader::~Reader()
     tess.End();
 }
 
-bool Reader::isGood(){
+bool Reader::isGood() const{
     return this->good;
 }
 
@@ -30,7 +30,7 @@ std::string Reader::get_ocr(const std::string &image_filename){
     Pix *image = pixRead(image_filename.c_str());
 
     tess.SetImage(image);
-    std::string result = std::string(tess.GetUTF8Text());
+    auto result = std::string(tess.GetUTF8Text());
 
     pixDestroy(&image);
     return result;

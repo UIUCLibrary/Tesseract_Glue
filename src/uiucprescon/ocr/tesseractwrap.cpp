@@ -3,8 +3,10 @@
 #include "glueExceptions.h"
 #include "reader2.h"
 #include "utils.h"
-#include <leptonica/allheaders.h>
-#include <map>
+
+#include <memory>
+#include <string>
+
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 

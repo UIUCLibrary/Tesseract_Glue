@@ -7,7 +7,6 @@
 #include <leptonica/alltypes.h>
 #include <memory>
 class Image {
-private:
     std::shared_ptr<Pix> image;
 public:
     explicit Image(std::shared_ptr<Pix> image);
