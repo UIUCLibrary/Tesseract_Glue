@@ -771,13 +771,9 @@ def call(){
                                                     }
                                                     if(env.BRANCH_IS_PRIMARY){
                                                         writeJSON(file: 'reports/sonar-report.json', json: get_sonarqube_unresolved_issues('.sonar/report-task.txt'))
+                                                        recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                                                     }
                                                 }
-                                            }
-                                        }
-                                        post {
-                                            always{
-                                               recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                                             }
                                         }
                                     }
