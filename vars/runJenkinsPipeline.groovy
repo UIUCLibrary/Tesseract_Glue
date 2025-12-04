@@ -176,7 +176,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     wheelStashes << "python${pythonVersion} windows wheel"
                                                 } catch (e){
                                                     powershell('Get-ChildItem Env:')
-                                                    raise e
+                                                    throw e
                                                 } finally {
                                                     bat "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                 }
@@ -503,7 +503,7 @@ def call(){
                                                             notFailBuild: true,
                                                             deleteDirs: true
                                                             )
-                                                        raise e
+                                                        throw e
                                                     }
                                                 }
                                             }
@@ -712,10 +712,10 @@ def call(){
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
                                                               uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension.json
                                                               uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/cpp/_deps/libcatch2-build --print-summary --keep  --json -o reports/coverage/coverage_cpp.json
-                                                              uv run gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --xml -o reports/coverage_cpp.xml --sonarqube -o reports/coverage/coverage_cpp_sonar.xml
+                                                              uv run gcovr --add-tracefile reports/coverage/coverage-c-extension.json --add-tracefile reports/coverage/coverage_cpp.json --keep --print-summary --cobertura reports/coverage_cpp.xml --sonarqube reports/coverage/coverage_cpp_sonar.xml
                                                               '''
                                                     )
-                                                recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage/*.xml']])
+                                                recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage_cpp.xml']])
                                             }
                                         }
                                     }
@@ -754,12 +754,12 @@ def call(){
                                                         if (env.CHANGE_ID){
                                                             sh(
                                                                 label: 'Running Sonar Scanner',
-                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
+                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.pullrequest.key=${env.CHANGE_ID} -Dsonar.pullrequest.base=${env.CHANGE_TARGET} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml"
                                                             )
                                                         } else {
                                                             sh(
                                                                 label: 'Running Sonar Scanner',
-                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.build-wrapper-output=build/build_wrapper_output_directory"
+                                                                script: "uv run pysonar -t \$token -Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" -Dsonar.branch.name=${env.BRANCH_NAME} -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=\$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml"
                                                            )
                                                         }
                                                     }
@@ -771,13 +771,9 @@ def call(){
                                                     }
                                                     if(env.BRANCH_IS_PRIMARY){
                                                         writeJSON(file: 'reports/sonar-report.json', json: get_sonarqube_unresolved_issues('.sonar/report-task.txt'))
+                                                        recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                                                     }
                                                 }
-                                            }
-                                        }
-                                        post {
-                                            always{
-                                               recordIssues(tools: [sonarQube(pattern: 'reports/sonar-report.json')])
                                             }
                                         }
                                     }

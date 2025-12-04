@@ -5,7 +5,7 @@
 #ifndef OCR_FILELOADER_H
 #define OCR_FILELOADER_H
 
-#include "Image.h"
+
 #include "ImageLoaderStrategies.h"
 #include <string>
 

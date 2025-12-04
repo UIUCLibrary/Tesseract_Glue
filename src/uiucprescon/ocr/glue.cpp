@@ -2,6 +2,8 @@
 #include "fileLoader.h"
 #include "glue.h"
 #include <memory>
+#include <string>
+
 using std::string;
 using std::shared_ptr;
 

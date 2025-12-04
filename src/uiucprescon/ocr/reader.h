@@ -1,11 +1,10 @@
 #pragma once
 
-#include <tesseract/baseapi.h>
 #include <string>
+#include <tesseract/baseapi.h>
 
 class Reader
 {
-private:
    tesseract::TessBaseAPI tess;
    std::string language;
    std::string tessdata;
@@ -14,6 +13,6 @@ public:
     Reader(const std::string &tessdata, const std::string &lang);
     ~Reader();
     std::string get_ocr(const std::string &image_filename);
-    bool isGood();
+    bool isGood() const;
 };
 

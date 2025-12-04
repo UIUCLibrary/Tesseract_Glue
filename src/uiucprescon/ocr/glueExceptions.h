@@ -6,7 +6,7 @@
 #define OCR_GLUEEXCEPTIONS_H
 #include <exception>
 #include <string>
-class TesseractGlueException: public std::exception{
+class TesseractGlueException final: public std::exception{
     std::string message;
 public:
     explicit TesseractGlueException(const std::string &message) noexcept;

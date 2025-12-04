@@ -36,9 +36,7 @@ FetchContent_Declare(libpybind11
 
 FetchContent_GetProperties(libpybind11)
 if (NOT libpybind11_POPULATED)
-    FetchContent_Populate(libpybind11)
-
-    add_subdirectory(${libpybind11_SOURCE_DIR} ${libpybind11_BINARY_DIR})
+    FetchContent_MakeAvailable(libpybind11)
 endif ()
 
 add_subdirectory(src/uiucprescon/ocr)
