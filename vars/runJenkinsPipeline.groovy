@@ -176,7 +176,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     wheelStashes << "python${pythonVersion} windows wheel"
                                                 } catch (e){
                                                     powershell('Get-ChildItem Env:')
-                                                    raise e
+                                                    throw e
                                                 } finally {
                                                     bat "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                 }
@@ -503,7 +503,7 @@ def call(){
                                                             notFailBuild: true,
                                                             deleteDirs: true
                                                             )
-                                                        raise e
+                                                        throw e
                                                     }
                                                 }
                                             }
