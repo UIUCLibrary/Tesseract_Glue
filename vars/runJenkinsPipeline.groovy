@@ -575,7 +575,7 @@ def call(){
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                             -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
-                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage -fprofile-generate=$WORKSPACE/coverage_data" \
+                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage -fprofile-dir=$WORKSPACE/coverage_data" \
                                                             -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
                                                             -DCMAKE_MODULE_PATH=./build/cpp
                                                            make -C build/cpp clean tester
@@ -650,7 +650,7 @@ def call(){
                                                     )
                                                     sh '''mkdir -p reports/coverage
                                                           ls -laR  $WORKSPACE/coverage_data
-                                                          (cd build/cpp && uv run gcovr --root $WORKSPACE --filter src/uiucprescon/ocr --print-summary  --keep --json $WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt $WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory $WORKSPACE/coverage_data)
+                                                          (cd build/cpp && uv run gcovr --root $WORKSPACE --print-summary  --keep --json $WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt $WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory $WORKSPACE/coverage_data)
                                                           cat reports/coverage/text_cpp_tests_summary.txt
                                                           '''
                                                 }
