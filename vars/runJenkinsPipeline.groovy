@@ -525,6 +525,7 @@ def call(){
                                                                . .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
                                                                build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
+                                                               cp build/temp/src/uiucprescon/ocr/*.gcno src/uiucprescon/ocr/
                                                                '''
                                                 )
                                             }
@@ -596,8 +597,9 @@ def call(){
                                                             script: '''mkdir -p reports/pytestcoverage
                                                                        uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                                        ls -laR build/temp
-                                                                       uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --gcov-object-directory=$WORKSPACE/cpp_extension_tests_coverage_data build/temp
+                                                                       uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --gcov-object-directory=$WORKSPACE/cpp_extension_tests_coverage_data src/
                                                                     '''
+//                                                                        uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --gcov-object-directory=$WORKSPACE/cpp_extension_tests_coverage_data build/temp
                                                         )
                                                     }
                                                 }
