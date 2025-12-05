@@ -512,6 +512,9 @@ def call(){
                                         }
                                     }
                                     stage('Installing project as editable module'){
+                                        environment{
+                                            CXXFLAGS='--coverage -fprofile-arcs -ftest-coverage -fprofile-dir=$WORKSPACE/cpp_extension_tests_coverage_data'
+                                        }
                                         steps{
                                             timeout(10){
                                                 sh(
@@ -575,13 +578,12 @@ def call(){
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                             -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
-                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage -fprofile-dir=$WORKSPACE/coverage_data" \
+                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage -fprofile-dir=$WORKSPACE/cpp_tests_coverage_data" \
                                                             -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
                                                             -DCMAKE_MODULE_PATH=./build/cpp
                                                            make -C build/cpp clean tester
                                                            '''
                                             )
-                                            sh 'ls -laR'
                                         }
                                     }
                                     stage('Running Tests'){
@@ -593,7 +595,7 @@ def call(){
                                                             label: 'Running pytest',
                                                             script: '''mkdir -p reports/pytestcoverage
                                                                        uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
-                                                                       '''
+                                                                    '''
                                                         )
                                                     }
                                                 }
@@ -649,10 +651,9 @@ def call(){
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
                                                     sh '''mkdir -p reports/coverage
-                                                          ls -laR  $WORKSPACE/coverage_data
-                                                          uv run gcovr --root $WORKSPACE --filter src/uiucprescon/ocr --print-summary --json $WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt $WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory $WORKSPACE/coverage_data build/cpp
+                                                          uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory=$WORKSPACE/cpp_tests_coverage_data build/cpp
                                                           cat reports/coverage/text_cpp_tests_summary.txt
-                                                          '''
+                                                       '''
                                                 }
                                                 post{
                                                     always{
@@ -742,7 +743,7 @@ def call(){
                                                               uv run coverage combine
                                                               mkdir -p reports/coverage
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension_tests.json --txt reports/coverage/coverage-c-extension_tests
+                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension_tests.json --txt reports/coverage/coverage-c-extension_tests --gcov-object-directory=$WORKSPACE/cpp_tests_coverage_data
                                                               cat reports/coverage/coverage-c-extension_tests
                                                               uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
                                                               cat reports/coverage/text_merged_summary.txt
