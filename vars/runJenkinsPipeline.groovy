@@ -490,7 +490,8 @@ def call(){
                                                             label: 'Create virtual environment',
                                                             script: '''mkdir -p build/python
                                                                        uv sync --group ci --no-install-project
-                                                                       mkdir -p logtes
+                                                                       mkdir -p logs
+                                                                       mkdir -p coverage_data
                                                                        mkdir -p reports
                                                                     '''
                                                        )
@@ -574,7 +575,7 @@ def call(){
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                             -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
-                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage -fprofile-dir=$WORKSPACE/coverage_data" \
                                                             -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
                                                             -DCMAKE_MODULE_PATH=./build/cpp
                                                            make -C build/cpp clean tester
@@ -647,7 +648,7 @@ def call(){
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
                                                     sh '''mkdir -p reports/coverage
-                                                          uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json reports/coverage/coverage_cpp_tests.json --txt reports/coverage/text_cpp_tests_summary.txt
+                                                          uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json reports/coverage/coverage_cpp_tests.json --txt reports/coverage/text_cpp_tests_summary.txt $WORKSPACE/coverage_data
                                                           cat reports/coverage/text_cpp_tests_summary.txt
                                                           '''
                                                 }
