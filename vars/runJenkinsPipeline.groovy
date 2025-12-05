@@ -525,6 +525,8 @@ def call(){
                                                                . .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
                                                                build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
+                                                               cp build/temp/src/uiucprescon/ocr/*.o build/lib/uiucprescon/ocr/
+                                                               cp build/temp/src/uiucprescon/ocr/*.gcno build/lib/uiucprescon/ocr/
                                                                cp build/temp/src/uiucprescon/ocr/*.o src/uiucprescon/ocr/
                                                                cp build/temp/src/uiucprescon/ocr/*.gcno src/uiucprescon/ocr/
                                                                '''
