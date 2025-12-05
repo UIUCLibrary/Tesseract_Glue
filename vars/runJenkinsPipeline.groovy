@@ -581,6 +581,7 @@ def call(){
                                                            make -C build/cpp clean tester
                                                            '''
                                             )
+                                            sh 'ls -laR'
                                         }
                                     }
                                     stage('Running Tests'){
