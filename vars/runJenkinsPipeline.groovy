@@ -649,7 +649,7 @@ def call(){
                                                     sh '''mkdir -p reports/coverage
                                                           uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json reports/coverage/coverage_cpp_tests.json --txt reports/coverage/text_cpp_tests_summary.txt
                                                           cat reports/coverage/text_cpp_tests_summary.txt
-                                                          '''
+                                                       '''
                                                 }
                                                 post{
                                                     always{
