@@ -521,11 +521,10 @@ def call(){
                                                     label: 'Build python package',
                                                     script: '''mkdir -p build/python
                                                                mkdir -p logs
-                                                               mkdir -p cpp_extension_tests_coverage_data
                                                                mkdir -p reports
                                                                . .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
-                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug
+                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
                                                                '''
                                                 )
                                             }
