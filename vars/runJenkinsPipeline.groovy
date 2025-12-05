@@ -650,7 +650,7 @@ def call(){
                                                     )
                                                     sh '''mkdir -p reports/coverage
                                                           ls -laR  $WORKSPACE/coverage_data
-                                                          uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json reports/coverage/coverage_cpp_tests.json --txt reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory $WORKSPACE/coverage_data
+                                                          (cd build/cpp && uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json $WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt $WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory $WORKSPACE/coverage_data)
                                                           cat reports/coverage/text_cpp_tests_summary.txt
                                                           '''
                                                 }
