@@ -513,7 +513,7 @@ def call(){
                                     }
                                     stage('Installing project as editable module'){
                                         environment{
-                                            CXXFLAGS='--coverage -fprofile-arcs -ftest-coverage -fprofile-dir=$WORKSPACE/cpp_extension_tests_coverage_data'
+                                            CXXFLAGS="--coverage -fprofile-arcs -ftest-coverage -fprofile-dir=${env.WORKSPACE}/cpp_extension_tests_coverage_data"
                                         }
                                         steps{
                                             timeout(10){
