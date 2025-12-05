@@ -490,7 +490,8 @@ def call(){
                                                             label: 'Create virtual environment',
                                                             script: '''mkdir -p build/python
                                                                        uv sync --group ci --no-install-project
-                                                                       mkdir -p logtes
+                                                                       mkdir -p logs
+                                                                       mkdir -p coverage_data
                                                                        mkdir -p reports
                                                                     '''
                                                        )
@@ -511,6 +512,9 @@ def call(){
                                         }
                                     }
                                     stage('Installing project as editable module'){
+                                        environment{
+                                            CXXFLAGS="--coverage -fprofile-arcs -ftest-coverage"
+                                        }
                                         steps{
                                             timeout(10){
                                                 sh(
@@ -520,7 +524,7 @@ def call(){
                                                                mkdir -p reports
                                                                . .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
-                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug
+                                                               build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
                                                                '''
                                                 )
                                             }
@@ -565,170 +569,169 @@ def call(){
                                     beforeAgent true
                                 }
                                 stages{
-                                    stage('Setting Up C++ Tests'){
+                                    stage('Set up test environment'){
                                         steps{
-                                            sh(
-                                                label: 'Building C++ project for metrics',
-                                                script: '''uv run conan install conanfile.py -of build/cpp --build=missing -pr:b=default
-                                                           uv run cmake --preset conan-release -B build/cpp \
-                                                            -S ./ \
-                                                            -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
-                                                            -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
-                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
-                                                            -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
-                                                            -DCMAKE_MODULE_PATH=./build/cpp
-                                                           make -C build/cpp clean tester
-                                                           '''
-                                            )
+                                            sh(label: 'Generating folders', script: 'mkdir -p reports/coverage')
                                         }
                                     }
-                                    stage('Running Tests'){
-                                        parallel {
-                                            stage('Run Pytest Unit Tests'){
+                                    stage('Run Tests'){
+                                        parallel{
+                                            stage('Python Tests'){
                                                 steps{
-                                                    timeout(10){
-                                                        sh(
-                                                            label: 'Running pytest',
-                                                            script: '''mkdir -p reports/pytestcoverage
-                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
-                                                                       '''
-                                                        )
-                                                    }
-                                                }
-                                                post {
-                                                    always {
-                                                        junit 'reports/pytest/junit-pytest.xml'
-                                                    }
-                                                }
-                                            }
-                                            stage('Run Doctest Tests'){
-                                                steps {
-                                                    timeout(3){
-                                                        sh 'uv run -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log'
-                                                    }
-                                                }
-                                                post{
-                                                    always {
-                                                        recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
-                                                    }
-                                                }
-                                            }
-                                            stage('Audit Lockfile Dependencies'){
-                                                steps{
-                                                    catchError(buildResult: 'SUCCESS', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                        sh 'uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
-                                                    }
-                                                }
-                                            }
-                                            stage('Clang Tidy Analysis') {
-                                                steps{
-                                                    tee('logs/clang-tidy.log') {
-                                                        catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
-                                                            sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./src/uiucprescon/ocr')
-                                                        }
-                                                    }
-                                                }
-                                                post{
-                                                    always {
-                                                        recordIssues(tools: [clangTidy(pattern: 'logs/clang-tidy.log')])
-                                                    }
-                                                }
-                                            }
-                                            stage('C++ Tests') {
-                                                steps{
-                                                    sh(
-                                                        label: 'Running CTest',
-                                                        script: 'cd build/cpp && uv run ctest --output-on-failure --no-compress-output -T Test',
-                                                        returnStatus: true
-                                                    )
+                                                    script{
+                                                        parallel([
+                                                            failFast: false,
+                                                            'Run Pytest Unit Tests': {
+                                                                timeout(10){
+                                                                    try{
+                                                                        sh(
+                                                                            label: 'Running pytest',
+                                                                            script: '''mkdir -p reports/pytestcoverage
+                                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
+                                                                                    '''
+                                                                        )
+                                                                    } finally {
+                                                                        junit 'reports/pytest/junit-pytest.xml'
+                                                                    }
+                                                                }
+                                                            },
+                                                            'Run Doctest Tests': {
+                                                                timeout(3){
+                                                                    try{
+                                                                        sh 'uv run -m sphinx -b doctest docs/source build/docs -d build/docs/doctrees -w logs/doctest_warnings.log'
+                                                                    } finally{
+                                                                        recordIssues(tools: [sphinxBuild(name: 'Doctest', pattern: 'logs/doctest_warnings.log', id: 'doctest')])
+                                                                    }
+                                                                }
+                                                            },
+                                                            'Audit Lockfile Dependencies': {
+                                                                catchError(buildResult: 'SUCCESS', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
+                                                                    sh 'uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                                }
+                                                            },
+                                                            'Run Flake8 Static Analysis': {
+                                                                timeout(2){
+                                                                    catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
+                                                                        sh(
+                                                                            label: 'Running Flake8',
+                                                                            script: 'uv run flake8 src --tee --output-file logs/flake8.log'
+                                                                        )
+                                                                    }
+                                                                    recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                                                }
+                                                            },
+                                                            'Run MyPy Static Analysis': {
+                                                                catchError(buildResult: 'SUCCESS', message: 'MyPy found issues', stageResult: 'UNSTABLE') {
+                                                                    sh(
+                                                                        label: 'Running MyPy',
+                                                                        script: '''uv run stubgen src -o mypy_stubs
+                                                                                   mkdir -p reports/mypy/html
+                                                                                   MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy src --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
+                                                                                '''
+                                                                    )
+                                                                }
+                                                                recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
+                                                                publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
+                                                            },
+                                                            'Run Pylint Static Analysis': {
+                                                                try{
+                                                                    catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
+                                                                        sh(label: 'Running pylint',
+                                                                            script: '''mkdir -p logs
+                                                                                       uv run pylint src -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
+                                                                                    '''
 
-                                                    sh(
-                                                        label: 'Running cpp tests',
-                                                        script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
-                                                    )
-                                                    sh '''mkdir -p reports/coverage
-                                                          uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json reports/coverage/coverage_cpp_tests.json --txt reports/coverage/text_cpp_tests_summary.txt
-                                                          cat reports/coverage/text_cpp_tests_summary.txt
-                                                          '''
-                                                }
-                                                post{
-                                                    always{
-                                                        xunit(
-                                                            testTimeMargin: '3000',
-                                                            thresholdMode: 1,
-                                                            thresholds: [
-                                                                failed(),
-                                                                skipped()
-                                                            ],
-                                                            tools: [
-                                                                CTest(
-                                                                    deleteOutputFiles: true,
-                                                                    failIfNotNew: true,
-                                                                    pattern: 'build/cpp/Testing/**/*.xml',
-                                                                    skipNoTestFiles: true,
-                                                                    stopProcessingIfError: true
-                                                                )
-                                                            ]
-                                                        )
-                                                    }
-                                                }
-                                            }
-                                            stage('Run Flake8 Static Analysis') {
-                                                steps{
-                                                    timeout(2){
-                                                        catchError(buildResult: 'SUCCESS', message: 'Flake8 found issues', stageResult: 'UNSTABLE') {
-                                                            sh(
-                                                                label: 'Running Flake8',
-                                                                script: 'uv run flake8 src --tee --output-file logs/flake8.log'
-                                                            )
-                                                        }
+                                                                        )
+                                                                    }
+                                                                    sh(
+                                                                        label: 'Running pylint for sonarqube',
+                                                                        script: 'uv run pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
+                                                                        returnStatus: true
+                                                                    )
+                                                                } finally {
+                                                                    recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
+                                                                }
+                                                            },
+                                                            failFast: false
+                                                        ])
                                                     }
                                                 }
                                                 post {
-                                                    always {
-                                                        recordIssues(tools: [flake8(name: 'Flake8', pattern: 'logs/flake8.log')])
+                                                    always{
+                                                        sh(label: 'Creating gcovr coverage report',
+                                                           script: '''uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories build/python/temp/conan_cache --print-summary --json=reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt build/temp
+                                                                      cat reports/coverage/coverage-c-extension_tests.txt
+                                                                   '''
+                                                        )
                                                     }
                                                 }
                                             }
-                                            stage('Run MyPy Static Analysis') {
+                                            stage("C++ Tests"){
                                                 steps{
-                                                    catchError(buildResult: 'SUCCESS', message: 'MyPy found issues', stageResult: 'UNSTABLE') {
-                                                        sh(
-                                                            label: 'Running MyPy',
-                                                            script: '''uv run stubgen src -o mypy_stubs
-                                                                       mkdir -p reports/mypy/html
-                                                                       MYPYPATH="$WORKSPACE/mypy_stubs" uv run mypy src --cache-dir=nul --html-report reports/mypy/html > logs/mypy.log
-                                                                    '''
-                                                        )
+                                                    sh(
+                                                        label: 'Building C++ project for metrics',
+                                                        script: '''uv run conan install conanfile.py -of build/cpp --build=missing -pr:b=default -s build_type=Debug
+                                                                   uv run cmake --preset conan-debug -B build/cpp \
+                                                                    -S ./ \
+                                                                    -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
+                                                                    -DCMAKE_C_FLAGS="-Wall -Wextra --coverage" \
+                                                                    -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage" \
+                                                                    -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
+                                                                    -DCMAKE_MODULE_PATH=./build/cpp
+                                                                   make -C build/cpp clean tester
+                                                                '''
+                                                    )
+                                                    script{
+                                                        parallel([
+                                                            'Clang Tidy Analysis': {
+                                                                tee('logs/clang-tidy.log') {
+                                                                    catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
+                                                                        sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./src/uiucprescon/ocr')
+                                                                    }
+                                                                }
+                                                                recordIssues(tools: [clangTidy(pattern: 'logs/clang-tidy.log')])
+                                                            },
+                                                            'C++ Tests': {
+                                                                try{
+                                                                    sh(
+                                                                        label: 'Running CTest',
+                                                                        script: 'cd build/cpp && uv run ctest --output-on-failure --no-compress-output -T Test',
+                                                                        returnStatus: true
+                                                                    )
+                                                                    sh(
+                                                                        label: 'Running cpp tests',
+                                                                        script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
+                                                                    )
+                                                                } finally {
+                                                                    xunit(
+                                                                        testTimeMargin: '3000',
+                                                                        thresholdMode: 1,
+                                                                        thresholds: [
+                                                                            failed(),
+                                                                            skipped()
+                                                                        ],
+                                                                        tools: [
+                                                                            CTest(
+                                                                                deleteOutputFiles: true,
+                                                                                failIfNotNew: true,
+                                                                                pattern: 'build/cpp/Testing/**/*.xml',
+                                                                                skipNoTestFiles: true,
+                                                                                stopProcessingIfError: true
+                                                                            )
+                                                                        ]
+                                                                    )
+                                                                }
+                                                            }, failFast: false
+                                                        ])
                                                     }
                                                 }
                                                 post {
-                                                    always {
-                                                        recordIssues(tools: [myPy(name: 'MyPy', pattern: 'logs/mypy.log')])
-                                                        publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
-                                                    }
-                                                }
-                                            }
-                                            stage('Run Pylint Static Analysis') {
-                                                steps{
-                                                    catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
-                                                        sh(label: 'Running pylint',
-                                                            script: '''mkdir -p logs
-                                                                       mkdir -p reports
-                                                                       uv run pylint src -r n --msg-template="{path}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint.txt
-                                                                    '''
-
-                                                        )
-                                                    }
-                                                    sh(
-                                                        label: 'Running pylint for sonarqube',
-                                                        script: 'uv run pylint  -r n --msg-template="{path}:{module}:{line}: [{msg_id}({symbol}), {obj}] {msg}" --persistent=no > reports/pylint_issues.txt',
-                                                        returnStatus: true
-                                                    )
-                                                }
-                                                post{
                                                     always{
-                                                        recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
+                                                        sh(label: 'Creating gcovr coverage report',
+                                                           script: '''uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep -print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory=$WORKSPACE/build/cpp build/cpp
+                                                                      cat reports/coverage/text_cpp_tests_summary.txt
+                                                                   '''
+                                                        )
                                                     }
                                                 }
                                             }
@@ -737,9 +740,7 @@ def call(){
                                             always{
                                                 sh(script: '''mkdir -p build/coverage
                                                               uv run coverage combine
-                                                              mkdir -p reports/coverage
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --root . --filter src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep --json -o reports/coverage/coverage-c-extension_tests.json
                                                               uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
                                                               cat reports/coverage/text_merged_summary.txt
                                                               '''
