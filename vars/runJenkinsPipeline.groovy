@@ -521,6 +521,7 @@ def call(){
                                                     label: 'Build python package',
                                                     script: '''mkdir -p build/python
                                                                mkdir -p logs
+                                                               mkdir -p cpp_extension_tests_coverage_data
                                                                mkdir -p reports
                                                                . .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
