@@ -648,6 +648,7 @@ def call(){
                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                     )
                                                     sh '''mkdir -p reports/coverage
+                                                          ls -laR  $WORKSPACE/coverage_data
                                                           uv run gcovr --root . --filter src/uiucprescon/ocr --print-summary  --keep --json reports/coverage/coverage_cpp_tests.json --txt reports/coverage/text_cpp_tests_summary.txt $WORKSPACE/coverage_data
                                                           cat reports/coverage/text_cpp_tests_summary.txt
                                                           '''
