@@ -513,7 +513,8 @@ def call(){
                                     }
                                     stage('Installing project as editable module'){
                                         environment{
-                                            CXXFLAGS="--coverage -fprofile-arcs -ftest-coverage -fprofile-dir=${env.WORKSPACE}/cpp_extension_tests_coverage_data"
+                                            CXXFLAGS="--coverage -fprofile-arcs -ftest-coverage"
+//                                             CXXFLAGS="--coverage -fprofile-arcs -ftest-coverage -fprofile-dir=${env.WORKSPACE}/cpp_extension_tests_coverage_data"
                                         }
                                         steps{
                                             timeout(10){
@@ -592,7 +593,7 @@ def call(){
                                                             -S ./ \
                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                             -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
-                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage" \
+                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fprofile-arcs -ftest-coverage -fprofile-dir=$WORKSPACE/cpp_tests_coverage_data" \
                                                             -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
                                                             -DCMAKE_MODULE_PATH=./build/cpp
                                                            make -C build/cpp clean tester
