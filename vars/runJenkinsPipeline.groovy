@@ -612,59 +612,6 @@ def call(){
                                                             }
                                                         }
                                                     }
-                                                    stage('Clang Tidy Analysis') {
-                                                        steps{
-                                                            tee('logs/clang-tidy.log') {
-                                                                catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
-                                                                    sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./src/uiucprescon/ocr')
-                                                                }
-                                                            }
-                                                        }
-                                                        post{
-                                                            always {
-                                                                recordIssues(tools: [clangTidy(pattern: 'logs/clang-tidy.log')])
-                                                            }
-                                                        }
-                                                    }
-                                                    stage('C++ Tests') {
-                                                        steps{
-                                                            sh(
-                                                                label: 'Running CTest',
-                                                                script: 'cd build/cpp && uv run ctest --output-on-failure --no-compress-output -T Test',
-                                                                returnStatus: true
-                                                            )
-
-                                                            sh(
-                                                                label: 'Running cpp tests',
-                                                                script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
-                                                            )
-                                                            sh '''mkdir -p reports/coverage
-                                                                  uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep -print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory=$WORKSPACE/cpp_tests_coverage_data build/cpp
-                                                                  cat reports/coverage/text_cpp_tests_summary.txt
-                                                               '''
-                                                        }
-                                                        post{
-                                                            always{
-                                                                xunit(
-                                                                    testTimeMargin: '3000',
-                                                                    thresholdMode: 1,
-                                                                    thresholds: [
-                                                                        failed(),
-                                                                        skipped()
-                                                                    ],
-                                                                    tools: [
-                                                                        CTest(
-                                                                            deleteOutputFiles: true,
-                                                                            failIfNotNew: true,
-                                                                            pattern: 'build/cpp/Testing/**/*.xml',
-                                                                            skipNoTestFiles: true,
-                                                                            stopProcessingIfError: true
-                                                                        )
-                                                                    ]
-                                                                )
-                                                            }
-                                                        }
-                                                    }
                                                     stage('Run Flake8 Static Analysis') {
                                                         steps{
                                                             timeout(2){
@@ -760,6 +707,63 @@ def call(){
                                                                    make -C build/cpp clean tester
                                                                    '''
                                                     )
+                                                }
+                                            }
+                                            stage('Running Tests'){
+                                                parallel {
+                                                    stage('Clang Tidy Analysis') {
+                                                        steps{
+                                                            tee('logs/clang-tidy.log') {
+                                                                catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
+                                                                    sh(label: 'Run Clang Tidy', script: 'run-clang-tidy -clang-tidy-binary clang-tidy -p ./build/cpp/ ./src/uiucprescon/ocr')
+                                                                }
+                                                            }
+                                                        }
+                                                        post{
+                                                            always {
+                                                                recordIssues(tools: [clangTidy(pattern: 'logs/clang-tidy.log')])
+                                                            }
+                                                        }
+                                                    }
+                                                    stage('C++ Tests') {
+                                                        steps{
+                                                            sh(
+                                                                label: 'Running CTest',
+                                                                script: 'cd build/cpp && uv run ctest --output-on-failure --no-compress-output -T Test',
+                                                                returnStatus: true
+                                                            )
+
+                                                            sh(
+                                                                label: 'Running cpp tests',
+                                                                script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
+                                                            )
+                                                            sh '''mkdir -p reports/coverage
+                                                                  uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep -print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory=$WORKSPACE/cpp_tests_coverage_data build/cpp
+                                                                  cat reports/coverage/text_cpp_tests_summary.txt
+                                                               '''
+                                                        }
+                                                        post{
+                                                            always{
+                                                                xunit(
+                                                                    testTimeMargin: '3000',
+                                                                    thresholdMode: 1,
+                                                                    thresholds: [
+                                                                        failed(),
+                                                                        skipped()
+                                                                    ],
+                                                                    tools: [
+                                                                        CTest(
+                                                                            deleteOutputFiles: true,
+                                                                            failIfNotNew: true,
+                                                                            pattern: 'build/cpp/Testing/**/*.xml',
+                                                                            skipNoTestFiles: true,
+                                                                            stopProcessingIfError: true
+                                                                        )
+                                                                    ]
+                                                                )
+                                                            }
+                                                        }
+                                                    }
                                                 }
                                             }
                                         }
