@@ -584,7 +584,7 @@ def call(){
                                                                             script: '''mkdir -p reports/pytestcoverage
                                                                                        uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
                                                                                        ls -laR build/temp
-                                                                                       uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary --keep build/temp
+                                                                                       uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --exclude-directories build/python/temp/conan_cache --print-summary  build/temp
                                                                                     '''
                                                                         )
                                                                     }
@@ -725,7 +725,7 @@ def call(){
                                                                         script: 'build/cpp/tests/tester -r sonarqube -o reports/test-cpp.xml'
                                                                     )
                                                                     sh '''mkdir -p reports/coverage
-                                                                          uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep -print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --gcov-object-directory=$WORKSPACE/cpp_tests_coverage_data build/cpp
+                                                                          uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep -print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt  build/cpp
                                                                           cat reports/coverage/text_cpp_tests_summary.txt
                                                                        '''
                                                                 }
