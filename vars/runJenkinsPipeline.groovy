@@ -681,6 +681,7 @@ def call(){
                                                         cleanWs(
                                                             patterns: [
                                                                 [pattern: '**/*.gcda', type: 'INCLUDE'],
+                                                                [pattern: '**/*.gcno', type: 'INCLUDE'],
                                                             ]
                                                         )
                                                     }
