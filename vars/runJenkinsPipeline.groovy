@@ -676,6 +676,15 @@ def call(){
                                                         }
                                                     }
                                                 }
+                                                post {
+                                                    cleanup{
+                                                        cleanWs(
+                                                            patterns: [
+                                                                [pattern: '**/*.gcda', type: 'INCLUDE'],
+                                                            ]
+                                                        )
+                                                    }
+                                                }
                                             }
                                             stage("C++ tests"){
                                                 stages{
