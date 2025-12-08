@@ -12,7 +12,7 @@ include(InstallRequiredSystemLibraries)
 find_package(Tesseract REQUIRED)
 find_package(Catch2)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 # If google isn't going to make importable targets, then I am
 if(NOT TARGET Tesseract::Tesseract)
     add_library(Tesseract::Tesseract INTERFACE IMPORTED )
