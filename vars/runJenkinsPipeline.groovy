@@ -658,11 +658,15 @@ def call(){
                                                 }
                                                 post {
                                                     always{
-                                                        sh(label: 'Creating gcovr coverage report',
-                                                           script: '''uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories build/python/temp/conan_cache --print-summary --json=reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt build/temp
-                                                                      cat reports/coverage/coverage-c-extension_tests.txt
-                                                                   '''
-                                                        )
+                                                        script{
+                                                            try{
+                                                                sh(label: 'Creating gcovr coverage report',
+                                                                   script: 'uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories build/python/temp/conan_cache --print-summary --json=reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt build/temp --fail-under-line=1'
+                                                                )
+                                                            } finally {
+                                                                sh 'cat reports/coverage/coverage-c-extension_tests.txt'
+                                                            }
+                                                        }
                                                     }
                                                 }
                                             }
