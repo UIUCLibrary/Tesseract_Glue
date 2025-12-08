@@ -60,6 +60,7 @@ RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
         uv run --only-group conan conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
     fi && \
     uv run --only-group conan conan install /tmp -pr:b=default --build missing && \
+    uv run --only-group conan conan install /tmp -pr:b=default --build missing -s build_type=Debug && \
     uv run --only-group conan conan cache clean "*" -b --source --build --temp && \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
       mv -f /tmp/remotes.json ${CONAN_HOME}/remotes.json; \
