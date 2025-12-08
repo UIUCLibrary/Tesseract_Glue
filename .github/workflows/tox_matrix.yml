@@ -77,6 +77,12 @@ jobs:
           CONAN_USER_HOME: "${{steps.conan-path-script.outputs.result}}"
         if: "!contains(matrix.os, 'windows') && steps.cache-conan.outputs.cache-hit != 'true'"
         run: |
+          mkdir -p "$CONAN_USER_HOME/.conan2/profiles"
+          if [[ "$(uname)" == "Darwin" ]]; then
+            cp ci/cibuildwheel/conan_profiles/Macos/mac_host_profile.ini "$CONAN_USER_HOME/.conan2/profiles/default"
+          else
+            cp ci/cibuildwheel/conan_profiles/Linux/linux_build_profile.ini "$CONAN_USER_HOME/.conan2/profiles/default"
+          fi
           uv run --only-group conan --isolated conan profile detect --exist-ok
           uv run --only-group conan --isolated conan install . --build missing -pr:b=default
       - uses: actions/github-script@v7
