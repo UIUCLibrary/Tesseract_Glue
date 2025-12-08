@@ -4,7 +4,7 @@ from conan import ConanFile
 
 class TesseractBindConan(ConanFile):
     requires = [
-        "tesseract/5.2.0",
+        "tesseract/5.5.1",
         "leptonica/1.83.1"
     ]
     settings = "os", "arch", "compiler", "build_type"

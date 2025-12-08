@@ -355,7 +355,7 @@ wheels = [
 
 [[package]]
 name = "conan"
-version = "2.21.0"
+version = "2.23.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "colorama" },
@@ -368,7 +368,7 @@ dependencies = [
     { name = "requests" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/f7/2f/46df55bff30f95ee91b128b6bdc96128dd616b4527ce45c39ab4d6bfc0b6/conan-2.21.0.tar.gz", hash = "sha256:709b07998be008044166eaa1368383d700f24cbe79241dbf0c73589f0aa9650d", size = 534579, upload-time = "2025-09-29T16:25:06.528Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/e1/64/0bd44d12421ad8eca1903fc66e8f9661b28086e451ad075af37350b364db/conan-2.23.0.tar.gz", hash = "sha256:1a7b34be6fcaa4a4c0342c54187fb87aa4b487a9b4cf2136f2207f8b3a127868", size = 549704, upload-time = "2025-11-25T17:43:29.546Z" }
 
 [[package]]
 name = "coverage"

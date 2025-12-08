@@ -70,13 +70,19 @@ jobs:
           copy "ci\docker\windows\tox\conan\profile.ini" "%CONAN_USER_HOME%\.conan2\profiles\default"
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64
           uv run --only-group conan --isolated conan profile detect --exist-ok
-          uv run --only-group conan --isolated conan install . --build  missing -pr:b=default
+          uv run --only-group conan --isolated conan install . --build  missing -pr:b=default -s compiler.cppstd=17
 
       - name: Prebuild Conan packages
         env:
           CONAN_USER_HOME: "${{steps.conan-path-script.outputs.result}}"
         if: "!contains(matrix.os, 'windows') && steps.cache-conan.outputs.cache-hit != 'true'"
         run: |
+          mkdir -p "$CONAN_USER_HOME/.conan2/profiles"
+          if [[ "$(uname)" == "Darwin" ]]; then
+            cp ci/cibuildwheel/conan_profiles/Macos/mac_host_profile.ini "$CONAN_USER_HOME/.conan2/profiles/default"
+          else
+            cp ci/cibuildwheel/conan_profiles/Linux/linux_build_profile.ini "$CONAN_USER_HOME/.conan2/profiles/default"
+          fi
           uv run --only-group conan --isolated conan profile detect --exist-ok
           uv run --only-group conan --isolated conan install . --build missing -pr:b=default
       - uses: actions/github-script@v7
