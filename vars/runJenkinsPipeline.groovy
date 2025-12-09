@@ -666,15 +666,15 @@ def call(){
                                                 steps{
                                                     sh(
                                                         label: 'Building C++ project for metrics',
-                                                        script: '''uv run conan install conanfile.py -of build/cpp --build=missing -pr:b=default -s build_type=Debug
-                                                                   uv run cmake --preset conan-debug -B build/cpp \
+                                                        script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
+                                                                   uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
                                                                     -S ./ \
                                                                     -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                                     -DCMAKE_C_FLAGS="-Wall -Wextra --coverage" \
                                                                     -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage" \
                                                                     -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
-                                                                    -DCMAKE_MODULE_PATH=./build/cpp
-                                                                   make -C build/cpp clean tester
+                                                                    -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp
+                                                                   make -C $WORKSPACE/build/cpp tester
                                                                 '''
                                                     )
                                                     script{
