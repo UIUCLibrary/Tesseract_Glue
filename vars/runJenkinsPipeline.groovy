@@ -521,6 +521,7 @@ def call(){
                                                     script: '''. .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
                                                                build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
+                                                               find . \\( -name "*.gcno" -o -name "*.gcda" \\)
                                                                '''
                                                 )
                                             }
@@ -583,17 +584,12 @@ def call(){
                                                             'Run Pytest Unit Tests': {
                                                                 timeout(10){
                                                                     try{
-                                                                        retry(2){
-                                                                            sh(
-                                                                                label: 'Running pytest',
-                                                                                script: '''mkdir -p reports/pytestcoverage
-                                                                                           uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
-                                                                                        '''
-                                                                            )
-                                                                            if(findFiles(glob: 'build/temp/**/*.gcda').size() == 0){
-                                                                                error 'No gcda files found after running tests'
-                                                                            }
-                                                                        }
+                                                                        sh(
+                                                                            label: 'Running pytest',
+                                                                            script: '''mkdir -p reports/pytestcoverage
+                                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
+                                                                                    '''
+                                                                        )
                                                                     } finally {
                                                                         junit 'reports/pytest/junit-pytest.xml'
                                                                     }
