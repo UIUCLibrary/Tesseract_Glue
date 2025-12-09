@@ -470,7 +470,7 @@ def call(){
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
                                 additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
-//                                 args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp'
+                                args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp'
                             }
                         }
                         stages{
@@ -665,12 +665,9 @@ def call(){
                                                     always{
                                                         script{
                                                             try{
-                                                                sh 'find . \\( -name "*.gcno" -o -name "*.gcda" \\)'
-//                                                                 dir('build/temp'){
-                                                                    sh(label: 'Creating gcovr coverage report',
-                                                                       script: 'uv run gcovr --root $WORKSPACE --filter=$WORKSPACE/src/uiucprescon/ocr --keep --exclude-directories $WORKSPACE/build/cpp --exclude-directories $WORKSPACE/build/python/temp/conan_cache --print-summary --json=$WORKSPACE/reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 --gcov-object-directory=$WORKSPACE/build/temp --verbose build/temp'
-                                                                    )
-//                                                                 }
+                                                                sh(label: 'Creating gcovr coverage report',
+                                                                   script: 'uv run gcovr --root $WORKSPACE --filter=$WORKSPACE/src/uiucprescon/ocr --keep --exclude-directories $WORKSPACE/build/cpp --exclude-directories $WORKSPACE/build/python/temp/conan_cache --print-summary --json=$WORKSPACE/reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 --gcov-object-directory=$WORKSPACE/build/temp --verbose build/temp'
+                                                                )
                                                             } catch (e){
                                                                 sh(label: 'locating gcno and gcda files', script: 'find . \\( -name "*.gcno" -o -name "*.gcda" \\)')
                                                                 throw e
