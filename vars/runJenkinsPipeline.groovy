@@ -542,7 +542,7 @@ def call(){
                             }
                             stage('Building Documentation'){
                                 environment{
-                                    GCOV_PREFIX="\$WORKSPACE/build/temp"
+                                    GCOV_PREFIX="${env.WORKSPACE}/build/temp"
                                     GCOV_PREFIX_STRIP=0
                                 }
                                 steps{
@@ -579,7 +579,7 @@ def call(){
                                         stages{
                                             stage('Python Tests'){
                                                 environment{
-                                                    GCOV_PREFIX="\$WORKSPACE/build/temp"
+                                                    GCOV_PREFIX="${env.WORKSPACE}/build/temp"
                                                     GCOV_PREFIX_STRIP=0
                                                 }
                                                 steps{
