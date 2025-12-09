@@ -488,6 +488,8 @@ def call(){
                                                                        mkdir -p logs
                                                                        mkdir -p coverage_data
                                                                        mkdir -p reports
+                                                                       mkdir -p build/python
+                                                                       mkdir -p build/coverage
                                                                     '''
                                                        )
                                                     } catch(e){
@@ -514,10 +516,7 @@ def call(){
                                             timeout(10){
                                                 sh(
                                                     label: 'Build python package',
-                                                    script: '''mkdir -p build/python
-                                                               mkdir -p logs
-                                                               mkdir -p reports
-                                                               . .venv/bin/activate
+                                                    script: '''. .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
                                                                build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
                                                                '''
@@ -737,8 +736,7 @@ def call(){
                                         }
                                         post{
                                             always{
-                                                sh(script: '''mkdir -p build/coverage
-                                                              uv run coverage combine
+                                                sh(script: '''uv run coverage combine
                                                               uv run coverage xml -o ./reports/coverage/coverage-python.xml
                                                               uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
                                                               cat reports/coverage/text_merged_summary.txt
