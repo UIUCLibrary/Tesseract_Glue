@@ -734,13 +734,17 @@ def call(){
                                         }
                                         post{
                                             always{
-                                                sh(script: '''uv run coverage combine
-                                                              uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
-                                                              cat reports/coverage/text_merged_summary.txt
-                                                              '''
-                                                    )
-                                                recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage/*.xml']])
+                                                script{
+                                                    if(fileExists('reports/coverage/coverage_cpp_tests.json') && fileExists('reports/coverage/coverage-c-extension_tests.json')){
+                                                        sh(script: '''uv run coverage combine
+                                                                      uv run coverage xml -o ./reports/coverage/coverage-python.xml
+                                                                      uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
+                                                                      cat reports/coverage/text_merged_summary.txt
+                                                                      '''
+                                                            )
+                                                        recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage/*.xml']])
+                                                    }
+                                                }
                                             }
                                         }
                                     }
