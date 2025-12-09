@@ -545,9 +545,12 @@ def call(){
                                 }
                                 steps{
                                     timeout(3){
-                                        sh '''mkdir -p logs
-                                              uv run -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log
-                                              '''
+                                        sh(label: 'Running Sphinx',
+                                           script: '''mkdir -p logs
+                                                      uv run -m sphinx docs/source build/docs/html -d build/docs/.doctrees -w logs/build_sphinx.log
+                                                      find build/temp \\( -name "*.gcno" -o -name "*.gcda" \\)
+                                                   '''
+                                       )
                                     }
                                 }
                                 post{
