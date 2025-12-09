@@ -512,7 +512,7 @@ def call(){
                                     }
                                     stage('Installing project as editable module'){
                                         environment{
-                                            CXXFLAGS="--coverage"
+                                            CXXFLAGS='--coverage'
                                         }
                                         steps{
                                             timeout(10){
@@ -583,12 +583,17 @@ def call(){
                                                             'Run Pytest Unit Tests': {
                                                                 timeout(10){
                                                                     try{
-                                                                        sh(
-                                                                            label: 'Running pytest',
-                                                                            script: '''mkdir -p reports/pytestcoverage
-                                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
-                                                                                    '''
-                                                                        )
+                                                                        retry(2){
+                                                                            sh(
+                                                                                label: 'Running pytest',
+                                                                                script: '''mkdir -p reports/pytestcoverage
+                                                                                           uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
+                                                                                        '''
+                                                                            )
+                                                                            if(findFiles(glob: 'build/temp/**/*.gcda').size() == 0){
+                                                                                error 'No gcda files found after running tests'
+                                                                            }
+                                                                        }
                                                                     } finally {
                                                                         junit 'reports/pytest/junit-pytest.xml'
                                                                     }
