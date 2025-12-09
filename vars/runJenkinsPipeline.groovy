@@ -565,7 +565,7 @@ def call(){
                                 }
                                 stages{
                                     stage('Run Tests'){
-                                        parallel{
+                                        stages{
                                             stage('Python Tests'){
                                                 steps{
                                                     script{
@@ -668,7 +668,7 @@ def call(){
                                                         label: 'Building C++ project for metrics',
                                                         script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
                                                                    uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
-                                                                    -S ./ \
+                                                                    -S $WORKSPACE \
                                                                     -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                                     -DCMAKE_C_FLAGS="-Wall -Wextra --coverage" \
                                                                     -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage" \
