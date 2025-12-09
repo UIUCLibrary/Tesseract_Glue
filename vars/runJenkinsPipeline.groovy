@@ -543,7 +543,7 @@ def call(){
                             stage('Building Documentation'){
                                 environment{
                                     GCOV_PREFIX='$WORKSPACE/build/temp'
-                                    GCOV_PREFIX_STRIP=5
+                                    GCOV_PREFIX_STRIP=0
                                 }
                                 steps{
                                     timeout(3){
@@ -580,7 +580,7 @@ def call(){
                                             stage('Python Tests'){
                                                 environment{
                                                     GCOV_PREFIX="$WORKSPACE/build/temp"
-                                                    GCOV_PREFIX_STRIP=5
+                                                    GCOV_PREFIX_STRIP=0
                                                 }
                                                 steps{
                                                     script{
