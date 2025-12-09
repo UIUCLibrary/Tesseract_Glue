@@ -576,7 +576,7 @@ def call(){
                                 }
                                 stages{
                                     stage('Run Tests'){
-                                        parallel{
+                                        stages{
                                             stage('Python Tests'){
                                                 environment{
                                                     GCOV_PREFIX="\$WORKSPACE/build/temp"
