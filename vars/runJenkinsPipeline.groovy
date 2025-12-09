@@ -650,6 +650,7 @@ def call(){
                                                     always{
                                                         script{
                                                             try{
+                                                                sh 'find . \\( -name "*.gcno" -o -name "*.gcda" \\)'
                                                                 sh(label: 'Creating gcovr coverage report',
                                                                    script: 'uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories $WORKSPACE/build/cpp --exclude-directories $WORKSPACE/build/python/temp/conan_cache --print-summary --json=$WORKSPACE/reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 --gcov-object-directory=$WORKSPACE/build/temp --verbose build/temp'
                                                                 )
