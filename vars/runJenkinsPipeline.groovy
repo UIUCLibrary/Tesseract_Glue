@@ -524,8 +524,8 @@ def call(){
                                                     script: '''. .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
                                                                build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
-                                                               find build/temp \\( -name "*.gcno" -o -name "*.gcda" \\)
-                                                               '''
+                                                               find build/temp -name "*.gcno"
+                                                            '''
                                                 )
                                             }
                                         }
@@ -543,7 +543,7 @@ def call(){
                             }
                             stage('Building Documentation'){
                                 environment{
-                                    GCOV_PREFIX="$WORKSPACE/build/temp"
+                                    GCOV_PREFIX='$WORKSPACE/build/temp'
                                     GCOV_PREFIX_STRIP=5
                                 }
                                 steps{
