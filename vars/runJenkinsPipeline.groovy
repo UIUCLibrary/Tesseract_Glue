@@ -485,6 +485,7 @@ def call(){
                                                             label: 'Create virtual environment',
                                                             script: '''mkdir -p build/python
                                                                        uv sync --group ci --no-install-project
+                                                                       mkdir -p build/docs
                                                                        mkdir -p build/python
                                                                        mkdir -p build/coverage
                                                                        mkdir -p coverage_data/python_extension
