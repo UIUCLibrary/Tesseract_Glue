@@ -475,11 +475,6 @@ def call(){
                         }
                         stages{
                             stage('Setup'){
-                                environment{
-                                    CFLAGS='--coverage -fprofile-arcs -ftest-coverage'
-                                    CXXFLAGS='--coverage -fprofile-arcs -ftest-coverage'
-                                    LFLAGS='-lgcov --coverage'
-                                }
                                 stages{
                                     stage('Setup Testing Environment'){
                                         steps{
@@ -490,9 +485,12 @@ def call(){
                                                             label: 'Create virtual environment',
                                                             script: '''mkdir -p build/python
                                                                        uv sync --group ci --no-install-project
-                                                                       mkdir -p logs
+                                                                       mkdir -p build/python
+                                                                       mkdir -p build/coverage
                                                                        mkdir -p coverage_data
+                                                                       mkdir -p logs
                                                                        mkdir -p reports
+                                                                       mkdir -p reports/coverage
                                                                     '''
                                                        )
                                                     } catch(e){
@@ -519,10 +517,7 @@ def call(){
                                             timeout(10){
                                                 sh(
                                                     label: 'Build python package',
-                                                    script: '''mkdir -p build/python
-                                                               mkdir -p logs
-                                                               mkdir -p reports
-                                                               . .venv/bin/activate
+                                                    script: '''. .venv/bin/activate
                                                                uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.4.2/uiucprescon_build-0.4.2-py3-none-any.whl"
                                                                build-wrapper-linux --out-dir build/build_wrapper_output_directory python setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
                                                                '''
@@ -569,13 +564,8 @@ def call(){
                                     beforeAgent true
                                 }
                                 stages{
-                                    stage('Set up test environment'){
-                                        steps{
-                                            sh(label: 'Generating folders', script: 'mkdir -p reports/coverage')
-                                        }
-                                    }
                                     stage('Run Tests'){
-                                        parallel{
+                                        stages{
                                             stage('Python Tests'){
                                                 steps{
                                                     script{
@@ -661,8 +651,11 @@ def call(){
                                                         script{
                                                             try{
                                                                 sh(label: 'Creating gcovr coverage report',
-                                                                   script: 'uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories build/cpp --exclude-directories build/python/temp/conan_cache --print-summary --json=reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 build/temp'
+                                                                   script: 'uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories $WORKSPACE/build/cpp --exclude-directories $WORKSPACE/build/python/temp/conan_cache --print-summary --json=$WORKSPACE/reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 --gcov-object-directory=$WORKSPACE/build/temp --verbose build/temp'
                                                                 )
+                                                            } catch (e){
+                                                                sh 'find . \\( -name "*.gcno" -o -name "*.gcda" \\)'
+                                                                throw e
                                                             } finally {
                                                                 sh 'cat reports/coverage/coverage-c-extension_tests.txt'
                                                             }
@@ -674,15 +667,15 @@ def call(){
                                                 steps{
                                                     sh(
                                                         label: 'Building C++ project for metrics',
-                                                        script: '''uv run conan install conanfile.py -of build/cpp --build=missing -pr:b=default -s build_type=Debug
-                                                                   uv run cmake --preset conan-debug -B build/cpp \
-                                                                    -S ./ \
+                                                        script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
+                                                                   uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
+                                                                    -S $WORKSPACE \
                                                                     -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
                                                                     -DCMAKE_C_FLAGS="-Wall -Wextra --coverage" \
                                                                     -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage" \
                                                                     -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
-                                                                    -DCMAKE_MODULE_PATH=./build/cpp
-                                                                   make -C build/cpp clean tester
+                                                                    -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp
+                                                                   make -C $WORKSPACE/build/cpp tester
                                                                 '''
                                                     )
                                                     script{
@@ -732,7 +725,7 @@ def call(){
                                                 post {
                                                     always{
                                                         sh(label: 'Creating gcovr coverage report',
-                                                           script: '''uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep -print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --exclude-throw-branches --gcov-object-directory=$WORKSPACE/build/cpp build/cpp
+                                                           script: '''uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --exclude-throw-branches --gcov-object-directory=$WORKSPACE/build/cpp build/cpp
                                                                       cat reports/coverage/text_cpp_tests_summary.txt
                                                                    '''
                                                         )
@@ -742,13 +735,16 @@ def call(){
                                         }
                                         post{
                                             always{
-                                                sh(script: '''mkdir -p build/coverage
-                                                              uv run coverage combine
-                                                              uv run coverage xml -o ./reports/coverage/coverage-python.xml
-                                                              uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
-                                                              cat reports/coverage/text_merged_summary.txt
-                                                              '''
-                                                    )
+                                                script{
+                                                    if(fileExists('reports/coverage/coverage_cpp_tests.json') && fileExists('reports/coverage/coverage-c-extension_tests.json')){
+                                                        sh(script: '''uv run coverage combine
+                                                                      uv run coverage xml -o ./reports/coverage/coverage-python.xml
+                                                                      uv run gcovr --add-tracefile reports/coverage/coverage_cpp_tests.json --add-tracefile reports/coverage/coverage-c-extension_tests.json --keep --print-summary --cobertura reports/coverage/coverage_cpp.xml --txt reports/coverage/text_merged_summary.txt
+                                                                      cat reports/coverage/text_merged_summary.txt
+                                                                      '''
+                                                            )
+                                                    }
+                                                }
                                                 recordCoverage(tools: [[parser: 'COBERTURA', pattern: 'reports/coverage/*.xml']])
                                             }
                                         }
