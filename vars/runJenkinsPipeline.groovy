@@ -662,7 +662,7 @@ def call(){
                                                             try{
                                                                 retry(3){
                                                                     sh(label: 'Creating gcovr coverage report',
-                                                                       script: 'uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories build/cpp --exclude-directories build/python/temp/conan_cache --print-summary --json=reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 build/temp'
+                                                                       script: 'uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --exclude-directories build/cpp --exclude-directories build/python/temp/conan_cache --print-summary --json=reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 --gcov-object-directory=$WORKSPACE/build/temp build/temp'
                                                                     )
                                                                 }
                                                             } finally {
@@ -734,7 +734,7 @@ def call(){
                                                 post {
                                                     always{
                                                         sh(label: 'Creating gcovr coverage report',
-                                                           script: '''uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep -print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --exclude-throw-branches --gcov-object-directory=$WORKSPACE/build/cpp build/cpp
+                                                           script: '''uv run gcovr --root $WORKSPACE --filter=src/uiucprescon/ocr --keep --print-summary --json=$WORKSPACE/reports/coverage/coverage_cpp_tests.json --txt=$WORKSPACE/reports/coverage/text_cpp_tests_summary.txt --exclude-throw-branches --gcov-object-directory=$WORKSPACE/build/cpp build/cpp
                                                                       cat reports/coverage/text_cpp_tests_summary.txt
                                                                    '''
                                                         )
