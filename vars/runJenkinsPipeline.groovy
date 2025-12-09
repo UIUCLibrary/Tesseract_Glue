@@ -485,11 +485,12 @@ def call(){
                                                             label: 'Create virtual environment',
                                                             script: '''mkdir -p build/python
                                                                        uv sync --group ci --no-install-project
-                                                                       mkdir -p logs
-                                                                       mkdir -p coverage_data
-                                                                       mkdir -p reports
                                                                        mkdir -p build/python
                                                                        mkdir -p build/coverage
+                                                                       mkdir -p coverage_data
+                                                                       mkdir -p logs
+                                                                       mkdir -p reports
+                                                                       mkdir -p reports/coverage
                                                                     '''
                                                        )
                                                     } catch(e){
@@ -563,11 +564,6 @@ def call(){
                                     beforeAgent true
                                 }
                                 stages{
-                                    stage('Set up test environment'){
-                                        steps{
-                                            sh(label: 'Generating folders', script: 'mkdir -p reports/coverage')
-                                        }
-                                    }
                                     stage('Run Tests'){
                                         parallel{
                                             stage('Python Tests'){
