@@ -475,11 +475,6 @@ def call(){
                         }
                         stages{
                             stage('Setup'){
-                                environment{
-                                    CFLAGS='--coverage -fprofile-arcs -ftest-coverage'
-                                    CXXFLAGS='--coverage -fprofile-arcs -ftest-coverage'
-                                    LFLAGS='-lgcov --coverage'
-                                }
                                 stages{
                                     stage('Setup Testing Environment'){
                                         steps{
