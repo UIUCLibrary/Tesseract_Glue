@@ -515,7 +515,7 @@ def call(){
                                     }
                                     stage('Installing project as editable module'){
                                         environment{
-                                            CXXFLAGS='--coverage'
+                                            CXXFLAGS='-Wall -Wextra --coverage'
                                         }
                                         steps{
                                             timeout(10){
