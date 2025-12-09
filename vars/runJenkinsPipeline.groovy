@@ -666,10 +666,10 @@ def call(){
                                                         script{
                                                             try{
                                                                 sh 'find . \\( -name "*.gcno" -o -name "*.gcda" \\)'
-                                                                dir('build/temp'){
+//                                                                 dir('build/temp'){
                                                                     sh(label: 'Creating gcovr coverage report',
-                                                                       script: 'uv run gcovr --root $WORKSPACE --filter=$WORKSPACE/src/uiucprescon/ocr --keep --exclude-directories $WORKSPACE/build/cpp --exclude-directories $WORKSPACE/build/python/temp/conan_cache --print-summary --json=$WORKSPACE/reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 --gcov-object-directory=$WORKSPACE/build/temp --verbose'
-                                                                    )
+                                                                       script: 'uv run gcovr --root $WORKSPACE --filter=$WORKSPACE/src/uiucprescon/ocr --keep --exclude-directories $WORKSPACE/build/cpp --exclude-directories $WORKSPACE/build/python/temp/conan_cache --print-summary --json=$WORKSPACE/reports/coverage/coverage-c-extension_tests.json --txt=$WORKSPACE/reports/coverage/coverage-c-extension_tests.txt --exclude-throw-branches --fail-under-line=1 --gcov-object-directory=$WORKSPACE/build/temp --verbose build/temp'
+//                                                                     )
                                                                 }
                                                             } catch (e){
                                                                 sh(label: 'locating gcno and gcda files', script: 'find . \\( -name "*.gcno" -o -name "*.gcda" \\)')
