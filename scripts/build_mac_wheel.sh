@@ -5,16 +5,16 @@ set -e
 remove_venv(){
     if [ -d $1 ]; then
         echo "removing $1"
-        rm -r $1
+        rm -r "$1"
     fi
 }
 
 generate_venv_with_venv(){
     base_python=$1
     virtual_env=$2
-    trap 'remove_venv "$virtual_env"' ERR SIGINT SIGTERM
+    trap 'remove_venv $virtual_env' ERR SIGINT SIGTERM
     $base_python -m venv "$virtual_env"
-    "${virtual_env}/bin/pip" install --disable-pip-version-check uv
+    "$virtual_env/bin/pip" install --disable-pip-version-check uv
 }
 
 generate_wheel(){
@@ -51,11 +51,10 @@ generate_wheel(){
 
     out_temp_wheels_dir=$(mktemp -d /tmp/python_wheels.XXXXXX)
     output_path="./dist"
-    echo "Building wheel for Python $python_version on macOS $processor_type"
-    trap "rm -rf $out_temp_wheels_dir" ERR SIGINT SIGTERM RETURN
+    trap 'rm -rf $out_temp_wheels_dir' ERR SIGINT SIGTERM RETURN
     _PYTHON_HOST_PLATFORM=$_PYTHON_HOST_PLATFORM MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET ARCHFLAGS=$ARCHFLAGS $uv_exec build --wheel --out-dir=$out_temp_wheels_dir --python=$python_version $project_root
     pattern="$out_temp_wheels_dir/*.whl"
-    files=( $pattern )
+    files=( "$pattern" )
     undelocate_wheel="${files[0]}"
 
     echo ""
@@ -64,7 +63,7 @@ generate_wheel(){
     $uv_path run --only-group package delocate-listdeps --depending "${undelocate_wheel}"
     echo ""
     echo "================================================================================"
-    $uv_path run --only-group package delocate-wheel -w $output_path --require-archs $REQUIRED_ARCH --verbose "$undelocate_wheel"
+    $uv_path run --only-group package delocate-wheel -w $output_path --require-archs "$REQUIRED_ARCH" --verbose "$undelocate_wheel"
 }
 
 print_usage(){
