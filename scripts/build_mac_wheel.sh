@@ -5,16 +5,16 @@ set -e
 remove_venv(){
     if [ -d $1 ]; then
         echo "removing $1"
-        rm -r $1
+        rm -r "$1"
     fi
 }
 
 generate_venv_with_venv(){
     base_python=$1
     virtual_env=$2
-    trap "remove_venv $virtual_env" ERR SIGINT SIGTERM
-    $base_python -m venv $virtual_env
-    $virtual_env/bin/pip install --disable-pip-version-check uv
+    trap 'remove_venv $virtual_env' ERR SIGINT SIGTERM
+    $base_python -m venv "$virtual_env"
+    "$virtual_env/bin/pip" install --disable-pip-version-check uv
 }
 
 generate_wheel(){
@@ -40,7 +40,7 @@ generate_wheel(){
         REQUIRED_ARCH='arm64'
     elif [ "$processor_type" == "x86_64" ]; then
         _PYTHON_HOST_PLATFORM='macosx-10.9-x86_64'
-        MACOSX_DEPLOYMENT_TARGET='10.9'
+        MACOSX_DEPLOYMENT_TARGET='10.15'
         ARCHFLAGS='-arch x86_64'
         REQUIRED_ARCH='x86_64'
     else
@@ -49,10 +49,10 @@ generate_wheel(){
 
     out_temp_wheels_dir=$(mktemp -d /tmp/python_wheels.XXXXXX)
     output_path="./dist"
-    trap "rm -rf $out_temp_wheels_dir" ERR SIGINT SIGTERM RETURN
+    trap 'rm -rf $out_temp_wheels_dir' ERR SIGINT SIGTERM RETURN
     _PYTHON_HOST_PLATFORM=$_PYTHON_HOST_PLATFORM MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET ARCHFLAGS=$ARCHFLAGS $uv_exec build --wheel --out-dir=$out_temp_wheels_dir --python=$python_version $project_root
     pattern="$out_temp_wheels_dir/*.whl"
-    files=( $pattern )
+    files=( "$pattern" )
     undelocate_wheel="${files[0]}"
 
     echo ""
@@ -61,7 +61,7 @@ generate_wheel(){
     $uv_path run --only-group package delocate-listdeps --depending "${undelocate_wheel}"
     echo ""
     echo "================================================================================"
-    $uv_path run --only-group package delocate-wheel -w $output_path --require-archs $REQUIRED_ARCH --verbose "$undelocate_wheel"
+    $uv_path run --only-group package delocate-wheel -w $output_path --require-archs "$REQUIRED_ARCH" --verbose "$undelocate_wheel"
 }
 
 print_usage(){
@@ -147,6 +147,6 @@ if [[ ! -f "$uv_path" ]]; then
     uv_path=/tmp/uv/bin/uv
     echo "installed uv: $uv_path"
 else
-    echo "Using existing venv: $build_virtual_env"
+    echo "Using existing venv: $uv_path"
 fi
-generate_wheel $uv_path $project_root $python_version
+generate_wheel $uv_path "$project_root" "$python_version"
