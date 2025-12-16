@@ -11,7 +11,7 @@ build-backend = "uiucprescon.build"
 
 [project]
 name = "uiucprescon.ocr"
-version = "0.1.5"
+version = "0.1.6.dev0"
 classifiers = [
     'Development Status :: 3 - Alpha',
     'Programming Language :: Python',
