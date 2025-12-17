@@ -21,6 +21,9 @@ generate_wheel(){
     uv_exec=$1
     project_root=$2
     python_version=$3
+    if [[ $python_version != *t ]]; then
+      python_version="${python_version}+gil"
+    fi
 
     # Get the processor type
     processor_type=$(uname -m)
@@ -48,6 +51,7 @@ generate_wheel(){
 
     out_temp_wheels_dir=$(mktemp -d /tmp/python_wheels.XXXXXX)
     output_path="./dist"
+    echo "Building wheel for Python $python_version on macOS $processor_type"
     trap "rm -rf $out_temp_wheels_dir" ERR SIGINT SIGTERM RETURN
     _PYTHON_HOST_PLATFORM=$_PYTHON_HOST_PLATFORM MACOSX_DEPLOYMENT_TARGET=$MACOSX_DEPLOYMENT_TARGET ARCHFLAGS=$ARCHFLAGS $uv_exec build --wheel --out-dir=$out_temp_wheels_dir --python=$python_version $project_root
     pattern="$out_temp_wheels_dir/*.whl"
@@ -72,6 +76,7 @@ show_help() {
   echo
   echo "Arguments:"
   echo "  project_root          Path to Python project containing pyproject.toml file."
+  echo "  --python-version[=version]      Python version to generate wheel for. Default is $DEFAULT_PYTHON_VERSION."
   echo "  --uv[=path]           Path to uv executable. If not provided, defaults to 'uv' and if that is missing, a copy will be downloaded."
   echo "  --help, -h            Display this help message."
 }
