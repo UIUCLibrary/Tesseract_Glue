@@ -389,6 +389,10 @@ def get_sonarqube_unresolved_issues(report_task_file){
     }
 }
 
+def calculateGCOV_PREFIX_STRIP(){
+    return sh(returnStdout: true, label: 'configuring GCOV_PREFIX_STRIP', script:'echo "$PWD" | awk -F/ \'{c=0; for(i=1;i<=NF;i++) if($i!="") c++; print c+2}\'')
+}
+
 
 def startup(sonarCredentialId, defaultParameterValues){
     parallel(
@@ -543,7 +547,7 @@ def call(){
                             stage('Building Documentation'){
                                 environment{
                                     GCOV_PREFIX='build/temp'
-                                    GCOV_PREFIX_STRIP=5
+                                    GCOV_PREFIX_STRIP=calculateGCOV_PREFIX_STRIP()
                                 }
                                 steps{
                                     timeout(3){
@@ -580,7 +584,7 @@ def call(){
                                             stage('Python Tests'){
                                                 environment{
                                                     GCOV_PREFIX='build/temp'
-                                                    GCOV_PREFIX_STRIP=5
+                                                    GCOV_PREFIX_STRIP=calculateGCOV_PREFIX_STRIP()
                                                 }
                                                 steps{
                                                     script{
