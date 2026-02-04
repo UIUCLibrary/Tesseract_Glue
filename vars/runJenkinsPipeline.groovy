@@ -488,6 +488,7 @@ def call(){
                                                         sh(
                                                             label: 'Create virtual environment',
                                                             script: '''mkdir -p build/python
+                                                                       uv python install 3.14
                                                                        uv sync --group ci --no-install-project
                                                                        mkdir -p build/temp
                                                                        mkdir -p build/lib
