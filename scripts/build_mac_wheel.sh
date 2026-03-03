@@ -12,9 +12,9 @@ remove_venv(){
 generate_venv_with_venv(){
     base_python=$1
     virtual_env=$2
-    trap 'remove_venv $virtual_env' ERR SIGINT SIGTERM
+    trap 'remove_venv "$virtual_env"' ERR SIGINT SIGTERM
     $base_python -m venv "$virtual_env"
-    "$virtual_env/bin/pip" install --disable-pip-version-check uv
+    "${virtual_env}/bin/pip" install --disable-pip-version-check uv
 }
 
 generate_wheel(){
