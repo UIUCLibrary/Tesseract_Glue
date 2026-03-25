@@ -238,7 +238,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                 checkout scm
                                                 docker.image(env.DEFAULT_PYTHON_DOCKER_IMAGE ? env.DEFAULT_PYTHON_DOCKER_IMAGE: 'python')
                                                     .inside(
-                                                        '--mount source=uv_python_install_dir,target=C:\\Users\\ContainerUser\\Documents\\cache\\uvpython ' +
+                                                        '--mount source=uv_python_cache_dir,target=C:\\Users\\ContainerUser\\Documents\\cache\\uvpython ' +
                                                         '--mount source=pipcache,target=C:\\Users\\ContainerUser\\Documents\\cache\\pipcache ' +
                                                         '--mount source=uv_cache_dir,target=C:\\Users\\ContainerUser\\Documents\\cache\\uvcache ' +
                                                         '--mount source=msvc-runtime,target=c:\\msvc_runtime --mount source=windows-certs,target=c:\\certs'
@@ -668,7 +668,7 @@ def call(){
                                                             },
                                                             'Audit Lockfile Dependencies': {
                                                                 catchError(buildResult: 'UNSTABLE', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                                    sh 'uv run uv-secure --disable-cache uv.lock'
+                                                                    sh 'uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
                                                                 }
                                                             },
                                                             'Run Flake8 Static Analysis': {
