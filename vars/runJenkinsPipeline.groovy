@@ -114,16 +114,16 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                     "TOX_INSTALL_PKG=${findFiles(glob:'dist/*.whl')[0].path}",
                                                                     "TOX_ENV=py${pythonVersion.replace('.', '')}"
                                                                 ]){
-                                                                    docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                                    docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec'){
                                                                         sh(
                                                                             label: 'Testing with tox',
-                                                                            script: '''python3 -m venv venv
+                                                                            script: """python3 -m venv venv
                                                                                        . ./venv/bin/activate
                                                                                        trap "rm -rf venv" EXIT
                                                                                        pip install --disable-pip-version-check uv
-                                                                                       uv run --only-group tox --with tox-uv tox
+                                                                                       uv run --python=${pythonVersion} --only-group=tox --with tox-uv tox
                                                                                        rm -rf .tox
-                                                                                    '''
+                                                                                    """
                                                                         )
                                                                     }
                                                                 }
