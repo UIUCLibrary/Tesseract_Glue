@@ -12,9 +12,9 @@ remove_venv(){
 generate_venv_with_venv(){
     base_python=$1
     virtual_env=$2
-    trap "remove_venv $virtual_env" ERR SIGINT SIGTERM
-    $base_python -m venv $virtual_env
-    $virtual_env/bin/pip install --disable-pip-version-check uv
+    trap 'remove_venv "$virtual_env"' ERR SIGINT SIGTERM
+    $base_python -m venv "$virtual_env"
+    "${virtual_env}/bin/pip" install --disable-pip-version-check uv
 }
 
 generate_wheel(){
@@ -143,14 +143,17 @@ done
 
 check_args
 
-uv_path=uv
+uv_path=$(command -v uv)
 if [[ ! -f "$uv_path" ]]; then
-    if [[ ! -f "/tmp/uv/bin/uv" ]]; then
-      generate_venv_with_venv python3 /tmp/uv
+    tmpUVPrefix=$(mktemp -d /tmp/uv.XXXXXX)
+    tmpUv="${tmpUVPrefix}/bin/uv"
+    if [[ ! -f "$tmpUv" ]]; then
+      generate_venv_with_venv python3 "$tmpUVPrefix"
     fi
-    uv_path=/tmp/uv/bin/uv
+    uv_path="$tmpUv"
     echo "installed uv: $uv_path"
+    trap 'rm -rf "$tmpUVPrefix"' EXIT
 else
-    echo "Using existing venv: $build_virtual_env"
+    echo "Using existing venv: $uv_path"
 fi
-generate_wheel $uv_path $project_root $python_version
+generate_wheel "$uv_path" "$project_root" "$python_version"

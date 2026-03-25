@@ -78,7 +78,7 @@ function Test-Wheel {
     $containerDistPath = "c:\wheels"
     $containerCacheDir = "C:\Users\ContainerUser\Documents\cache"
     $local:PIP_CACHE_DIR = "${containerCacheDir}\pip_cache"
-    $local:UV_PYTHON_INSTALL_DIR = "${containerCacheDir}\uvpython"
+    $local:UV_PYTHON_CACHE_DIR = "${containerCacheDir}\uvpython"
     $local:UV_CACHE_DIR = "${containerCacheDir}\uv_cache"
     $local:UV_TOOL_DIR = "${containerCacheDir}\uvtools"
     $hostWheelPath = Split-Path -Path $WheelFile -Parent
@@ -95,7 +95,7 @@ function Test-Wheel {
         "--mount type=bind,source=$(Resolve-Path $projectRootDirectory),target=${containerWorkingPath}",
         "--mount type=bind,source=$(Resolve-Path $hostWheelPath),target=${containerDistPath}",
         "-e UV_TOOL_DIR=${local:UV_TOOL_DIR}",
-        "-e UV_PYTHON_INSTALL_DIR=${local:UV_PYTHON_INSTALL_DIR}",
+        "-e UV_PYTHON_CACHE_DIR=${local:UV_PYTHON_CACHE_DIR}",
         "-e UV_CACHE_DIR=${local:UV_CACHE_DIR}",
         "-e PIP_CACHE_DIR=${local:PIP_CACHE_DIR}"
     )
@@ -165,7 +165,7 @@ function Build-Wheel {
     $containerCacheDir = "C:\Users\ContainerUser\Documents\cache"
     $venv = "${containerCacheDir}\venv"
 
-    $local:UV_PYTHON_INSTALL_DIR = "${containerCacheDir}\uvpython"
+    $local:UV_PYTHON_CACHE_DIR = "${containerCacheDir}\uvpython"
     $local:UV_TOOL_DIR = "${containerCacheDir}\uvtools"
 
     # This makes a symlink copy of the files mounted in the source. Any changes to the files will not affect outside the container
@@ -196,7 +196,7 @@ function Build-Wheel {
     }
 
     if ($PSBoundParameters.ContainsKey('UVPythonInstallDirPathInContainer')) {
-        $local:dockerArgsList += @("-e", "UV_PYTHON_INSTALL_DIR=${UVPythonInstallDirPathInContainer}")
+        $local:dockerArgsList += @("-e", "UV_PYTHON_CACHE_DIR=${UVPythonInstallDirPathInContainer}")
     }
 
     if ($PSBoundParameters.ContainsKey('UVCacheDirPathInContainer')) {
