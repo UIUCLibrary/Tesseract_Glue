@@ -10,6 +10,8 @@ ARG UV_CACHE_DIR=/.cache/uv
 ARG PIP_CACHE_DIR=/.cache/pip
 # UV Cache directory. Change this only if you need to override the default location.
 
+ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tgz
+
 FROM ${manylinux_image} AS base_python
 RUN --mount=type=cache,target=/var/cache/yum \
     yum install -y lndir
@@ -44,33 +46,36 @@ RUN --mount=type=cache,target=/var/cache/yum \
     yum install -y perl-IPC-Cmd perl-Digest-SHA perl-Time-Piece
 ARG CONAN_DOWNLOAD_CACHE=/tmp/conan_download_cache
 ARG CONAN_HOME
-COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
-COPY scripts/resources/package_linux/conan/profile.ini ${CONAN_HOME}/profiles/default
+
+COPY ci/docker/shared/conan/remotes.json  /tmp/remotes.json
 ARG CONAN_CENTER_PROXY_V2_URL
 ARG UV_CACHE_DIR
-ARG PIP_CACHE_DIR
-RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
-    --mount=type=cache,target=${UV_CACHE_DIR} \
+ARG _CONAN_CACHE_FILE
+ENV UV_PROJECT_ENVIRONMENT=/tmp/uv/venv
+RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     --mount=type=cache,target=${CONAN_DOWNLOAD_CACHE} \
+    --mount=type=cache,target=${CONAN_HOME},sharing=locked \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=scripts/resources/package_linux/conan/profile.ini,target=${CONAN_HOME}/profiles/default \
     --mount=type=bind,source=conanfile.py,target=/tmp/conanfile.py \
     --mount=type=bind,source=conan.lock,target=/tmp/conan.lock \
-    uv run --only-group conan --with ninja conan profile detect --exist-ok &&  \
+    --mount=type=tmpfs,target=${UV_PROJECT_ENVIRONMENT} \
+    uv run --only-group=conan conan profile detect --exist-ok &&  \
+    mv /tmp/remotes.json ${CONAN_HOME}/remotes.json && \
     cp ${CONAN_HOME}/global.conf /tmp/global.conf.original && \
     echo "core.sources:download_cache = $CONAN_DOWNLOAD_CACHE" >> ${CONAN_HOME}/global.conf && \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json)" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
           echo "Setting the conan center url for building cache: ${CONAN_CENTER_PROXY_V2_URL}" && \
           cp ${CONAN_HOME}/remotes.json /tmp/remotes.json && \
-          uv run --only-group conan --with ninja conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
+          uv run --only-group=conan conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
     fi && \
-    uv run --only-group conan --with ninja conan install -pr:b=default --build missing /tmp  --conf=tools.cmake.cmaketoolchain:generator=Ninja && \
-    uv run --only-group conan --with ninja conan cache clean "*" -b --source --build --temp && \
-    chmod -R 777 ${CONAN_HOME} && \
-    if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
-      mv -f /tmp/remotes.json ${CONAN_HOME}/remotes.json; \
-    fi && \
-    mv -f /tmp/global.conf.original ${CONAN_HOME}/global.conf
+    uv run --only-group=conan conan install -pr:b=default --build missing /tmp -c tools.graph:skip_test=True -c tools.build:skip_test=True && \
+    uv run --only-group=conan conan cache clean '*' --build --temp && \
+    uv run --only-group=conan conan graph info /tmp/conanfile.py --lockfile=/tmp/conan.lock -c tools.graph:skip_build=True -c tools.graph:skip_test=True --format=json > graph.json && \
+    uv run --only-group=conan conan list --graph=graph.json --format=json > pkglist.json && \
+    uv run --only-group=conan conan cache save --file ${_CONAN_CACHE_FILE} --list pkglist.json  && \
+    uv run --only-group=conan conan remove '*' --lru=1d
 
 FROM base_python
 ARG CONAN_HOME
@@ -78,7 +83,16 @@ ARG CONAN_USER_HOME
 ENV CONAN_USER_HOME=${CONAN_USER_HOME} \
     CONAN_HOME=${CONAN_HOME}
 
-COPY --from=conan_builder ${CONAN_HOME}/ ${CONAN_HOME}/
+COPY scripts/resources/package_linux/conan/profile.ini ${CONAN_HOME}/profiles/default
+ARG _CONAN_CACHE_FILE
+ARG UV_CACHE_DIR
+RUN --mount=type=cache,target=${UV_CACHE_DIR} \
+    --mount=type=bind,source=${_CONAN_CACHE_FILE},from=conan_builder,target=${_CONAN_CACHE_FILE} \
+    --mount=type=bind,source=pyproject.toml,target=/tmp/uv/pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=/tmp/uv/uv.lock \
+    --mount=type=tmpfs,target=/tmp/uv/venv \
+    UV_PROJECT_ENVIRONMENT=/tmp/uv/venv UV_PROJECT=/tmp/uv uv run --only-group=conan conan cache restore ${_CONAN_CACHE_FILE}
+
 COPY scripts/resources/package_linux/make-wheel.sh /usr/local/bin/make-wheel
 
 LABEL purpose=ci
