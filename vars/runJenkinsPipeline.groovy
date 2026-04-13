@@ -87,13 +87,15 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                     node("linux && docker && ${arch}"){
                                                         def dockerImageName = "${currentBuild.fullProjectName}_${UUID.randomUUID().toString()}".replaceAll("-", "_").replaceAll('/', "_").replaceAll(' ', "").toLowerCase()
                                                         try{
+                                                            checkout scm
                                                             retry(retryTimes){
                                                                 try{
-                                                                    checkout scm
-                                                                    sh(label:'Build Linux Wheel', script: "scripts/build_linux_wheels.sh --python-version ${pythonVersion} --docker-image-name ${dockerImageName}")
-                                                                    stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux - ${arch} - wheel"
-                                                                    wheelStashes << "python${pythonVersion} linux - ${arch} - wheel"
-                                                                    archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
+                                                                    timeout(45){
+                                                                        sh(label:'Build Linux Wheel', script: "scripts/build_linux_wheels.sh --python-version ${pythonVersion} --docker-image-name ${dockerImageName}")
+                                                                        stash includes: 'dist/*manylinux*.*whl', name: "python${pythonVersion} linux - ${arch} - wheel"
+                                                                        wheelStashes << "python${pythonVersion} linux - ${arch} - wheel"
+                                                                        archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
+                                                                    }
                                                                 } finally{
                                                                     sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                                 }
