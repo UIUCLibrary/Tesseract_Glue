@@ -75,7 +75,7 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     uv run --only-group=conan conan graph info /tmp/conanfile.py --lockfile=/tmp/conan.lock -c tools.graph:skip_build=True -c tools.graph:skip_test=True --format=json > graph.json && \
     uv run --only-group=conan conan list --graph=graph.json --format=json > pkglist.json && \
     uv run --only-group=conan conan cache save --file ${_CONAN_CACHE_FILE} --list pkglist.json  && \
-    uv run --only-group=conan conan remove '*' --lru=1d
+    uv run --only-group=conan conan remove '*' --lru=1d --confirm
 
 FROM base_python
 ARG CONAN_HOME
