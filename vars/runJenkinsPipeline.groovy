@@ -521,6 +521,7 @@ def call(){
                             UV_CACHE_DIR='/tmp/uvcache'
                             UV_FROZEN = '1'
                             UV_CONFIG_FILE="${createUVConfig()}"
+                            UV_FROZEN = '1'
                         }
                         agent {
                             dockerfile {
@@ -668,7 +669,7 @@ def call(){
                                                             },
                                                             'Audit Lockfile Dependencies': {
                                                                 catchError(buildResult: 'UNSTABLE', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                                    sh 'uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                                    sh 'uv run uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
                                                                 }
                                                             },
                                                             'Run Flake8 Static Analysis': {
