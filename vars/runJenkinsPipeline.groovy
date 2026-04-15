@@ -620,7 +620,7 @@ def call(){
                                                             },
                                                             'Audit Lockfile Dependencies': {
                                                                 catchError(buildResult: 'UNSTABLE', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                                    sh 'uv run uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                                    sh 'uv run uv-secure --disable-cache uv.lock'
                                                                 }
                                                             },
                                                             'Run Flake8 Static Analysis': {
