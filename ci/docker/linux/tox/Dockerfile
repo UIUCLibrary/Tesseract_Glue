@@ -71,15 +71,9 @@ RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
     if [ "$(jq -r '.remotes[0].url' ${CONAN_HOME}/remotes.json )" != "${CONAN_CENTER_PROXY_V2_URL}" ]; then \
       mv -f /tmp/remotes.json ${CONAN_HOME}/remotes.json; \
     fi && \
-    uv run --only-group=conan conan install -pr:b=default --build missing /tmp -c tools.graph:skip_test=True -c tools.build:skip_test=True && \
-    uv run --only-group=conan conan install -pr:b=default --build missing /tmp -s build_type=Debug && \
-    uv run --only-group=conan conan cache clean '*' --build --temp && \
     uv run --only-group=conan conan graph info /tmp/conanfile.py --lockfile=/tmp/conan.lock --format=json -c tools.graph:skip_build=True -c tools.graph:skip_test=True -s build_type=Release > graph.json && \
-    uv run --only-group=conan conan graph info /tmp/conanfile.py --lockfile=/tmp/conan.lock --format=json -c tools.graph:skip_build=True -s build_type=Debug > graph-debug.json && \
     uv run --only-group=conan conan list --graph=graph.json --format=json > pkglist-release.json && \
-    uv run --only-group=conan conan list --graph=graph-debug.json --format=json > pkglist-debug.json && \
-    jq -s '.[0] * .[1]' pkglist-release.json pkglist-debug.json > pkglist.json && \
-    uv run --only-group=conan conan cache save --file ${_CONAN_CACHE_FILE} --list pkglist.json  && \
+    uv run --only-group=conan conan cache save --file ${_CONAN_CACHE_FILE} --list pkglist-release.json  && \
     uv run --only-group=conan conan remove '*' --lru=1d
 
 # ==============================================================================

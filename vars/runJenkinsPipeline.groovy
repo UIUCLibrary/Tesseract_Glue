@@ -472,13 +472,14 @@ def call(){
                             UV_TOOL_DIR='/tmp/uvtools'
                             UV_PYTHON_CACHE_DIR='/tmp/uvpython'
                             UV_CACHE_DIR='/tmp/uvcache'
+                            UV_FROZEN = '1'
                         }
                         agent {
                             dockerfile {
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
                                 additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
-                                args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec'
+                                args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv'
                             }
                         }
                         stages{
@@ -530,7 +531,7 @@ def call(){
                                             timeout(10){
                                                 sh(
                                                     label: 'Build python package',
-                                                    script: '''uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.5.0/uiucprescon_build-0.5.0-py3-none-any.whl"
+                                                    script: '''VIRTUAL_ENV=$UV_PROJECT_ENVIRONMENT uv pip install "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.5.0/uiucprescon_build-0.5.0-py3-none-any.whl"
                                                                build-wrapper-linux --out-dir build/build_wrapper_output_directory uv run setup.py build_ext --inplace --build-temp build/temp  --build-lib build/lib --debug -v
                                                                find build -name "*.gcno"
                                                             '''
@@ -620,7 +621,7 @@ def call(){
                                                             },
                                                             'Audit Lockfile Dependencies': {
                                                                 catchError(buildResult: 'UNSTABLE', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                                    sh 'uv run uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                                    sh 'uv run uv-secure --disable-cache uv.lock'
                                                                 }
                                                             },
                                                             'Run Flake8 Static Analysis': {
@@ -807,9 +808,13 @@ def call(){
                                                 def props = readTOML( file: 'pyproject.toml')['project']
                                                 withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
                                                     withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'token')]) {
+                                                        // Note: pysonar 1.4.0.4676 has tomli pinned to 2.2.1 so it's
+                                                        // preventing other deps from being upgraded. However, the
+                                                        // version of pysonar on GitHub relaxes this requirements.
+                                                        // When released, upgrade pysonar and pin pysonar again
                                                         sh(
                                                             label: 'Running Sonar Scanner',
-                                                            script: 'uv run pysonar -t $token ' +
+                                                            script: 'uvx pysonar -t $token ' +
                                                                     "-Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" " +
                                                                     (env.CHANGE_ID ? '-Dsonar.pullrequest.key=$CHANGE_ID -Dsonar.pullrequest.base=$CHANGE_TARGET' : '-Dsonar.branch.name=$BRANCH_NAME') +
                                                                     ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml'
