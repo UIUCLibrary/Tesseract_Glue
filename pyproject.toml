@@ -36,6 +36,7 @@ Documentation = "https://www.library.illinois.edu/dccdocs/ocr"
 Download = "https://github.com/UIUCLibrary/ocr"
 
 [dependency-groups]
+audit-dependencies = ["uv-secure"]
 test = [
     "pytest",
     "pytest-bdd<9.0",
@@ -45,6 +46,7 @@ conan =["conan>=2.0", "cmake<4.0"]
 docs = ["sphinx", "setuptools", "toml; python_version < '3.11'"]
 tox = ["tox"]
 dev = [
+    {include-group = "audit-dependencies"},
     {include-group = "docs"},
     {include-group = "tox"},
     {include-group = "test"},

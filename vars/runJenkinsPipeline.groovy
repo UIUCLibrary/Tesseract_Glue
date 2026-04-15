@@ -619,8 +619,8 @@ def call(){
                                                                 }
                                                             },
                                                             'Audit Lockfile Dependencies': {
-                                                                catchError(buildResult: 'SUCCESS', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                                    sh 'uvx uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                                catchError(buildResult: 'UNSTABLE', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
+                                                                    sh 'uv run uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
                                                                 }
                                                             },
                                                             'Run Flake8 Static Analysis': {
