@@ -1292,30 +1292,22 @@ def call(){
                                                                                     "UV_CONFIG_FILE=${createUVConfig()}"
                                                                                 ]){
                                                                                     findFiles(glob: 'dist/*.tar.gz').each{
-                                                                                        withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
-                                                                                            retry(3){
-                                                                                                try{
-                                                                                                    sh(
-                                                                                                        label: 'Running Tox',
-                                                                                                        script: """python3 -m venv venv
-                                                                                                                   trap "rm -rf venv" EXIT
-                                                                                                                   ./venv/bin/pip install --disable-pip-version-check uv
-                                                                                                                   trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                                                   ./venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                                                                """
-                                                                                                    )
-                                                                                                } catch(err){
-                                                                                                    cleanWs(
-                                                                                                        patterns: [
-                                                                                                                [pattern: '.tox/', type: 'INCLUDE'],
-                                                                                                                [pattern: 'dist/', type: 'INCLUDE'],
-                                                                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                                                            ],
-                                                                                                        notFailBuild: true,
-                                                                                                        deleteDirs: true
-                                                                                                    )
-                                                                                                    throw err
-                                                                                                }
+                                                                                        retry(3){
+                                                                                            try{
+                                                                                                sh(
+                                                                                                    label: 'Running Tox',
+                                                                                                    script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"
+                                                                                                )
+                                                                                            } catch(err){
+                                                                                                cleanWs(
+                                                                                                    patterns: [
+                                                                                                            [pattern: '.tox/', type: 'INCLUDE'],
+                                                                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                                                        ],
+                                                                                                    notFailBuild: true,
+                                                                                                    deleteDirs: true
+                                                                                                )
+                                                                                                throw err
                                                                                             }
                                                                                         }
                                                                                     }
