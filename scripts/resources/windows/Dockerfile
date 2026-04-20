@@ -75,7 +75,7 @@ RUN uv run --only-group conan conan profile detect --exist-ok ; `
     } ;`
     uv run --only-group conan conan cache clean "*" -b --source --build --temp ; `
     uv cache clean --no-progress ; `
-    if (${env:CONAN_CENTER_PROXY_V2_URL} -ne ($(Get-Content -Raw -Path "${Env:CONAN_HOME}/remotes.json") | ConvertFrom-Json).remotes[0].url) { `
+    if (Test-Path -Path "c:\remotes.json") { `
       Move-Item -Path "c:\remotes.json" -Destination "${Env:CONAN_HOME}\remotes.json" -Force ;`
     }; `
     Remove-Item -Path "${Env:UV_PROJECT_ENVIRONMENT}" -Recurse ; `
