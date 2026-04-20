@@ -151,15 +151,11 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                     "TOX_INSTALL_PKG=${findFiles(glob:'dist/*.whl')[0].path}",
                                                                     "TOX_ENV=py${pythonVersion.replace('.', '')}"
                                                                 ]){
-                                                                    docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec'){
+                                                                    docker.image('ghcr.io/astral-sh/uv:debian').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec'){
                                                                         withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
                                                                             sh(
                                                                                 label: 'Testing with tox',
-                                                                                script: """python3 -m venv venv
-                                                                                           . ./venv/bin/activate
-                                                                                           trap "rm -rf venv" EXIT
-                                                                                           pip install --disable-pip-version-check uv
-                                                                                           uv run --python=${pythonVersion} --only-group=tox --with tox-uv tox
+                                                                                script: """uv run --python=${pythonVersion} --only-group=tox --with tox-uv tox
                                                                                            rm -rf .tox
                                                                                         """
                                                                             )
@@ -911,25 +907,17 @@ def call(){
                                         node('docker && linux'){
                                             try{
                                                 checkout scm
-                                                docker.image('python').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                docker.image('ghcr.io/astral-sh/uv:debian').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
                                                     withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
-                                                        sh(script: 'python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv')
                                                         envs = sh(
                                                             label: 'Get tox environments',
-                                                            script: './venv/bin/uv run --only-group tox --quiet --with tox-uv tox list -d --no-desc',
+                                                            script: 'uv run --only-group tox --quiet --with tox-uv tox list -d --no-desc',
                                                             returnStdout: true,
                                                         ).trim().split('\n')
                                                     }
                                                 }
                                             } finally{
                                                 sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                cleanWs(
-                                                    patterns: [
-                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                        [pattern: '.tox', type: 'INCLUDE'],
-                                                        [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                    ]
-                                                )
                                             }
                                         }
                                         parallel(
@@ -951,9 +939,7 @@ def call(){
                                                                             withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
                                                                                 retry(3){
                                                                                     sh( label: 'Running Tox',
-                                                                                        script: """python3 -m venv venv && venv/bin/pip install --disable-pip-version-check uv
-                                                                                                   venv/bin/uv run --only-group tox --python ${version} --python-preference system --with tox-uv tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv
-                                                                                                """
+                                                                                        script: "uv run --only-group tox --python ${version} --python-preference system --with tox-uv tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv"
                                                                                         )
                                                                                 }
                                                                             }
@@ -1111,7 +1097,7 @@ def call(){
                             stage('Build sdist'){
                                 agent {
                                     docker {
-                                        image 'python'
+                                        image 'ghcr.io/astral-sh/uv:debian'
                                         label 'docker && linux'
                                         args '--mount source=python-tmp-uiucpreson-ocr,target=/tmp'
                                     }
@@ -1127,11 +1113,7 @@ def call(){
                                     script{
                                         try{
                                             sh(label: 'Building sdist',
-                                               script: '''python -m venv venv
-                                                          trap "rm -rf venv" EXIT
-                                                          venv/bin/pip install --disable-pip-version-check uv
-                                                          venv/bin/uv build --sdist
-                                                          '''
+                                               script: 'uv build --sdist'
                                             )
                                             archiveArtifacts artifacts: 'dist/*.tar.gz,dist/*.zip'
                                             stash includes: 'dist/*.tar.gz,dist/*.zip', name: 'python sdist'
@@ -1373,7 +1355,7 @@ def call(){
                         }
                         agent {
                             docker{
-                                image 'python'
+                                image 'ghcr.io/astral-sh/uv:debian'
                                 label 'docker && linux'
                                 args '--mount source=python-tmp-uiucpreson-ocr,target=/tmp'
                             }
@@ -1417,12 +1399,7 @@ def call(){
                                     ]){
                                         sh(
                                             label: 'Uploading to pypi',
-                                            script: '''python3 -m venv venv
-                                                       trap "rm -rf venv" EXIT
-                                                       . ./venv/bin/activate
-                                                       pip install --disable-pip-version-check uv
-                                                       uv run --only-group publish twine upload --disable-progress-bar --non-interactive dist/*
-                                                    '''
+                                            script: 'uv run --only-group publish twine upload --disable-progress-bar --non-interactive dist/*'
                                         )
                                 }
                             }
