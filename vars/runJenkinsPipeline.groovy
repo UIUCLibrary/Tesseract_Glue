@@ -206,7 +206,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                             checkout scm
                                             retry(retryTimes){
                                                 try{
-                                                    withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
+                                                    withEnv(["UV_CONFIG_FILE=${createWindowUVConfig()}"]){
                                                         powershell(label: 'Building Wheel for Windows', script: "scripts/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName} -UVCacheDirPathInContainer \$ENV:UV_CACHE_DIR -PIPDowndloadCachePathInContainer \$ENV:PIP_CACHE_DIR -UVPythonInstallDirPathInContainer \$Env:UV_PYTHON_INSTALL_DIR -UVToolDirPathInContainer \$Env:UV_TOOL_DIR")
                                                         stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                                         wheelStashes << "python${pythonVersion} windows wheel"
@@ -1020,11 +1020,13 @@ def call(){
                                                                     ){
                                                                         retry(3){
                                                                             try{
-                                                                                bat(label: 'Running Tox',
-                                                                                     script: """uv python install cpython-${version}
-                                                                                                uv run --only-group tox -p ${version} --with tox-uv tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv
-                                                                                             """
-                                                                                )
+                                                                                withEnv(["UV_CONFIG_FILE=${createWindowUVConfig()}"]){
+                                                                                    bat(label: 'Running Tox',
+                                                                                         script: """uv python install cpython-${version}
+                                                                                                    uv run --only-group tox -p ${version} --with tox-uv tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv
+                                                                                                 """
+                                                                                    )
+                                                                                }
                                                                             } finally{
                                                                                 cleanWs(
                                                                                     patterns: [
