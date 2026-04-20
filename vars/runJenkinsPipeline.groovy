@@ -148,17 +148,24 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                             unstash "python${pythonVersion} linux - ${arch} - wheel"
                                                             try{
                                                                 withEnv([
-                                                                    "TOX_INSTALL_PKG=${findFiles(glob:'dist/*.whl')[0].path}",
-                                                                    "TOX_ENV=py${pythonVersion.replace('.', '')}"
+                                                                    "TOX_ENV=py${pythonVersion.replace('.', '')}",
+                                                                    "UV_PYTHON_CACHE_DIR=/tmp/uvpython",
                                                                 ]){
-                                                                    docker.image('ghcr.io/astral-sh/uv:debian').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec'){
-                                                                        withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
-                                                                            sh(
-                                                                                label: 'Testing with tox',
-                                                                                script: """uv run --python=${pythonVersion} --only-group=tox-uv --frozen tox
-                                                                                           rm -rf .tox
-                                                                                        """
-                                                                            )
+                                                                    findFiles(glob: 'dist/*.whl').each{
+                                                                        docker.image('ghcr.io/astral-sh/uv:debian').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec'){
+                                                                            withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
+                                                                                sh "uv python install ${pythonVersion}"
+                                                                                def attempt = 0
+                                                                                retry(2){
+                                                                                    withEnv([(attempt == 0) ? "UV_OFFLINE=1" : 'UV_OFFLINE=0']){
+                                                                                        attempt += 1
+                                                                                        sh(
+                                                                                            label: "Testing with tox: ${(attempt == 1) ? "Offline" : 'Online'}",
+                                                                                            script: "uv run --python=${pythonVersion} --only-group=tox-uv --frozen tox --installpkg=${it.path}"
+                                                                                        )
+                                                                                    }
+                                                                                }
+                                                                            }
                                                                         }
                                                                     }
                                                                 }
@@ -244,10 +251,18 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                         installMSVCRuntime('c:\\msvc_runtime\\')
                                                         installCerts('c:\\certs\\')
                                                         unstash "python${pythonVersion} windows wheel"
+                                                        bat """python -m pip install --disable-pip-version-check uv
+                                                               uv python install ${pythonVersion}
+                                                            """
                                                         findFiles(glob: 'dist/*.whl').each{
-                                                            bat """python -m pip install  --disable-pip-version-check uv
-                                                                   uv run --only-group=tox-uv --frozen -p ${pythonVersion} tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}
-                                                                """
+                                                            def attempt = 0
+                                                            retry(2){
+                                                                withEnv([(attempt == 0) ? "UV_OFFLINE=1" : 'UV_OFFLINE=0']){
+                                                                    attempt += 1
+                                                                    bat(label: "Running Tox: ${(attempt == 1) ? "Offline" : 'Online'}",
+                                                                        script: "uv run --only-group=tox-uv --frozen -p ${pythonVersion} tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}")
+                                                                }
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -312,14 +327,20 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                             try{
                                                                 findFiles(glob: 'dist/*.whl').each{
                                                                     withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
-                                                                        sh(label: 'Running Tox',
-                                                                           script: """python${pythonVersion} -m venv venv
-                                                                                      trap "rm -rf venv" EXIT
-                                                                                      ./venv/bin/pip install --disable-pip-version-check uv
-                                                                                      trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                      ./venv/bin/uv run --only-group=tox-uv --frozen --python=${pythonVersion} tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                                   """
-                                                                        )
+                                                                        def attempt = 0
+                                                                        retry(2){
+                                                                            withEnv([(attempt == 0) ? "UV_OFFLINE=1" : 'UV_OFFLINE=0']){
+                                                                                attempt += 1
+                                                                                sh(label: "Running Tox: ${(attempt == 1) ? "Offline" : 'Online'}",
+                                                                                   script: """python${pythonVersion} -m venv venv
+                                                                                              trap "rm -rf venv" EXIT
+                                                                                              ./venv/bin/pip install --disable-pip-version-check uv
+                                                                                              trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                              ./venv/bin/uv run --only-group=tox-uv --frozen --python=${pythonVersion} tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                           """
+                                                                                )
+                                                                            }
+                                                                        }
                                                                     }
                                                                 }
                                                                 archiveArtifacts artifacts: 'dist/*.whl'
@@ -1170,14 +1191,20 @@ def call(){
                                                                             unstash 'python sdist'
                                                                             findFiles(glob: 'dist/*.tar.gz').each{
                                                                                 withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
-                                                                                    sh(label: 'Running Tox',
-                                                                                       script: """python3 -m venv venv
-                                                                                                  trap "rm -rf venv" EXIT
-                                                                                                  venv/bin/pip install  --disable-pip-version-check uv
-                                                                                                  trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                                  venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                                               """
-                                                                                    )
+                                                                                    def attempt = 0
+                                                                                    retry(2){
+                                                                                        withEnv([(attempt == 0) ? "UV_OFFLINE=1" : 'UV_OFFLINE=0']){
+                                                                                            attempt += 1
+                                                                                            sh(label: "Running Tox: ${(attempt == 1) ? "Offline" : 'Online'}",
+                                                                                               script: """python3 -m venv venv
+                                                                                                          trap "rm -rf venv" EXIT
+                                                                                                          venv/bin/pip install  --disable-pip-version-check uv
+                                                                                                          trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                                          venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                                       """
+                                                                                            )
+                                                                                        }
+                                                                                    }
                                                                                 }
                                                                             }
                                                                         } finally{
@@ -1231,11 +1258,18 @@ def call(){
                                                                                     ){
                                                                                        checkout scm
                                                                                        unstash 'python sdist'
+                                                                                       bat "uv python install ${pythonVersion}"
                                                                                        findFiles(glob: 'dist/*.tar.gz').each{
-                                                                                           bat(
-                                                                                               label: 'Running Tox',
-                                                                                               script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -vv"
-                                                                                           )
+                                                                                            def attempt = 0
+                                                                                            retry(2){
+                                                                                                withEnv([(attempt == 0) ? "UV_OFFLINE=1" : 'UV_OFFLINE=0']){
+                                                                                                    attempt += 1
+                                                                                                    bat(
+                                                                                                        label: "Running Tox: ${(attempt == 1) ? "Offline" : 'Online'}",
+                                                                                                        script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -vv"
+                                                                                                    )
+                                                                                                }
+                                                                                            }
                                                                                        }
                                                                                     }
                                                                                 } finally{
@@ -1292,22 +1326,26 @@ def call(){
                                                                                     "UV_CONFIG_FILE=${createUVConfig()}"
                                                                                 ]){
                                                                                     findFiles(glob: 'dist/*.tar.gz').each{
+                                                                                        def attempt = 0
                                                                                         retry(3){
-                                                                                            try{
-                                                                                                sh(
-                                                                                                    label: 'Running Tox',
-                                                                                                    script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"
-                                                                                                )
-                                                                                            } catch(err){
-                                                                                                cleanWs(
-                                                                                                    patterns: [
-                                                                                                            [pattern: '.tox/', type: 'INCLUDE'],
-                                                                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                                                        ],
-                                                                                                    notFailBuild: true,
-                                                                                                    deleteDirs: true
-                                                                                                )
-                                                                                                throw err
+                                                                                            withEnv([(attempt == 0) ? "UV_OFFLINE=1" : 'UV_OFFLINE=0']){
+                                                                                                attempt += 1
+                                                                                                try{
+                                                                                                    sh(
+                                                                                                        label: "Running Tox: ${(attempt == 1) ? "Offline" : 'Online'}",
+                                                                                                        script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"
+                                                                                                    )
+                                                                                                } catch(err){
+                                                                                                    cleanWs(
+                                                                                                        patterns: [
+                                                                                                                [pattern: '.tox/', type: 'INCLUDE'],
+                                                                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                                                            ],
+                                                                                                        notFailBuild: true,
+                                                                                                        deleteDirs: true
+                                                                                                    )
+                                                                                                    throw err
+                                                                                                }
                                                                                             }
                                                                                         }
                                                                                     }
