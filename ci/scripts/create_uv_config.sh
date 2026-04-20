@@ -3,7 +3,8 @@
 
 set -e
 
-MAX_AGE_API=6000
+# Make it so that the API cache is valid for 4 days
+MAX_AGE_API=5760
 MAX_AGE_FILES=365000000
 
 GLOBAL_CONFIG_FILE=uv.toml
