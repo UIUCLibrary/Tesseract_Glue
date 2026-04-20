@@ -521,7 +521,6 @@ def call(){
                             UV_CACHE_DIR='/tmp/uvcache'
                             UV_FROZEN = '1'
                             UV_CONFIG_FILE="${createUVConfig()}"
-                            UV_FROZEN = '1'
                         }
                         agent {
                             dockerfile {
