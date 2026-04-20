@@ -6,7 +6,7 @@ param (
     [string]$PythonVersion = "3.11",
     [string]$PIPDowndloadCachePathInContainer,
     [string]$UVCacheDirPathInContainer,
-    [string]$UVPythonInstallDirPathInContainer,
+    [string]$UVPythonCacheDirPathInContainer,
     [string]$UVToolDirPathInContainer,
     [ValidateNotNullOrEmpty()][switch]$Verify
 )
@@ -152,7 +152,7 @@ function Build-Wheel {
         [string]$UVToolDirPathInContainer,
         [Parameter(Mandatory=$False)]
         [ValidateScript({ ![string]::IsNullOrWhiteSpace($_) })]
-        [string]$UVPythonInstallDirPathInContainer
+        [string]$UVPythonCacheDirPathInContainer
     )
     $containerDistPath = "c:\dist"
     $projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
@@ -195,8 +195,8 @@ function Build-Wheel {
         $local:dockerArgsList += @("-e", "UV_TOOL_DIR=${UVToolDirPathInContainer}")
     }
 
-    if ($PSBoundParameters.ContainsKey('UVPythonInstallDirPathInContainer')) {
-        $local:dockerArgsList += @("-e", "UV_PYTHON_CACHE_DIR=${UVPythonInstallDirPathInContainer}")
+    if ($PSBoundParameters.ContainsKey('UVPythonCacheDirPathInContainer')) {
+        $local:dockerArgsList += @("-e", "UV_PYTHON_CACHE_DIR=${UVPythonCacheDirPathInContainer}")
     }
 
     if ($PSBoundParameters.ContainsKey('UVCacheDirPathInContainer')) {
@@ -261,8 +261,8 @@ if($PSBoundParameters.ContainsKey('UVCacheDirPathInContainer')) {
     $local:buildDockerImageParams['UVCacheDirPathInContainer'] = $UVCacheDirPathInContainer
 }
 
-if($PSBoundParameters.ContainsKey('UVPythonInstallDirPathInContainer')) {
-    $local:buildWheelParams['UVPythonInstallDirPathInContainer'] = $UVPythonInstallDirPathInContainer
+if($PSBoundParameters.ContainsKey('UVPythonCacheDirPathInContainer')) {
+    $local:buildWheelParams['UVPythonCacheDirPathInContainer'] = $UVPythonCacheDirPathInContainer
 }
 
 if($PSBoundParameters.ContainsKey('UVToolDirPathInContainer')) {

@@ -207,7 +207,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                             retry(retryTimes){
                                                 try{
                                                     withEnv(["UV_CONFIG_FILE=${createWindowUVConfig()}"]){
-                                                        powershell(label: 'Building Wheel for Windows', script: "scripts/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName} -UVCacheDirPathInContainer \$ENV:UV_CACHE_DIR -PIPDowndloadCachePathInContainer \$ENV:PIP_CACHE_DIR -UVPythonInstallDirPathInContainer \$Env:UV_PYTHON_INSTALL_DIR -UVToolDirPathInContainer \$Env:UV_TOOL_DIR")
+                                                        powershell(label: 'Building Wheel for Windows', script: "scripts/build_windows.ps1 -PythonVersion ${pythonVersion} -DockerImageName ${dockerImageName} -UVPythonCacheDirPathInContainer \$ENV:UV_PYTHON_CACHE_DIR -PIPDowndloadCachePathInContainer \$ENV:PIP_CACHE_DIR -UVToolDirPathInContainer \$Env:UV_TOOL_DIR")
                                                         stash includes: 'dist/*.whl', name: "python${pythonVersion} windows wheel"
                                                         wheelStashes << "python${pythonVersion} windows wheel"
                                                     }
