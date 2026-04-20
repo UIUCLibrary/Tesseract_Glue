@@ -45,6 +45,10 @@ test = [
 conan =["conan>=2.0", "cmake<4.0"]
 docs = ["sphinx", "setuptools", "toml; python_version < '3.11'"]
 tox = ["tox"]
+tox-uv = [
+    {include-group = "tox"},
+    "tox-uv-bare"
+]
 dev = [
     {include-group = "audit-dependencies"},
     {include-group = "docs"},
