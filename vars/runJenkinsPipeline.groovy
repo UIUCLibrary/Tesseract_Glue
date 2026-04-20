@@ -1163,43 +1163,28 @@ def call(){
                                                     "${newStageName}": {
                                                         if(selectedArches.contains(arch)){
                                                             stage(newStageName){
-                                                                testPythonPkg(
-                                                                    agent: [
-                                                                        label: "mac && python${pythonVersion} && ${arch}",
-                                                                    ],
-                                                                    testSetup: {
-                                                                        checkout scm
-                                                                        unstash 'python sdist'
-                                                                    },
-                                                                    retries: 3,
-                                                                    testCommand: {
-                                                                        findFiles(glob: 'dist/*.tar.gz').each{
-                                                                            withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
-                                                                                sh(label: 'Running Tox',
-                                                                                   script: """python3 -m venv venv
-                                                                                              trap "rm -rf venv" EXIT
-                                                                                              venv/bin/pip install  --disable-pip-version-check uv
-                                                                                              trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                              venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                                           """
-                                                                                )
+                                                                retry(3){
+                                                                    node("mac && python3 && ${arch}"){
+                                                                        try{
+                                                                            checkout scm
+                                                                            unstash 'python sdist'
+                                                                            findFiles(glob: 'dist/*.tar.gz').each{
+                                                                                withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
+                                                                                    sh(label: 'Running Tox',
+                                                                                       script: """python3 -m venv venv
+                                                                                                  trap "rm -rf venv" EXIT
+                                                                                                  venv/bin/pip install  --disable-pip-version-check uv
+                                                                                                  trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                                  venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                               """
+                                                                                    )
+                                                                                }
                                                                             }
+                                                                        } finally{
+                                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                                         }
-                                                                   },
-                                                                   post:[
-                                                                       cleanup: {
-                                                                           cleanWs(
-                                                                               patterns: [
-                                                                                       [pattern: 'dist/', type: 'INCLUDE'],
-                                                                                       [pattern: 'venv/', type: 'INCLUDE'],
-                                                                                       [pattern: '.tox/', type: 'INCLUDE'],
-                                                                                   ],
-                                                                               notFailBuild: true,
-                                                                               deleteDirs: true
-                                                                           )
-                                                                       },
-                                                                   ]
-                                                               )
+                                                                    }
+                                                                }
                                                            }
                                                        } else {
                                                            Utils.markStageSkippedForConditional(newStageName)
@@ -1290,55 +1275,56 @@ def call(){
                                                        if(selectedArches.contains(arch)){
                                                            stage(newStageName){
                                                                retry(conditions: [agent()], count: 2) {
-                                                                   testPythonPkg(
-                                                                       agent: [
-                                                                           dockerfile: [
-                                                                               label: "linux && docker && ${arch}",
-                                                                               filename: 'ci/docker/linux/tox/Dockerfile',
-                                                                               additionalBuildArgs: '--build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv'
-                                                                           ]
-                                                                       ],
-                                                                       retries: 3,
-                                                                       testSetup: {
-                                                                           checkout scm
-                                                                           unstash 'python sdist'
-                                                                       },
-                                                                       testCommand: {
-                                                                           withEnv([
-                                                                               'PIP_CACHE_DIR=/tmp/pipcache',
-                                                                               'UV_TOOL_DIR=/tmp/uvtools',
-                                                                               'UV_PYTHON_CACHE_DIR=/tmp/uvpython',
-                                                                               'UV_CACHE_DIR=/tmp/uvcache',
-                                                                           ]){
-                                                                               findFiles(glob: 'dist/*.tar.gz').each{
-                                                                                   withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
-                                                                                       sh(
-                                                                                           label: 'Running Tox',
-                                                                                           script: """python3 -m venv venv
-                                                                                                      trap "rm -rf venv" EXIT
-                                                                                                      ./venv/bin/pip install --disable-pip-version-check uv
-                                                                                                      trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                                      ./venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                                                   """
-                                                                                       )
-                                                                                   }
-                                                                               }
-                                                                           }
-                                                                       },
-                                                                       post:[
-                                                                           cleanup: {
-                                                                               cleanWs(
-                                                                                   patterns: [
-                                                                                           [pattern: '.tox/', type: 'INCLUDE'],
-                                                                                           [pattern: 'dist/', type: 'INCLUDE'],
-                                                                                           [pattern: '**/__pycache__/', type: 'INCLUDE'],
-                                                                                       ],
-                                                                                   notFailBuild: true,
-                                                                                   deleteDirs: true
-                                                                               )
-                                                                           },
-                                                                       ]
-                                                                   )
+                                                                    node("linux && docker && ${arch}"){
+                                                                        def image
+                                                                        try{
+                                                                            checkout scm
+                                                                            lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
+                                                                                image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
+                                                                            }
+                                                                            image.inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                                                unstash 'python sdist'
+                                                                                withEnv([
+                                                                                    'PIP_CACHE_DIR=/tmp/pipcache',
+                                                                                    'UV_TOOL_DIR=/tmp/uvtools',
+                                                                                    'UV_PYTHON_CACHE_DIR=/tmp/uvpython',
+                                                                                    'UV_CACHE_DIR=/tmp/uvcache',
+                                                                                    "UV_CONFIG_FILE=${createUVConfig()}"
+                                                                                ]){
+                                                                                    findFiles(glob: 'dist/*.tar.gz').each{
+                                                                                        withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
+                                                                                            retry(3){
+                                                                                                try{
+                                                                                                    sh(
+                                                                                                        label: 'Running Tox',
+                                                                                                        script: """python3 -m venv venv
+                                                                                                                   trap "rm -rf venv" EXIT
+                                                                                                                   ./venv/bin/pip install --disable-pip-version-check uv
+                                                                                                                   trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                                                                   ./venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                                                """
+                                                                                                    )
+                                                                                                } catch(err){
+                                                                                                    cleanWs(
+                                                                                                        patterns: [
+                                                                                                                [pattern: '.tox/', type: 'INCLUDE'],
+                                                                                                                [pattern: 'dist/', type: 'INCLUDE'],
+                                                                                                                [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                                                            ],
+                                                                                                        notFailBuild: true,
+                                                                                                        deleteDirs: true
+                                                                                                    )
+                                                                                                    throw err
+                                                                                                }
+                                                                                            }
+                                                                                        }
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        } finally {
+                                                                            sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                                        }
+                                                                    }
                                                                }
                                                            }
                                                         } else {
