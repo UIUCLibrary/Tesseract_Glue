@@ -884,7 +884,7 @@ def call(){
                                                         // When released, upgrade pysonar and pin pysonar again
                                                         sh(
                                                             label: 'Running Sonar Scanner',
-                                                            script: 'uvx pysonar -t $token ' +
+                                                            script: 'uv run pysonar -t $token ' +
                                                                     "-Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" " +
                                                                     (env.CHANGE_ID ? '-Dsonar.pullrequest.key=$CHANGE_ID -Dsonar.pullrequest.base=$CHANGE_TARGET' : '-Dsonar.branch.name=$BRANCH_NAME') +
                                                                     ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml'
