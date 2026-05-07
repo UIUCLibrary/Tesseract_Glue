@@ -64,7 +64,15 @@ generate_wheel(){
       exit 1
     fi
 
+    local dockerPurposeLabel='build-wheel'
+    if [ -z "${CI}" ]; then
+        dockerPurposeLabel='build-wheel'
+    else
+        dockerPurposeLabel='ci'
+    fi
+
     docker build \
+        --label="purpose=$dockerPurposeLabel" \
         -t $docker_image_name_to_use \
         --platform=$platform \
         -f "$DOCKERFILE" \
@@ -93,6 +101,12 @@ generate_wheel(){
 
 test_wheel(){
     echo 'testing wheel'
+    local dockerPurposeLabel='build-wheel'
+    if [ -z "${CI}" ]; then
+        dockerPurposeLabel='build-wheel'
+    else
+        dockerPurposeLabel='ci'
+    fi
     local platform=$1
     local wheel=$2
     local python_versions_to_use=("${@:3}")
@@ -129,6 +143,7 @@ test_wheel(){
         uvx --python=$python_versions_to_use --with tox-uv tox run --installpkg /dist/$(basename $wheel) -e \"py\${PYTHON_VERSION/./}\""
 
     docker run --rm \
+        --label="purpose=$dockerPurposeLabel" \
         --platform=$platform \
         -v "$PROJECT_ROOT":/src:ro \
         -v $(realpath $(dirname $wheel)):/dist \
@@ -249,7 +264,7 @@ if [[ ${#python_versions[@]} -eq 0 ]]; then
     python_versions=($DEFAULT_PYTHON_VERSION)
 fi
 
-if [[ ! -v docker_image_name ]]; then
+if [[ -z "${docker_image_name}" ]]; then
     docker_image_name=$DEFAULT_DOCKER_IMAGE_NAME
 else
   echo "Using '$docker_image_name' for the name of the Docker Image generated to build."

@@ -95,4 +95,3 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
 
 COPY scripts/resources/package_linux/make-wheel.sh /usr/local/bin/make-wheel
 
-LABEL purpose=ci
