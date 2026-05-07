@@ -128,5 +128,3 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     chmod -R 777 ${CONAN_HOME}
 ENV CONAN_USER_HOME=${CONAN_USER_HOME} \
     CONAN_HOME=${CONAN_HOME}
-
-LABEL purpose=ci

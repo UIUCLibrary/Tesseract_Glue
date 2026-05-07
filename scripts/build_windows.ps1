@@ -25,9 +25,14 @@ function Build-DockerImage {
         [string]$DockerExec = "docker.exe",
         [string]$DockerIsolation = "process"
     )
+    $dockerPurpose = "build-wheel"
+    if ($env:CI) {
+        $dockerPurpose = "ci"
+    }
     $projectRootDirectory = (Get-Item $PSScriptRoot).Parent.FullName
     $local:dockerArgsList = @(
         "build",
+        "--label=purpose=$dockerPurpose",
         "--isolation", $DockerIsolation,
         "--platform windows/amd64",
         "-f", $DockerfilePath,
@@ -84,8 +89,14 @@ function Test-Wheel {
     $wheelFileName = Split-Path -Path $WheelFile -Leaf
     $wheelInContainer = Join-Path -Path $containerDistPath -ChildPath $wheelFileName
 
+    $dockerPurpose = "build-wheel"
+    if ($env:CI) {
+        $dockerPurpose = "ci"
+    }
+
     $local:dockerArgsList = @(
         "run",
+        "--label=purpose=$dockerPurpose",
         "--isolation", $DockerIsolation,
         "--platform windows/amd64",
         "--rm",

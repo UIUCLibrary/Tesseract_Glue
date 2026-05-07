@@ -152,7 +152,7 @@ def linux_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                                     "UV_PYTHON_CACHE_DIR=/tmp/uvpython",
                                                                 ]){
                                                                     findFiles(glob: 'dist/*.whl').each{
-                                                                        docker.image('ghcr.io/astral-sh/uv:debian').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec'){
+                                                                        docker.image('ghcr.io/astral-sh/uv:debian').inside("--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec"){
                                                                             withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
                                                                                 sh "uv python install ${pythonVersion}"
                                                                                 def attempt = 0
@@ -241,6 +241,7 @@ def windows_wheels(pythonVersions, testPackages, params, wheelStashes){
                                                 checkout scm
                                                 docker.image(env.DEFAULT_PYTHON_DOCKER_IMAGE ? env.DEFAULT_PYTHON_DOCKER_IMAGE: 'python')
                                                     .inside(
+                                                        "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" " +
                                                         '--mount source=uv_python_cache_dir,target=C:\\Users\\ContainerUser\\Documents\\cache\\uvpython ' +
                                                         '--mount source=pipcache,target=C:\\Users\\ContainerUser\\Documents\\cache\\pipcache ' +
                                                         '--mount source=uv_cache_dir,target=C:\\Users\\ContainerUser\\Documents\\cache\\uvcache ' +
@@ -549,8 +550,8 @@ def call(){
                             dockerfile {
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
-                                additionalBuildArgs '--build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
-                                args '--mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv'
+                                additionalBuildArgs '--label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
+                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
                             }
                         }
                         stages{
@@ -690,8 +691,8 @@ def call(){
                                                                 }
                                                             },
                                                             'Audit Lockfile Dependencies': {
-                                                                catchError(buildResult: 'UNSTABLE', message: 'uv-secure found issues', stageResult: 'UNSTABLE') {
-                                                                    sh 'uv run uv-secure --cache-path=/tmp/cache/uv-secure uv.lock'
+                                                                catchError(buildResult: 'UNSTABLE', message: 'uv audit found issues', stageResult: 'UNSTABLE') {
+                                                                    sh 'uv audit'
                                                                 }
                                                             },
                                                             'Run Flake8 Static Analysis': {
@@ -884,7 +885,7 @@ def call(){
                                                         // When released, upgrade pysonar and pin pysonar again
                                                         sh(
                                                             label: 'Running Sonar Scanner',
-                                                            script: 'uvx pysonar -t $token ' +
+                                                            script: 'uv run pysonar -t $token ' +
                                                                     "-Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" " +
                                                                     (env.CHANGE_ID ? '-Dsonar.pullrequest.key=$CHANGE_ID -Dsonar.pullrequest.base=$CHANGE_TARGET' : '-Dsonar.branch.name=$BRANCH_NAME') +
                                                                     ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml'
@@ -934,7 +935,7 @@ def call(){
                                         node('docker && linux'){
                                             try{
                                                 checkout scm
-                                                docker.image('ghcr.io/astral-sh/uv:debian').inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                docker.image('ghcr.io/astral-sh/uv:debian').inside("--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp"){
                                                     withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
                                                         envs = sh(
                                                             label: 'Get tox environments',
@@ -959,10 +960,10 @@ def call(){
                                                                 def image
                                                                 try{
                                                                     lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
-                                                                        image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
+                                                                        image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --label=purpose=ci --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
                                                                     }
                                                                     try{
-                                                                        image.inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                                        image.inside("--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp"){
                                                                             withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
                                                                                 retry(3){
                                                                                     sh( label: 'Running Tox',
@@ -1006,6 +1007,7 @@ def call(){
                                                 checkout scm
                                                 docker.image(env.DEFAULT_PYTHON_DOCKER_IMAGE ? env.DEFAULT_PYTHON_DOCKER_IMAGE: 'python')
                                                     .inside(
+                                                        "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\"  " +
                                                         "--mount source=uv_python_cache_dir,target=${env.UV_PYTHON_CACHE_DIR} " +
                                                         "--mount source=pipcache,target=${env.PIP_CACHE_DIR} " +
                                                         "--mount source=uv_cache_dir,target=${env.UV_CACHE_DIR}"
@@ -1035,12 +1037,13 @@ def call(){
                                                             checkout scm
                                                             lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
                                                                 retry(2){
-                                                                    image = docker.build(UUID.randomUUID().toString(), '-f scripts/resources/windows/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                    image = docker.build(UUID.randomUUID().toString(), '-f scripts/resources/windows/Dockerfile --label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                                 }
                                                             }
                                                             try{
                                                                 try{
                                                                     image.inside(
+                                                                        "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" " +
                                                                         "--mount source=uv_python_cache_dir,target=${env.UV_PYTHON_CACHE_DIR} " +
                                                                         "--mount source=pipcache,target=${env.PIP_CACHE_DIR} " +
                                                                         "--mount source=uv_cache_dir,target=${env.UV_CACHE_DIR}"
@@ -1128,7 +1131,7 @@ def call(){
                                     docker {
                                         image 'ghcr.io/astral-sh/uv:debian'
                                         label 'docker && linux'
-                                        args '--mount source=python-tmp-uiucpreson-ocr,target=/tmp'
+                                        args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp"
                                     }
                                 }
                                options {
@@ -1246,12 +1249,13 @@ def call(){
                                                                            def retryTimes = 3
                                                                            retry(retryTimes){
                                                                                lock("docker build-${env.NODE_NAME}"){
-                                                                                   dockerImage = docker.build(dockerImageName, '-f scripts/resources/windows/Dockerfile --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
+                                                                                   dockerImage = docker.build(dockerImageName, '-f scripts/resources/windows/Dockerfile --label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg UV_INDEX_URL --build-arg UV_EXTRA_INDEX_URL .')
                                                                                }
                                                                            }
                                                                            retry(retryTimes){
                                                                                 try{
                                                                                     dockerImage.inside(
+                                                                                        "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" " +
                                                                                         '--mount type=volume,source=uv_python_cache_dir,target=C:\\Users\\ContainerUser\\Documents\\cache\\uvpython ' +
                                                                                         '--mount type=volume,source=pipcache,target=C:\\Users\\ContainerUser\\Documents\\cache\\pipcache ' +
                                                                                         '--mount type=volume,source=uv_cache_dir,target=C:\\Users\\ContainerUser\\Documents\\cache\\uvcache'
@@ -1314,9 +1318,9 @@ def call(){
                                                                         try{
                                                                             checkout scm
                                                                             lock("${env.JOB_NAME} - ${env.NODE_NAME}"){
-                                                                                image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
+                                                                                image = docker.build(UUID.randomUUID().toString(), '-f ci/docker/linux/tox/Dockerfile --label=purpose=ci --build-arg CONAN_CENTER_PROXY_V2_URL --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv .')
                                                                             }
-                                                                            image.inside('--mount source=python-tmp-uiucpreson-ocr,target=/tmp'){
+                                                                            image.inside("--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp"){
                                                                                 unstash 'python sdist'
                                                                                 withEnv([
                                                                                     'PIP_CACHE_DIR=/tmp/pipcache',
@@ -1385,7 +1389,7 @@ def call(){
                             docker{
                                 image 'ghcr.io/astral-sh/uv:debian'
                                 label 'docker && linux'
-                                args '--mount source=python-tmp-uiucpreson-ocr,target=/tmp'
+                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp"
                             }
                         }
                         when{
@@ -1453,6 +1457,7 @@ def call(){
                             dockerfile {
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker'
+                                additionalBuildArgs '--label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
                             }
                         }
                         options{
