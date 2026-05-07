@@ -39,7 +39,6 @@ Download = "https://github.com/UIUCLibrary/ocr"
 test = [
     "pytest",
     "pytest-bdd<9.0",
-    "coverage"
 ]
 conan =["conan>=2.0", "cmake<4.0"]
 docs = ["sphinx", "setuptools", "toml; python_version < '3.11'"]
@@ -57,6 +56,7 @@ dev = [
     "lxml",
     "mypy",
     "pylint",
+    "coverage"
 ]
 cibuildwheel = ["cibuildwheel"]
 package = ["delocate ; sys_platform == 'darwin'"]
