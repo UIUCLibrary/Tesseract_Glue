@@ -76,7 +76,7 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     uv run --only-group=conan conan list --graph=graph-debug.json --format=json > pkglist-debug.json && \
     jq -s '.[0] * .[1]' pkglist-release.json pkglist-debug.json > pkglist.json && \
     uv run --only-group=conan conan cache save --file ${_CONAN_CACHE_FILE} --list pkglist.json  && \
-    uv run --only-group=conan conan remove '*' --lru=1d
+    uv run --only-group=conan conan remove '*' --lru=1d --confirm
 
 #==============================================================================
 
