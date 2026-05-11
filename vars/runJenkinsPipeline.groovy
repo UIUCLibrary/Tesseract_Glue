@@ -967,7 +967,7 @@ def call(){
                                                                             withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
                                                                                 retry(3){
                                                                                     sh( label: 'Running Tox',
-                                                                                        script: "uv run --only-group=tox-uv --frozen --python ${version} --python-preference system tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv"
+                                                                                        script: "uv run --only-group=tox-uv --frozen --python ${version} --python-preference system tox run --recreate --runner uv-venv-lock-runner -e ${toxEnv} -vv"
                                                                                         )
                                                                                 }
                                                                             }
@@ -1053,7 +1053,7 @@ def call(){
                                                                                 withEnv(["UV_CONFIG_FILE=${createWindowUVConfig()}"]){
                                                                                     bat(label: 'Running Tox',
                                                                                          script: """uv python install cpython-${version}
-                                                                                                    uv run --only-group=tox-uv --frozen -p ${version} tox run --runner uv-venv-lock-runner -e ${toxEnv} -vv
+                                                                                                    uv run --only-group=tox-uv --frozen -p ${version} tox run --recreate --runner uv-venv-lock-runner -e ${toxEnv} -vv
                                                                                                  """
                                                                                     )
                                                                                 }
