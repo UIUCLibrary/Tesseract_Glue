@@ -301,11 +301,11 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                 "Python ${pythonVersion} MacOS ${arch}": {
                                     stage("Python ${pythonVersion} MacOS ${arch}"){
                                         if(selectedArches.contains(arch)){
-                                            stage("Build Wheel (${pythonVersion} ${arch}"){
+                                            stage("Build Wheel (${pythonVersion} ${arch})"){
                                                 node("mac && python${pythonVersion} && ${arch}"){
                                                     checkout scm
-                                                    withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
-                                                        retry(3){
+                                                    retry(3){
+                                                        withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
                                                             try{
                                                                 sh(label: 'Building wheel',
                                                                    script: "scripts/build_mac_wheel.sh . --python-version=${pythonVersion}"
