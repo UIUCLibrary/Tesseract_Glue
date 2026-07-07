@@ -1281,11 +1281,13 @@ def call(){
                                                                                 }
                                                                            }
                                                                        } finally {
-                                                                           powershell(
-                                                                               label: 'Untagging Docker Image used',
-                                                                               script: "docker image rm --no-prune ${dockerImage.imageName()}",
-                                                                               returnStatus: true
-                                                                           )
+                                                                           if (dockerImage){
+                                                                               powershell(
+                                                                                   label: 'Untagging Docker Image used',
+                                                                                   script: "docker image rm --no-prune ${dockerImage.imageName()}",
+                                                                                   returnStatus: true
+                                                                               )
+                                                                           }
                                                                        }
                                                                    }
                                                                 }
