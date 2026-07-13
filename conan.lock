@@ -3,18 +3,18 @@
     "requires": [
         "zlib/1.3.1#b8bc2603263cf7eccbd6e17e66b0ed76%1733936244.862",
         "xz_utils/5.4.5#b885d1d79c9d30cff3803f7f551dbe66%1724318972.064",
-        "tesseract/5.5.1#1fa6974ddb5397ba75e37fa385f93aaf%1762256994.288",
+        "tesseract/5.5.2#98a97fbb82e77241755e0d359d0f6c2e%1777556556.49",
         "openssl/3.5.2#0c5a5e15ae569f45dff57adcf1770cf7%1754407017.477",
         "openjpeg/2.5.2#6f7b733e151d1bbf5ed05cbabb846828%1709653017.024",
-        "libwebp/1.3.2#48800423705f4739ed8e3eba9bb4e2db%1754386373.669",
+        "libwebp/1.6.0#eb5f8e35fc95980e32b5544a33a270b4%1754386366.205",
         "libtiff/4.6.0#b3fb32a80480ba4d4d9a71dd310ead02%1759735986.203",
         "libpng/1.6.50#c96b3b9fa67d44545d6583bb0c348904%1751616189.701",
         "libjpeg/9f#8edfe2699565c80c825d0256002504ff%1723665907.087",
         "libiconv/1.17#1e65319e945f2d31941a9d28cc13c058%1751451666.321",
-        "libcurl/8.16.0#5b85991e709eafd00ab757b79814b3ff%1760714990.804",
-        "libarchive/3.7.9#01faa345181580337b7565275bd13f9b%1753176922.251",
-        "leptonica/1.83.1#58142618f0f8f12e20c333c45871c1d2%1731424016.463",
-        "giflib/5.2.1#9e55a2df51840c3a70116e15fdf60a52%1755189665.668472",
+        "libcurl/8.21.0#8c26e59c04891ba3373ea3552e18f67f%1783067699.863",
+        "libarchive/3.7.9#02628f04584c215d673c1a4eccf5184c%1761646288.84",
+        "leptonica/1.87.0#e7b999f77912d1efc51326480753f6f1%1778066844.466",
+        "giflib/5.2.1#9e55a2df51840c3a70116e15fdf60a52%1773315756.874",
         "getopt-for-visual-studio/20200201#32ee360e2552fe65ad8bec52edcd64fd%1678877536.186",
         "catch2/3.11.0#a560b55882ff2deb1f4bafad832a1b98%1759262388.311"
     ],
@@ -35,13 +35,5 @@
         "autoconf/2.71#51077f068e61700d65bb05541ea1e4b0%1731054366.86"
     ],
     "python_requires": [],
-    "overrides": {
-        "libjpeg/9e": [
-            "libjpeg/9f"
-        ],
-        "libjpeg/[>=9e]": [
-            "libjpeg/9f"
-        ]
-    },
     "config_requires": []
 }

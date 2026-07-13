@@ -5,8 +5,8 @@ required_conan_version='>=2.28'
 
 class TesseractBindConan(ConanFile):
     requires = [
-        "tesseract/5.5.1",
-        "leptonica/1.83.1"
+        "tesseract/5.5.2",
+        "leptonica/1.87.0"
     ]
     settings = "os", "arch", "compiler", "build_type"
     generators = ["CMakeToolchain", "CMakeDeps"]
@@ -14,9 +14,6 @@ class TesseractBindConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires('catch2/3.11.0')
-
-    def requirements(self):
-        self.requires("libjpeg/9f", override=True)
 
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")
