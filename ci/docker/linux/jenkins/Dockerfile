@@ -84,8 +84,8 @@ FROM base_python AS sonar_builder
 ARG SONAR_USER_HOME
 
 RUN case $(uname -m) in \
-    x86_64) URL=https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip ;; \
-    aarch64) URL=https://sonarcloud.io/static/cpp/build-wrapper-linux-aarch64.zip ;; \
+        x86_64) URL=https://sonarcloud.io/static/cpp/build-wrapper-linux-x86.zip ;; \
+        aarch64) URL=https://sonarcloud.io/static/cpp/build-wrapper-linux-aarch64.zip ;; \
     esac; \
     curl --create-dirs -sSLo /tmp/build-wrapper-linux.zip $URL && \
     unzip -o /tmp/build-wrapper-linux.zip -d /opt/build-wrapper-linux/ && \
@@ -102,8 +102,8 @@ FROM base_python
 COPY --from=sonar_builder /opt/build-wrapper-linux /opt/build-wrapper-linux/
 
 RUN case $(uname -m) in \
-        x86_64) ln -s /opt/build-wrapper-linux/build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/build-wrapper-linux  ;; \
-        aarch64) ln ln -s /opt/build-wrapper-linux/build-wrapper-linux-aarch64/build-wrapper-linux-aarch64 /usr/local/bin/build-wrapper-linux  ;; \
+        x86_64) ln -s /opt/build-wrapper-linux/build-wrapper-linux-x86/build-wrapper-linux-x86-64 /usr/local/bin/build-wrapper-linux ;; \
+        aarch64) ln -s /opt/build-wrapper-linux/build-wrapper-linux-aarch64/build-wrapper-linux-aarch64 /usr/local/bin/build-wrapper-linux ;; \
     esac; \
     which build-wrapper-linux
 
