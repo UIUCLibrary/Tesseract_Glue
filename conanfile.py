@@ -1,6 +1,7 @@
 
 from conan import ConanFile
 
+required_conan_version='>=2.28'
 
 class TesseractBindConan(ConanFile):
     requires = [
@@ -31,7 +32,3 @@ class TesseractBindConan(ConanFile):
         self.copy("libcharset.so", src="lib")
         self.copy("libcharset.so.*", src="lib")
         self.copy("tesseract", dst="", src="bin", keep_path=True)
-
-    def configure(self):
-        if self.settings.os == "Windows":
-            self.options['leptonica'].shared = True
