@@ -1,11 +1,12 @@
 
 from conan import ConanFile
 
+required_conan_version='>=2.28'
 
 class TesseractBindConan(ConanFile):
     requires = [
-        "tesseract/5.5.1",
-        "leptonica/1.83.1"
+        "tesseract/5.5.2",
+        "leptonica/1.87.0"
     ]
     settings = "os", "arch", "compiler", "build_type"
     generators = ["CMakeToolchain", "CMakeDeps"]
@@ -13,9 +14,6 @@ class TesseractBindConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires('catch2/3.11.0')
-
-    def requirements(self):
-        self.requires("libjpeg/9f", override=True)
 
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")
@@ -31,7 +29,3 @@ class TesseractBindConan(ConanFile):
         self.copy("libcharset.so", src="lib")
         self.copy("libcharset.so.*", src="lib")
         self.copy("tesseract", dst="", src="bin", keep_path=True)
-
-    def configure(self):
-        if self.settings.os == "Windows":
-            self.options['leptonica'].shared = True

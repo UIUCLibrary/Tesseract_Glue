@@ -46,8 +46,8 @@ generate_wheel(){
     local docker_image_name_to_use=$2
     local python_versions_to_use=("${@:3}")
     declare -A platform_images
-    platform_images['linux/amd64']='quay.io/pypa/manylinux2014'
-    platform_images['linux/arm64']='quay.io/pypa/manylinux2014'
+    platform_images['linux/amd64']='quay.io/pypa/manylinux_2_28'
+    platform_images['linux/arm64']='quay.io/pypa/manylinux_2_28'
     supported_platforms=("${!platform_images[@]}")
     found=0
 

@@ -304,18 +304,30 @@ def mac_wheels(pythonVersions, testPackages, params, wheelStashes){
                                             stage("Build Wheel (${pythonVersion} ${arch}"){
                                                 node("mac && python${pythonVersion} && ${arch}"){
                                                     checkout scm
-                                                    withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
-                                                        retry(3){
-                                                            try{
-                                                                sh(label: 'Building wheel',
-                                                                   script: "scripts/build_mac_wheel.sh . --python-version=${pythonVersion}"
-                                                                )
-                                                                stash includes: 'dist/*.whl', name: "python${pythonVersion} ${arch} mac wheel"
-                                                                wheelStashes << "python${pythonVersion} ${arch} mac wheel"
-                                                            } finally {
-                                                                sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+                                                    try{
+                                                        withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
+                                                            retry(3){
+                                                                try{
+                                                                    sh(label: 'Building wheel',
+                                                                       script: "scripts/build_mac_wheel.sh . --python-version=${pythonVersion}"
+                                                                    )
+                                                                    stash includes: 'dist/*.whl', name: "python${pythonVersion} ${arch} mac wheel"
+                                                                    wheelStashes << "python${pythonVersion} ${arch} mac wheel"
+                                                                } catch(e) {
+                                                                    cleanWs(
+                                                                        patterns: [
+                                                                            [pattern: 'build/', type: 'INCLUDE'],
+                                                                            [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                                        ],
+                                                                        notFailBuild: true,
+                                                                        deleteDirs: true
+                                                                    )
+                                                                    throw e
+                                                                }
                                                             }
                                                         }
+                                                    } finally {
+                                                        sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                     }
                                                 }
                                             }
