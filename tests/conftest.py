@@ -56,7 +56,15 @@ def download_data(url, destination):
 
 @pytest.fixture(scope="session", autouse=True)
 def tessdata_eng(tmpdir_factory):
-
+    expected_files =[
+        "eng.traineddata",
+        "osd.traineddata"
+    ]
+    if tessdata_path := os.getenv("TESSDATA_PREFIX"):
+        for file in expected_files:
+            if not os.path.exists(os.path.join(tessdata_path, file)):
+                raise FileNotFoundError(f"Expected file is missing from TESSDATA_PREFIX: {file}")
+        return tessdata_path
     english_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "eng.traineddata")
     osd_data_url = "{}{}".format(TESSDATA_SOURCE_URL, "osd.traineddata")
     test_path = tmpdir_factory.mktemp("data", numbered=False)
@@ -76,15 +84,22 @@ def sample_images(tmpdir_factory):
     test_images = [
         "IlliniLore_1944_00000011.tif"
     ]
+    if sample_images_path := os.getenv("SAMPLES_PATH"):
+        if not os.path.exists(sample_images_path):
+            raise FileNotFoundError(f"provided sample path does not exist: {sample_images_path}")
+        for file in test_images:
+            if not os.path.exists(os.path.join(sample_images_path, file)):
+                raise FileNotFoundError(f"expected test file is missing: {file}")
+        yield sample_images_path
+    else:
+        test_path = tmpdir_factory.mktemp("sample_files_data", numbered=False)
+        sample_images_path = os.path.join(test_path, "sample_images")
+        if not os.path.exists(sample_images_path):
+            os.makedirs(sample_images_path)
+        for test_image in test_images:
+            url = "{}/{}".format(USER_CONTENT_URL, test_image)
 
-    test_path = tmpdir_factory.mktemp("sample_files_data", numbered=False)
-    sample_images_path = os.path.join(test_path, "sample_images")
-    if not os.path.exists(sample_images_path):
-        os.makedirs(sample_images_path)
-    for test_image in test_images:
-        url = "{}/{}".format(USER_CONTENT_URL, test_image)
+            download_data(url, destination=sample_images_path)
 
-        download_data(url, destination=sample_images_path)
-
-    yield sample_images_path
-    shutil.rmtree(test_path)
+        yield sample_images_path
+        shutil.rmtree(test_path)
