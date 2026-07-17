@@ -10,7 +10,7 @@
 
 class Capabilities {
 public:
-    static std::string ImagelibVersions() noexcept;
+    static std::string ImagelibVersions();
 };
 
 

@@ -6,6 +6,9 @@
 #include <leptonica/allheaders.h>
 #include <memory>
 #include <utility>
+
+struct Pix;
+
 Image::Image(std::shared_ptr <Pix> image) : image(std::move(image)) {}
 
 std::shared_ptr<Pix> Image::getPix() const{

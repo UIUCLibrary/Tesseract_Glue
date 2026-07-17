@@ -1,4 +1,4 @@
-ARG manylinux_image=quay.io/pypa/manylinux2014
+ARG manylinux_image=quay.io/pypa/manylinux_2_28
 ARG CONAN_USER_HOME=/conan
 ARG CONAN_HOME=${CONAN_USER_HOME}/.conan2
 

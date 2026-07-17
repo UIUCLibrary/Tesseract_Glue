@@ -1,19 +1,17 @@
 #pragma once
 #include "Image.h"
+#include "OCRApi.h"
+
 #include <memory>
 #include <string>
-#include <tesseract/baseapi.h>
 
 class Reader2
 {
-   tesseract::TessBaseAPI tess ;
-   std::string language;
-   std::string tessdata;
-   bool good;
+   std::shared_ptr<OCRApi> m_api;
 public:
-    Reader2(const std::string &tessdata, const std::string &lang);
-    std::string get_ocr(const std::string &image_filename);
-    std::string get_ocr_from_image(const std::shared_ptr<Image> &image);
-    [[nodiscard]] bool isGood() const;
+    explicit Reader2(std::shared_ptr<OCRApi> api);
+
+    std::string get_ocr(const std::string &image_filename) const;
+    std::string get_ocr_from_image(const std::shared_ptr<Image> &image) const;
 };
 

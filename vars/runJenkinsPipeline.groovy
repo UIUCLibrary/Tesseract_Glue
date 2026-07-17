@@ -177,7 +177,7 @@ def linux_wheels(Map args){
                                                                                         attempt += 1
                                                                                         sh(
                                                                                             label: "Testing with tox: ${(attempt == 1) ? 'Offline' : 'Online'}",
-                                                                                            script: "uv run --python=${pythonVersion} --only-group=tox-uv --frozen tox --installpkg=${it.path}"
+                                                                                            script: "uv run --python=${pythonVersion} --only-group=tox-uv --frozen tox --installpkg=${it.path} -- --integration"
                                                                                         )
                                                                                     }
                                                                                 }
@@ -283,7 +283,7 @@ def windows_wheels(Map args){
                                                                 withEnv([(attempt == 0) ? 'UV_OFFLINE=1' : 'UV_OFFLINE=0']){
                                                                     attempt += 1
                                                                     bat(label: "Running Tox: ${(attempt == 1) ? 'Offline' : 'Online'}",
-                                                                        script: "uv run --only-group=tox-uv --frozen -p ${pythonVersion} tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path}")
+                                                                        script: "uv run --only-group=tox-uv --frozen -p ${pythonVersion} tox run -e py${pythonVersion.replace('.', '')}  --installpkg ${it.path} -- --integration")
                                                                 }
                                                             }
                                                         }
@@ -377,7 +377,7 @@ def mac_wheels(Map args){
                                                                                               trap "rm -rf venv" EXIT
                                                                                               ./venv/bin/pip install --disable-pip-version-check uv
                                                                                               trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                              ./venv/bin/uv run --only-group=tox-uv --frozen --python=${pythonVersion} tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                              ./venv/bin/uv run --only-group=tox-uv --frozen --python=${pythonVersion} tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration
                                                                                            """
                                                                                 )
                                                                             }
@@ -470,7 +470,7 @@ def mac_wheels(Map args){
                                                                                       trap "rm -rf venv" EXIT
                                                                                       ./venv/bin/python -m pip install --disable-pip-version-check uv
                                                                                       trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                      ./venv/bin/uv run --only-group=tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
+                                                                                      ./venv/bin/uv run --only-group=tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration
                                                                                    """
                                                                         )
                                                                     }
@@ -559,7 +559,7 @@ def testLinuxSdist(jobParams, supported_versions){
                                                             try{
                                                                 sh(
                                                                     label: "Running Tox: ${(attempt == 1) ? 'Offline' : 'Online'}",
-                                                                    script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}"
+                                                                    script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration"
                                                                 )
                                                             } catch(err){
                                                                 cleanWs(
@@ -646,7 +646,7 @@ def testWindowsSdist(jobParams, supported_versions){
                                                                     attempt += 1
                                                                     bat(
                                                                         label: "Running Tox: ${(attempt == 1) ? 'Offline' : 'Online'}",
-                                                                        script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -vv"
+                                                                        script: "uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --workdir %TEMP%\\tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -vv -- --integration"
                                                                     )
                                                                 }
                                                             }
@@ -713,14 +713,19 @@ def testMacSdist(jobParams, supported_versions){
                                                     retry(2){
                                                         withEnv([(attempt == 0) ? 'UV_OFFLINE=1' : 'UV_OFFLINE=0']){
                                                             attempt += 1
-                                                            sh(label: "Running Tox: ${(attempt == 1) ? 'Offline' : 'Online'}",
-                                                               script: """python3 -m venv venv
-                                                                          trap "rm -rf venv" EXIT
-                                                                          venv/bin/pip install  --disable-pip-version-check uv
-                                                                          trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                          venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')}
-                                                                       """
-                                                            )
+                                                            try{
+                                                                sh(label: "Running Tox: ${(attempt == 1) ? 'Offline' : 'Online'}",
+                                                                   script: """python3 -m venv venv
+                                                                              trap "rm -rf venv" EXIT
+                                                                              venv/bin/pip install  --disable-pip-version-check uv
+                                                                              trap "rm -rf venv && rm -rf .tox" EXIT
+                                                                              venv/bin/uv run --only-group=tox-uv --frozen --python ${pythonVersion} tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration
+                                                                           """
+                                                                )
+                                                            } catch (e){
+                                                                sh 'printenv'
+                                                                throw e
+                                                            }
                                                         }
                                                     }
                                                 }
@@ -844,7 +849,7 @@ def call(){
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
                                 additionalBuildArgs '--label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
-                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
+                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /tmp/test_dir --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
                             }
                         }
                         stages{
@@ -966,7 +971,7 @@ def call(){
                                                                         sh(
                                                                             label: 'Running pytest',
                                                                             script: '''mkdir -p reports/pytestcoverage
-                                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest
+                                                                                       uv run coverage run --parallel-mode --source=src -m pytest --junitxml=./reports/pytest/junit-pytest.xml --basetemp=/tmp/pytest --integration
                                                                                     '''
                                                                         )
                                                                     } finally {

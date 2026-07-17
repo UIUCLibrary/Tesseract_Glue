@@ -14,6 +14,7 @@ class TesseractBindConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires('catch2/3.11.0')
+        self.test_requires('poppler/25.11.0')
 
     def imports(self):
         self.copy("*.dll", dst=".", src="bin")

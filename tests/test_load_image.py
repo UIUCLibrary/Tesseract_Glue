@@ -9,7 +9,7 @@ def test_load_image(sample_images):
 
 def test_invalid_image_throws_error(tessdata_eng):
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ocr.tesseractwrap.TesseractGlueException):
         i = ocr.load_image("./not/a/file.tif")
         print(i)
 
