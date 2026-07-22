@@ -1056,20 +1056,29 @@ def call(){
                                             }
                                             stage("C++ Tests"){
                                                 steps{
-                                                    sh(
-                                                        label: 'Building C++ project for metrics',
-                                                        script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
-                                                                   uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
-                                                                    -S $WORKSPACE \
-                                                                    -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
-                                                                    -DCMAKE_C_FLAGS="-Wall -Wextra --coverage" \
-                                                                    -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage" \
-                                                                    -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
-                                                                    -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp
-                                                                   make -C $WORKSPACE/build/cpp tester
-                                                                '''
-                                                    )
                                                     script{
+                                                        try{
+                                                            sh(
+                                                                label: 'Setting up C++ project for metrics',
+                                                                script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
+                                                                           uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
+                                                                            -S $WORKSPACE \
+                                                                            -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
+                                                                            -DCMAKE_C_FLAGS="-Wall -Wextra --coverage" \
+                                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage" \
+                                                                            -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
+                                                                            -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp
+                                                                        '''
+                                                            )
+                                                            tee('logs/gcc.log'){
+                                                                sh(
+                                                                    label: 'Building C++ project for metrics',
+                                                                    script: 'make -C $WORKSPACE/build/cpp tester'
+                                                                )
+                                                            }
+                                                        } finally {
+                                                            recordIssues sourceCodeRetention: 'LAST_BUILD', tools: [gcc(pattern: 'logs/gcc.log')]
+                                                        }
                                                         parallel([
                                                             'Clang Tidy Analysis': {
                                                                 tee('logs/clang-tidy.log') {
