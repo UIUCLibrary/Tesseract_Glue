@@ -39,6 +39,7 @@ Download = "https://github.com/UIUCLibrary/ocr"
 test = [
     "pytest",
     "pytest-bdd<9.0",
+    "pypdf"
 ]
 conan =["conan>=2.0", "cmake<4.0"]
 docs = ["sphinx", "setuptools", "toml; python_version < '3.11'"]

@@ -1,51 +1,34 @@
 #include "Image.h"
+#include "OCRApi.h"
 #include "fileLoader.h"
 #include "reader2.h"
+
+#include <tesseract/publictypes.h>
+
 #include <algorithm>
 #include <cctype>
-#include <iostream>
 #include <memory>
 #include <string>
-
-using std::endl;
-using std::cerr;
-
-static bool string_contains_no_text(const std::string &str);
-
-Reader2::Reader2(const std::string &tessdata, const std::string &lang):
-    language(lang),
-    tessdata(tessdata)
-{
-    if (0 != tess.Init(tessdata.c_str(), lang.c_str())){
-        cerr << "OCRTesseract: Could not initialize tesseract." << endl;
-        this->good = false;
-        return;
+namespace {
+    bool string_contains_no_text(const std::string &str) {
+        return std::all_of(std::begin(str), std::end(str), [](const char character) { return std::isspace(character); });
     }
-    tess.SetPageSegMode(tesseract::PSM_AUTO_OSD);
+} // namespace
 
-    this->good = true;
+Reader2::Reader2(std::shared_ptr<OCRApi> api): m_api(api){
+    m_api->SetPageSegMode(tesseract::PSM_AUTO_OSD);
+
 }
 
-
-bool Reader2::isGood() const{
-    return this->good;
-}
-
-std::string Reader2::get_ocr(const std::string &image_filename){
+std::string Reader2::get_ocr(const std::string &image_filename) const{
     const std::shared_ptr<Image> image = ImageLoader::loadImage(image_filename);
     return get_ocr_from_image(image);
 }
 
-std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) {
-    if(!this->good){
-        return "";
-    }
-    tess.SetImage(image->getPix().get());
-    tess.Recognize(nullptr);
-    auto result =  std::string (std::unique_ptr<char[]>(tess.GetUTF8Text(), std::default_delete<char[]>()).get());
+std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image> &image) const{
+    m_api->set_image(image->getPix().get());
+    m_api->recognize(nullptr);
+    auto result =  std::string (std::unique_ptr<char[]>(m_api->get_utf8_text(), std::default_delete<char[]>()).get());
     return string_contains_no_text(result) ?  std::string() : result;
 }
 
-static bool string_contains_no_text(const std::string &str) {
-    return std::all_of(std::begin(str), std::end(str), [](const char character) { return std::isspace(character); });
-}

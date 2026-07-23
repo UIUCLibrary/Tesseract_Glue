@@ -4,6 +4,8 @@ clang-analyzer-*,\
 clang-diagnostic-*,\
 cppcoreguidelines-*,\
 llvm-*,\
+-llvm-header-guard,
+-llvm-prefer-static-over-anonymous-namespace,
 misc-*,\
 readability-*,\
 -readability-magic-numbers,\
@@ -12,3 +14,6 @@ google-*,\
 -google-readability-casting,\
 bugprone-*,
 "
+CheckOptions:
+  - key:             cppcoreguidelines-special-member-functions.AllowSoleDefaultDtor
+    value:           '1'

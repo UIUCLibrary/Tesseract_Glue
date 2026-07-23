@@ -12,7 +12,7 @@ include(InstallRequiredSystemLibraries)
 find_package(Tesseract REQUIRED)
 find_package(Catch2)
 
-set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD 20)
 # If google isn't going to make importable targets, then I am
 if(NOT TARGET Tesseract::Tesseract)
     add_library(Tesseract::Tesseract INTERFACE IMPORTED )
@@ -25,6 +25,7 @@ if(NOT TARGET Tesseract::Tesseract)
 endif(NOT TARGET Tesseract::Tesseract)
 
 find_package(Leptonica REQUIRED)
+find_package(poppler)
 include(FetchContent)
 
 find_package(Python3 COMPONENTS Interpreter Development REQUIRED)

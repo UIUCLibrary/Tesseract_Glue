@@ -1,5 +1,11 @@
 add_library(glue OBJECT glue.cpp reader.cpp reader2.cpp utils.cpp fileLoader.cpp fileLoader
-        ImageLoaderStrategies.cpp Image.cpp glueExceptions.cpp Capabilities.cpp Capabilities.h)
+        ImageLoaderStrategies.cpp Image.cpp glueExceptions.cpp Capabilities.cpp Capabilities.h
+        pdf_writer.cpp
+        pdf_writer.h
+        PDFBuilder.cpp
+        PDFBuilder.h
+        OCRApi.cpp
+        OCRApi.h)
 target_include_directories(glue PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 
 target_link_libraries(glue PUBLIC

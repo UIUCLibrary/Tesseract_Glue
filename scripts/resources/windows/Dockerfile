@@ -69,7 +69,7 @@ RUN uv run --only-group conan conan profile detect --exist-ok ; `
       Copy-Item -Path "${Env:CONAN_HOME}\remotes.json" -Destination "c:\remotes.json" ; `
       uv run --only-group conan conan remote update conan-center --url ${env:CONAN_CENTER_PROXY_V2_URL}; `
     }; `
-    uv run --only-group conan --with ninja conan install c:/temp/conanfile.py --build missing -pr:b=default --conf=tools.cmake.cmaketoolchain:generator=Ninja ; `
+    uv run --only-group conan --with ninja conan install c:/temp/conanfile.py --build=missing --build=libcurl/8.21.0 -pr:b=default --conf=tools.cmake.cmaketoolchain:generator=Ninja; `
     if ($LASTEXITCODE -ne 0) { `
       throw \"Command 'conan install' failed with exit code: $LASTEXITCODE\"`
     } ;`

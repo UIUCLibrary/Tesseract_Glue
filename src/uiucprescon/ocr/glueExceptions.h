@@ -10,6 +10,9 @@ class TesseractGlueException final: public std::exception{
     std::string message;
 public:
     explicit TesseractGlueException(const std::string &message) noexcept;
+    const char *what() const noexcept override {
+        return message.c_str();
+    };
 };
 
 
