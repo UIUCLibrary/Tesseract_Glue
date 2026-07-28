@@ -1,4 +1,4 @@
-ARG PYTHON_VERSION=3.11
+ARG PYTHON_VERSION=3.14
 
 ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
 # If you want to use a diffrent remote for Conan, such as a proxy. Set the CONAN_CENTER_PROXY_V2_URL
@@ -14,7 +14,7 @@ ARG UV_CACHE_DIR=/.cache/uv
 ARG CONAN_USER_HOME=/conan
 ARG CONAN_HOME=${CONAN_USER_HOME}/.conan2
 
-ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tgz
+ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tzst
 
 FROM ghcr.io/astral-sh/uv:latest AS uv_builder
 

@@ -10,7 +10,7 @@ ARG UV_CACHE_DIR=/.cache/uv
 ARG PIP_CACHE_DIR=/.cache/pip
 # UV Cache directory. Change this only if you need to override the default location.
 
-ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tgz
+ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tzst
 
 FROM ${manylinux_image} AS base_python
 RUN --mount=type=cache,target=/var/cache/yum \
@@ -50,6 +50,7 @@ ARG CONAN_HOME
 COPY ci/docker/shared/conan/remotes.json  /tmp/remotes.json
 ARG CONAN_CENTER_PROXY_V2_URL
 ARG UV_CACHE_DIR
+ENV UV_PYTHON=3.14
 ARG _CONAN_CACHE_FILE
 ENV UV_PROJECT_ENVIRONMENT=/tmp/uv/venv
 RUN --mount=type=cache,target=${UV_CACHE_DIR} \
@@ -91,7 +92,7 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     --mount=type=bind,source=pyproject.toml,target=/tmp/uv/pyproject.toml \
     --mount=type=bind,source=uv.lock,target=/tmp/uv/uv.lock \
     --mount=type=tmpfs,target=/tmp/uv/venv \
-    UV_PROJECT_ENVIRONMENT=/tmp/uv/venv UV_PROJECT=/tmp/uv uv run --only-group=conan conan cache restore ${_CONAN_CACHE_FILE}
+    UV_PROJECT_ENVIRONMENT=/tmp/uv/venv UV_PROJECT=/tmp/uv uv run --python 3.14 --only-group=conan conan cache restore ${_CONAN_CACHE_FILE}
 
 COPY scripts/resources/package_linux/make-wheel.sh /usr/local/bin/make-wheel
 
