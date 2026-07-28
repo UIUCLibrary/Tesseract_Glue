@@ -51,6 +51,7 @@ class Reader(AbsReader):
         constructed using the Engine class's :meth:`Engine.get_reader` method.
 
     """
+
     def read_image(self, image: tesseractwrap.Image) -> str:
         """Read an already loaded image.
 
