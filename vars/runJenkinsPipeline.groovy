@@ -1200,10 +1200,6 @@ def call(){
                                                 def props = readTOML( file: 'pyproject.toml')['project']
                                                 withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
                                                     withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'token')]) {
-                                                        // Note: pysonar 1.4.0.4676 has tomli pinned to 2.2.1 so it's
-                                                        // preventing other deps from being upgraded. However, the
-                                                        // version of pysonar on GitHub relaxes this requirements.
-                                                        // When released, upgrade pysonar and pin pysonar again
                                                         sh(
                                                             label: 'Running Sonar Scanner',
                                                             script: 'uv run pysonar -t $token ' +
