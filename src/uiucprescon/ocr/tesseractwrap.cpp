@@ -61,7 +61,7 @@ PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
         )
         .def(
             "__exit__",
-            [](PDFBuilder &self, const py::object& exc_type, const py::object& exc_value, const py::object& traceback) {
+            [](PDFBuilder &self, const py::object& /*exc_type*/, const py::object& /*exc_value*/, const py::object& /*traceback*/) {
             self.close();
         })
         .def(
