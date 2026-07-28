@@ -49,9 +49,15 @@ tox-uv = [
     "tox-uv-bare"
 ]
 type-checking = ["mypy"]
-linting = ["flake8", "pylint"]
+code-style = ["flake8", "pydocstyle"]
+linting = [
+    {include-group = "code-style"},
+    "pylint"
+]
+security = ["bandit"]
 dev = [
     {include-group = "docs"},
+    {include-group = "security"},
     {include-group = "tox"},
     {include-group = "test"},
     {include-group = "linting"},
