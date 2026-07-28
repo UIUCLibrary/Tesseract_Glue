@@ -71,7 +71,7 @@ jobs:
         if: "!contains(matrix.os, 'windows')"
         run: |
           uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
-          uv run --only-group conan --isolated conan cache clean '*' --build --temp
+          uv run --only-group conan --isolated conan cache clean
         env:
            CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
            CONAN_HOME: ${{steps.conan-path-script.outputs.result}}/.conan2
