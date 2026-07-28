@@ -58,7 +58,7 @@ jobs:
         id: cache-conan
         with:
           path: "${{steps.conan-path-script.outputs.result}}/.conan2"
-          key: ${{ runner.os }}${{ hashFiles('**/conanfile.py') }}
+          key: ${{ runner.os }}${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('conan.lock') }}
       - name: Prebuild Conan packages (Windows)
         if: |
           contains(matrix.os, 'windows') && steps.cache-conan.outputs.cache-hit != 'true'
@@ -70,7 +70,8 @@ jobs:
           copy "ci\docker\windows\tox\conan\profile.ini" "%CONAN_USER_HOME%\.conan2\profiles\default"
           call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64
           uv run --only-group conan --isolated conan profile detect --exist-ok
-          uv run --only-group conan --isolated conan install . --build  missing -pr:b=default -s compiler.cppstd=17
+          uv run --only-group conan --isolated conan install . --build  missing -pr:b=default -s compiler.cppstd=20 --conf=tools.cmake.cmaketoolchain:generator=Ninja -c tools.graph:skip_test=True
+          uv run --only-group conan --isolated conan cache clean '*' --build --temp
 
       - name: Prebuild Conan packages
         env:
@@ -83,8 +84,9 @@ jobs:
           else
             cp ci/cibuildwheel/conan_profiles/Linux/linux_build_profile.ini "$CONAN_USER_HOME/.conan2/profiles/default"
           fi
-          uv run --only-group conan --isolated conan profile detect --exist-ok
-          uv run --only-group conan --isolated conan install . --build missing -pr:b=default
+          uv run --only-group conan --with ninja --isolated conan profile detect --exist-ok
+          uv run --only-group conan --with ninja --isolated conan install . --build missing -pr:b=default --conf=tools.cmake.cmaketoolchain:generator=Ninja -c tools.graph:skip_test=True
+          uv run --only-group conan --with ninja --isolated conan cache clean '*' --build --temp
       - uses: actions/github-script@v7
         id: tox-env
         with:

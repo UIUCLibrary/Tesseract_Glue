@@ -15,5 +15,7 @@ def image_lib_versions() -> Mapping[str, str]:
 
     def spliter(item: str) -> Tuple[str, ...]:
         return tuple(item.strip().split(" "))
-
-    return dict(map(spliter, data.split(":")))
+    try:
+        return dict(map(spliter, data.split(":")))
+    except ValueError as e:
+        raise ValueError(f"Failed to parse image library versions: {data}") from e

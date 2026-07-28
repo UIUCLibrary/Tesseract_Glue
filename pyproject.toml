@@ -146,7 +146,7 @@ before-all = [
     'echo Conan user home: %CONAN_USER_HOME%',
     'echo Conan home: %CONAN_HOME%',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
-    'uv run --only-group conan --isolated conan install ./ --build missing -s compiler.cppstd=17',
+    'uv run --only-group conan --isolated conan install ./ --build missing -s compiler.cppstd=20 -c tools.graph:skip_test=True --conf=tools.cmake.cmaketoolchain:generator=Ninja',
     'uv run --only-group conan --isolated conan cache clean',
 ]
 environment-pass = ["CONAN_USER_HOME", "CONAN_HOME"]
@@ -158,7 +158,7 @@ before-all = [
     'echo "Conan user home: $CONAN_USER_HOME"',
     'echo "Conan home: $CONAN_HOME"',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
-    'uv run --only-group conan --with ninja --isolated conan install conanfile.py -pr:h={package}/ci/cibuildwheel/conan_profiles/Macos/mac_host_profile.ini  -pr:b={package}/ci/cibuildwheel/conan_profiles/Macos/mac_host_profile.ini --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp --conf=tools.cmake.cmaketoolchain:generator=Ninja',
+    'uv run --only-group conan --with ninja --isolated conan install conanfile.py -pr:h={package}/ci/cibuildwheel/conan_profiles/Macos/mac_host_profile.ini  -pr:b={package}/ci/cibuildwheel/conan_profiles/Macos/mac_host_profile.ini --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp --conf=tools.cmake.cmaketoolchain:generator=Ninja -c tools.graph:skip_test=True',
     'uv run --only-group conan --isolated conan cache clean',
 ]
 repair-wheel-command = [
@@ -179,14 +179,14 @@ before-all = [
     'echo "Conan user home: $CONAN_USER_HOME"',
     'echo "Conan home: $CONAN_HOME"',
     'uv run --only-group conan --isolated conan profile detect --exist-ok',
-    'uv run --only-group conan --with ninja --isolated conan install conanfile.py -pr:h {package}/ci/cibuildwheel/conan_profiles/Linux/linux_build_profile.ini --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp --conf=tools.cmake.cmaketoolchain:generator=Ninja',
+    'uv run --only-group conan --with ninja --isolated conan install conanfile.py -pr:h {package}/ci/cibuildwheel/conan_profiles/Linux/linux_build_profile.ini --build missing -of /tmp/ciwheelbuilder/uiucprescon_orc/tmp --conf=tools.cmake.cmaketoolchain:generator=Ninja -c tools.graph:skip_test=True -s compiler.cppstd=20',
     'uv run --only-group conan --isolated conan cache clean',
 ]
 test-groups = ["test"]
 repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 environment-pass = ["CONAN_COMPILER_VERSION", "HOME",  "CONAN_USER_HOME", "CONAN_HOME"]
-manylinux-x86_64-image = "quay.io/pypa/manylinux2014"
-manylinux-aarch64-image = "quay.io/pypa/manylinux2014"
+manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28"
+manylinux-aarch64-image = "quay.io/pypa/manylinux_2_28"
 [tool.cibuildwheel.linux.environment]
 #CONAN_USER_HOME="$(bash -c 'echo ${CIBW_CACHE_PATH:-$HOME/Library/Caches/cibuildwheel}/conan/manylinux2014')"
 PYTHONFAULTHANDLER="True"
