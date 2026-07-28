@@ -1018,7 +1018,7 @@ def call(){
                                                                 publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                                                             },
                                                             'Run Pylint Static Analysis': {
-                                                                try{
+                                                            try{
                                                                     catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
                                                                         sh(label: 'Running pylint',
                                                                             script: '''mkdir -p logs
@@ -1033,7 +1033,21 @@ def call(){
                                                                         returnStatus: true
                                                                     )
                                                                 } finally {
-                                                                    recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
+                                                                    recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt', id: 'pylint')])
+                                                                }
+                                                            },
+                                                            'Run Ruff Static Analysis': {
+                                                                try{
+                                                                    catchError(buildResult: 'SUCCESS', message: 'Ruff found issues', stageResult: 'UNSTABLE') {
+                                                                        sh(
+                                                                         label: 'Running Ruff',
+                                                                         script: '''uv run ruff check --config=pyproject.toml -o reports/ruffoutput.txt --output-format pylint --extend-exclude build --exit-zero
+                                                                                    uv run ruff check --config=pyproject.toml -o reports/ruffoutput.json --output-format json --extend-exclude build
+                                                                                '''
+                                                                         )
+                                                                    }
+                                                                } finally {
+                                                                    recordIssues(tools: [pyLint(pattern: 'reports/ruffoutput.txt', name: 'Ruff', id: 'ruff')])
                                                                 }
                                                             },
                                                             failFast: false
@@ -1195,7 +1209,7 @@ def call(){
                                                             script: 'uv run pysonar -t $token ' +
                                                                     "-Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" " +
                                                                     (env.CHANGE_ID ? '-Dsonar.pullrequest.key=$CHANGE_ID -Dsonar.pullrequest.base=$CHANGE_TARGET' : '-Dsonar.branch.name=$BRANCH_NAME') +
-                                                                    ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml'
+                                                                    ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml -Dsonar.python.ruff.reportPaths=./reports/ruffoutput.json'
                                                         )
                                                     }
                                                 }

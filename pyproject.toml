@@ -52,7 +52,8 @@ type-checking = ["mypy"]
 code-style = ["flake8", "pydocstyle"]
 linting = [
     {include-group = "code-style"},
-    "pylint"
+    "pylint",
+    "ruff"
 ]
 security = ["bandit"]
 dev = [
@@ -198,6 +199,22 @@ mypy_path = "src"
 
 [tool.pylint]
 extension-pkg-allow-list="uiucprescon.ocr.tesseractwrap"
+
+[tool.ruff]
+line-length = 79
+include = ["src/**/*.py"]
+extend-exclude = ["utils/*", "ci/**"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "D", "B", "C"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.ruff.lint.per-file-ignores]
+"tests/**" = ["D"]
+"conanfile.py" = ["D"]
+"setup.py" = ["D"]
 
 [tool.uv]
 cache-keys = [
