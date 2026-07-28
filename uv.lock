@@ -1935,6 +1935,10 @@ docs = [
     { name = "sphinx", version = "8.2.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
     { name = "toml", marker = "python_full_version < '3.11'" },
 ]
+linting = [
+    { name = "flake8" },
+    { name = "pylint" },
+]
 package = [
     { name = "delocate", marker = "sys_platform == 'darwin'" },
 ]
@@ -1952,6 +1956,9 @@ tox = [
 tox-uv = [
     { name = "tox" },
     { name = "tox-uv-bare" },
+]
+type-checking = [
+    { name = "mypy" },
 ]
 
 [package.metadata]
@@ -2001,6 +2008,10 @@ docs = [
     { name = "sphinx" },
     { name = "toml", marker = "python_full_version < '3.11'" },
 ]
+linting = [
+    { name = "flake8" },
+    { name = "pylint" },
+]
 package = [{ name = "delocate", marker = "sys_platform == 'darwin'" }]
 publish = [{ name = "twine" }]
 test = [
@@ -2013,6 +2024,7 @@ tox-uv = [
     { name = "tox" },
     { name = "tox-uv-bare" },
 ]
+type-checking = [{ name = "mypy" }]
 
 [[package]]
 name = "urllib3"

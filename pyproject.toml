@@ -48,15 +48,16 @@ tox-uv = [
     {include-group = "tox"},
     "tox-uv-bare"
 ]
+type-checking = ["mypy"]
+linting = ["flake8", "pylint"]
 dev = [
     {include-group = "docs"},
     {include-group = "tox"},
     {include-group = "test"},
-    "flake8",
+    {include-group = "linting"},
+    {include-group = "type-checking"},
     "gcovr",
     "lxml",
-    "mypy",
-    "pylint",
     "coverage"
 ]
 cibuildwheel = ["cibuildwheel"]
