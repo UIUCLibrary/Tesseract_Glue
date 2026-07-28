@@ -849,7 +849,7 @@ def call(){
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
                                 additionalBuildArgs '--label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
-                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /tmp/test_dir --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
+                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /opt/sonar/.sonar/cache --tmpfs /tmp/test_dir --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
                             }
                         }
                         stages{
@@ -1196,6 +1196,11 @@ def call(){
                                         }
                                         steps{
                                             milestone 1
+                                            cleanWs(
+                                                patterns: [
+                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                ]
+                                            )
                                             script{
                                                 def props = readTOML( file: 'pyproject.toml')['project']
                                                 withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
@@ -1205,7 +1210,7 @@ def call(){
                                                             script: 'uv run pysonar -t $token ' +
                                                                     "-Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" " +
                                                                     (env.CHANGE_ID ? '-Dsonar.pullrequest.key=$CHANGE_ID -Dsonar.pullrequest.base=$CHANGE_TARGET' : '-Dsonar.branch.name=$BRANCH_NAME') +
-                                                                    ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml -Dsonar.python.ruff.reportPaths=./reports/ruffoutput.json'
+                                                                    ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml -Dsonar.python.ruff.reportPaths=./reports/ruffoutput.json -Dsonar.python.flake8.reportPaths=logs/flake8.log -Dsonar.python.pylint.reportPaths=reports/pylint.txt -Dsonar.python.xunit.reportPath=reports/pytest/junit-pytest.xml -Dsonar.cfamily.gcov.reportsPath=build/coverage'
                                                         )
                                                     }
                                                 }
