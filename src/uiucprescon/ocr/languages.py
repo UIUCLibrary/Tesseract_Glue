@@ -200,8 +200,7 @@ class LanguageDownloader:
                 if md5_hash is not None and hash_data.hexdigest() != md5_hash:
                     raise IOError("File does not match expected hash")
 
-                print("Downloaded Tesseract language data. "
-                      "Total {:.2f} MB".format(file_writer.tell() / 1e+6))
+                print(f"Total {file_writer.tell() / 1e+6:.2f} MB")
 
             print(f"Renaming {temp_file} to {destination_file}")
             os.rename(temp_file, destination_file)

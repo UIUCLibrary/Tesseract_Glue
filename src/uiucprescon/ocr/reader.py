@@ -4,15 +4,15 @@ import os
 from uiucprescon.ocr import tesseractwrap  # type: ignore
 
 
-class AbsReader(metaclass=abc.ABCMeta):
+class AbsReader(metaclass=abc.ABCMeta):  # pylint: disable=R0903
     """Baseclass used for implementing various reader types."""
 
     def __init__(self, language_code: str, tesseract_data_path: str) -> None:
         """Reader object for interacting with tesseract and the image.
 
         Args:
-            language_code:
-            tesseract_data_path:
+            language_code: The language code for the reader
+            tesseract_data_path: The path to the Tesseract data files
         """
         super().__init__()
 
@@ -56,7 +56,7 @@ class Reader(AbsReader):
         """Read an already loaded image.
 
         Args:
-            image
+            image: Image to read
 
         Returns:
             Text extracted from an image
