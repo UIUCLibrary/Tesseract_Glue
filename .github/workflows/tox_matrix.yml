@@ -12,8 +12,8 @@ jobs:
     outputs:
       tox_matrix: ${{ steps.dataStep.outputs.myoutput }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Get tox environments
         with:
           cache: 'pip'
@@ -33,7 +33,7 @@ jobs:
       fail-fast: false
     name: Python ${{ matrix.python-version }} ${{ matrix.os }} build
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v7
         id: conan-path-script
         with:
           result-encoding: string
@@ -48,13 +48,13 @@ jobs:
               return '/Users/runner'
             }
             return ''
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: ${{ matrix.python-version }}
       - run: |
           pip install uv
-      - uses: actions/cache@v3
+      - uses: actions/cache@v6
         id: cache-conan
         with:
           path: "${{steps.conan-path-script.outputs.result}}/.conan2"
