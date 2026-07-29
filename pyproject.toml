@@ -150,7 +150,7 @@ before-all = [
     'uv run --only-group conan --isolated conan cache clean',
 ]
 environment-pass = ["CONAN_USER_HOME", "CONAN_HOME"]
-test-requires = ["pytest", "pytest-bdd"]
+test-groups = ["test"]
 
 [tool.cibuildwheel.macos]
 test-groups = ["test"]
