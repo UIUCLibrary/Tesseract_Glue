@@ -13,7 +13,7 @@ ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
 # If you want to use a diffrent remote for Conan, such as a proxy. Set the CONAN_CENTER_PROXY_V2_URL
 # Not this is only for building the image. The actual conan center proxy URL is set in the remotes.json file.
 
-ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tgz
+ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tzst
 
 FROM ghcr.io/astral-sh/uv:latest AS uv_builder
 FROM ubuntu:22.04 AS base
@@ -45,6 +45,7 @@ ARG UV_CACHE_DIR
 ARG PIP_CACHE_DIR
 ARG CONAN_HOME
 ARG _CONAN_CACHE_FILE
+ENV UV_PYTHON=3.14
 ENV UV_PROJECT_ENVIRONMENT=/tmp/uv/venv
 COPY ci/docker/shared/conan/remotes.json  /tmp/conan/remotes.json
 RUN --mount=type=cache,target=${PIP_CACHE_DIR} \
@@ -94,7 +95,7 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     --mount=type=bind,source=pyproject.toml,target=/tmp/uv/pyproject.toml \
     --mount=type=bind,source=uv.lock,target=/tmp/uv/uv.lock \
     --mount=type=tmpfs,target=/tmp/uv/venv \
-    UV_PROJECT_ENVIRONMENT=/tmp/uv/venv UV_PROJECT=/tmp/uv uv run --only-group=conan conan cache restore ${_CONAN_CACHE_FILE} && \
+    UV_PROJECT_ENVIRONMENT=/tmp/uv/venv UV_PROJECT=/tmp/uv uv run --python=3.14 --only-group=conan conan cache restore ${_CONAN_CACHE_FILE} && \
     chmod -R 777 ${CONAN_HOME}
 
 ARG PIP_CACHE_DIR

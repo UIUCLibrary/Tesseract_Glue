@@ -14,7 +14,7 @@ for p in _paths:
 else:
     _paths.insert(0, _tesseract_path)
 
-_os.environ['PATH'] = ";".join(_paths)
+# _os.environ['PATH'] = ";".join(_paths)
 # pylint: disable=wrong-import-position
 from . import tesseractwrap                   # noqa: E402
 from .tesseractwrap import load_image         # noqa: E402

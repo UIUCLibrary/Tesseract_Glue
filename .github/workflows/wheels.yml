@@ -16,15 +16,35 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  samplefiles:
+    name: Get sample files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+      - name: Cache sample files
+        id: sample-files
+        uses: actions/cache@v6
+        with:
+          path: sample_files
+          key: samplefiles-${{ hashFiles('tests/samplefiles.csv') }}
+          restore-keys: samplefiles
+          enableCrossOsArchive: true
+
+      - name: Get sample files
+        if: steps.sample-files.outputs.cache-hit != 'true'
+        run: python tests/download_sample_files.py --download_path=./sample_files
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
+    needs: samplefiles
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
-        os: [ubuntu-24.04, windows-latest, macOS-latest]
+        os: [ubuntu-latest, windows-latest, macOS-latest]
 
     steps:
-      - uses: actions/github-script@v6
+      - uses: actions/github-script@v9
         id: conan-path-script
         env:
           WORKSPACE: "${{github.workspace}}"
@@ -33,17 +53,17 @@ jobs:
           script: |
             const { WORKSPACE } = process.env
             switch('${{runner.os}}'){
-              case 'Windows':
+              case 'windows-latest':
                 return `${WORKSPACE}\\ciwheelbuilder\\conan`;
-              case 'Linux':
+              case 'ubuntu-latest':
                 return `/host/${WORKSPACE}/ciwheelbuilder/conan`
-              case 'macOS':
+              case 'macOS-latest':
                 return `${WORKSPACE}/ciwheelbuilder/conan`
               default:
                 return `${WORKSPACE}/ciwheelbuilder/conan`
             }
-      - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         with:
           python-version: '3.11'
           cache: 'pip' # caching pip dependencies
@@ -52,30 +72,41 @@ jobs:
       - name: Install cibuildwheel
         run: |
           python -m pip install --disable-pip-version-check uv
-      - uses: actions/cache@v3
+      - uses: actions/cache@v6
         id: cache-conan
         with:
           path: ${{github.workspace}}/ciwheelbuilder/conan
-          key: ${{ runner.os }}-${{ hashFiles('**/conanfile.py') }}
+          key: conan-${{ runner.os }}-${{ hashFiles('conanfile.py') }}-${{ hashFiles('conan.lock') }}
       - name: Build wheels
         if: contains(matrix.os, 'windows')
         shell: cmd
         run: |
-          "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64 && uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
-          uv run --only-group conan --isolated conan cache clean
+          call "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\Tools\VsDevCmd.bat" -arch=amd64
+          uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
+          uv run --only-group conan --isolated conan cache clean '*' --build --temp
         env:
-           CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
-           CONAN_HOME: ${{steps.conan-path-script.outputs.result}}\.conan2
+          CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
+          CONAN_HOME: ${{steps.conan-path-script.outputs.result}}\.conan2
+          SAMPLES_PATH: "sample_files"
+      - name: Restore cached sample files
+        id: cache-sample-files-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: sample_files
+          key: samplefiles
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
       - name: Build wheels
         if: "!contains(matrix.os, 'windows')"
         run: |
-          uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse 
+          uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
+          uv run --only-group conan --isolated conan cache clean
         env:
-           CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
-           CONAN_HOME: ${{steps.conan-path-script.outputs.result}}/.conan2
-
+          CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
+          CONAN_HOME: ${{steps.conan-path-script.outputs.result}}/.conan2
+          SAMPLES_PATH: ${{steps.conan-path-script.outputs.result}}/../../sample_files
         #   CIBW_SOME_OPTION: value
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if:  ${{ inputs.save }}
         with:
           name: uiucprescon.ocr-wheels

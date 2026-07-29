@@ -1,7 +1,17 @@
 """Info about what is possible with the current build."""
 
-from typing import Mapping, Tuple
+from typing import Mapping
 from uiucprescon.ocr import tesseractwrap
+
+__all__ = ["image_lib_versions"]
+
+
+def parse_version(data: str) -> Mapping[str, str]:
+    """Parse the version string returned by tesseract."""
+    return {
+        chunk.strip().split(" ")[0]: " ".join(chunk.strip().split(" ")[1:])
+        for chunk in data.split(":")
+    }
 
 
 def image_lib_versions() -> Mapping[str, str]:
@@ -12,8 +22,4 @@ def image_lib_versions() -> Mapping[str, str]:
 
     """
     data = tesseractwrap.get_image_lib_versions()
-
-    def spliter(item: str) -> Tuple[str, ...]:
-        return tuple(item.strip().split(" "))
-
-    return dict(map(spliter, data.split(":")))
+    return parse_version(data)

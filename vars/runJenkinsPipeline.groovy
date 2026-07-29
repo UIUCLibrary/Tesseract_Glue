@@ -91,9 +91,17 @@ def get_training_data(path){
         httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
     }
 }
-def get_test_data(path){
-    dir(path) {
-        httpRequest url: 'https://nexus.library.illinois.edu/repository/sample-data/ocr_test_images/IlliniLore_1944_00000011.tif', outputFile: 'IlliniLore_1944_00000011.tif'
+def get_test_data(csvFile, path){
+    if(! fileExists(csvFile)){
+        error "CSV File not found: ${csvFile}"
+    }
+    def data = readCSV(file: csvFile )
+    data.each{ row ->
+        def filename = "${path}/${row[0]}"
+        def url = row[1]
+        def expectedSha256 = row[2]
+        httpRequest url: url, outputFile: filename
+        verifySha256 file: filename, hash: expectedSha256
     }
 }
 
@@ -816,12 +824,12 @@ def call(){
             booleanParam(name: 'DEPLOY_DOCS', defaultValue: false, description: 'Update online documentation')
         }
         stages {
-            stage('Downloading tessdata'){
+            stage('Download Tesseract Data and Sample Files'){
                 agent any
                 steps{
                     get_training_data('tessdata')
                     stash includes: 'tessdata/**', name: 'tessdata'
-                    get_test_data('testdata')
+                    get_test_data('tests/samplefiles.csv', 'testdata')
                     stash includes: 'testdata/**', name: 'testdata'
                 }
             }
@@ -849,7 +857,7 @@ def call(){
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
                                 additionalBuildArgs '--label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
-                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=sonar-cache-ocr,target=/opt/sonar/.sonar/cache --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /tmp/test_dir --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
+                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /opt/sonar/.sonar/cache --tmpfs /tmp/test_dir --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
                             }
                         }
                         stages{
@@ -1018,7 +1026,7 @@ def call(){
                                                                 publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'reports/mypy/html/', reportFiles: 'index.html', reportName: 'MyPy HTML Report', reportTitles: ''])
                                                             },
                                                             'Run Pylint Static Analysis': {
-                                                                try{
+                                                            try{
                                                                     catchError(buildResult: 'SUCCESS', message: 'Pylint found issues', stageResult: 'UNSTABLE') {
                                                                         sh(label: 'Running pylint',
                                                                             script: '''mkdir -p logs
@@ -1033,7 +1041,21 @@ def call(){
                                                                         returnStatus: true
                                                                     )
                                                                 } finally {
-                                                                    recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt')])
+                                                                    recordIssues(tools: [pyLint(pattern: 'reports/pylint.txt', id: 'pylint')])
+                                                                }
+                                                            },
+                                                            'Run Ruff Static Analysis': {
+                                                                try{
+                                                                    catchError(buildResult: 'SUCCESS', message: 'Ruff found issues', stageResult: 'UNSTABLE') {
+                                                                        sh(
+                                                                         label: 'Running Ruff',
+                                                                         script: '''uv run ruff check --config=pyproject.toml -o reports/ruffoutput.txt --output-format pylint --extend-exclude build --exit-zero
+                                                                                    uv run ruff check --config=pyproject.toml -o reports/ruffoutput.json --output-format json --extend-exclude build
+                                                                                '''
+                                                                         )
+                                                                    }
+                                                                } finally {
+                                                                    recordIssues(tools: [pyLint(pattern: 'reports/ruffoutput.txt', name: 'Ruff', id: 'ruff')])
                                                                 }
                                                             },
                                                             failFast: false
@@ -1182,20 +1204,21 @@ def call(){
                                         }
                                         steps{
                                             milestone 1
+                                            cleanWs(
+                                                patterns: [
+                                                    [pattern: '**/__pycache__/', type: 'INCLUDE'],
+                                                ]
+                                            )
                                             script{
                                                 def props = readTOML( file: 'pyproject.toml')['project']
                                                 withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
                                                     withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'token')]) {
-                                                        // Note: pysonar 1.4.0.4676 has tomli pinned to 2.2.1 so it's
-                                                        // preventing other deps from being upgraded. However, the
-                                                        // version of pysonar on GitHub relaxes this requirements.
-                                                        // When released, upgrade pysonar and pin pysonar again
                                                         sh(
                                                             label: 'Running Sonar Scanner',
                                                             script: 'uv run pysonar -t $token ' +
                                                                     "-Dsonar.projectVersion=${props.version} -Dsonar.buildString=\"${env.BUILD_TAG}\" " +
                                                                     (env.CHANGE_ID ? '-Dsonar.pullrequest.key=$CHANGE_ID -Dsonar.pullrequest.base=$CHANGE_TARGET' : '-Dsonar.branch.name=$BRANCH_NAME') +
-                                                                    ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml'
+                                                                    ' -Dsonar.cfamily.cache.enabled=false -Dsonar.cfamily.threads=$(grep -c ^processor /proc/cpuinfo) -Dsonar.cfamily.compile-commands=build/build_wrapper_output_directory/compile_commands.json -Dsonar.python.coverage.reportPaths=./reports/coverage/coverage-python.xml -Dsonar.cfamily.cobertura.reportPaths=reports/coverage/coverage_cpp.xml -Dsonar.python.ruff.reportPaths=./reports/ruffoutput.json -Dsonar.python.flake8.reportPaths=logs/flake8.log -Dsonar.python.pylint.reportPaths=reports/pylint.txt -Dsonar.python.xunit.reportPath=reports/pytest/junit-pytest.xml -Dsonar.cfamily.gcov.reportsPath=build/coverage'
                                                         )
                                                     }
                                                 }

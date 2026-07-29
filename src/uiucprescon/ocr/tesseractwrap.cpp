@@ -26,7 +26,7 @@ PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
     py::class_<Image, std::shared_ptr<Image>>(m, "Image", py::module_local())
             .def_property_readonly("w", &Image::get_w)
             .def_property_readonly("h", &Image::get_h);
-    py::class_<OCRApi, std::shared_ptr<OCRApi>>(m, "OCRApi")
+    py::class_<OCRApi, std::shared_ptr<OCRApi>>(m, "OCRApi", "OCR Api for tesseract API.")
         .def(py::init(&OCRApi::create), py::arg("datapath"), py::arg("language_code"))
         .def_property_readonly("datapath", &OCRApi::get_tesseract_data_path);
 
@@ -38,19 +38,30 @@ PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
             }),
             py::arg("tessdata"), py::arg("language_code"))
         .def("get_ocr", &Reader2::get_ocr_from_image);
-    py::class_<PDFBuilder>(m, "PDFBuilder")
+    py::class_<PDFBuilder>(m, "PDFBuilder", "PDFBuilder builder class.")
         .def(
             py::init([](const std::string &filename, const std::shared_ptr<OCRApi> &api, const std::string &title) {
                 return PDFBuilder(filename, api, title);
             }),
             py::arg("filename"), py::arg("api"), py::arg("title") = std::string("")
         )
-        .def("open", [](PDFBuilder &self){pdf_builder_open(self);})
-        .def("close", &PDFBuilder::close)
-        .def("add_page",[](PDFBuilder &self, const std::string &file_path){return pdf_builder_add_pages(self, file_path);})
+        .def(
+            "open",
+            [](PDFBuilder &self){pdf_builder_open(self);},
+            "Open pdf file for write."
+        )
+        .def("close", &PDFBuilder::close, "Close open file.")
+        .def(
+            "add_page",
+            [](PDFBuilder &self, const std::string &file_path){
+                return pdf_builder_add_pages(self, file_path);
+            },
+            py::arg("file_path"),
+            "Add image to pdf"
+        )
         .def(
             "__exit__",
-            [](PDFBuilder &self, const py::object& exc_type, const py::object& exc_value, const py::object& traceback) {
+            [](PDFBuilder &self, const py::object& /*exc_type*/, const py::object& /*exc_value*/, const py::object& /*traceback*/) {
             self.close();
         })
         .def(
@@ -66,9 +77,12 @@ PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
     m.def("get_image_lib_versions", [](){
         return Capabilities::ImagelibVersions();
         }, "Get the version of image libraries being used");
-
     m.def("load_image", &load_image, "Load image file");
-    m.def("create_pdf", [](const std::vector<std::string> &files, const std::string &output, const std::shared_ptr<OCRApi> &api){create_pdf(files, output, api);}, "Create a pdf file");
-
-
+    m.def(
+        "create_pdf",
+        [](const std::vector<std::string> &files, const std::string &output, const std::shared_ptr<OCRApi> &api){
+            create_pdf(files, output, api);
+        },
+        "Create a pdf file",
+        py::arg("files"), py::arg("output"), py::arg("api"));
 }
