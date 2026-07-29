@@ -2,11 +2,12 @@ import os
 import shutil
 import urllib.request
 from tempfile import TemporaryDirectory
+from download_sample_files import download_sample_files, validate_file, get_sample_image_metadata
 
 import pytest
 
-USER_CONTENT_URL = "https://nexus.library.illinois.edu/repository/sample-data/ocr_test_images"
 TESSDATA_SOURCE_URL = "https://github.com/tesseract-ocr/tessdata/raw/main/"
+SAMPLES_CSV_FILE =os.path.join(os.path.dirname(__file__), "samplefiles.csv")
 
 
 def pytest_addoption(parser):
@@ -78,28 +79,33 @@ def tessdata_eng(tmpdir_factory):
     return tessdata_path
 
 
+def use_existing_sample_data(sample_images_path):
+    if not os.path.exists(sample_images_path):
+        raise FileNotFoundError(f"provided sample path does not exist: {sample_images_path}")
+
+    test_images_data = get_sample_image_metadata(
+        os.path.join(os.path.dirname(__file__), "samplefiles.csv")
+    )
+    for file_record in test_images_data:
+        file = file_record["file"]
+        expected_path = os.path.join(sample_images_path, file)
+        if not os.path.exists(expected_path):
+            raise FileNotFoundError(f"expected test file is missing from \"{sample_images_path}\": {file}")
+        if not validate_file(os.path.join(sample_images_path, file), file_record["sha256"]):
+            raise ValueError("Expected hash value does not match")
+    return sample_images_path
+
+def use_sample_files_from_download(tmp_path):
+    sample_images_path = os.path.join(tmp_path, "sample_images")
+    download_sample_files(sample_images_path, SAMPLES_CSV_FILE)
+    return sample_images_path
+
+
 @pytest.fixture(scope="session", autouse=True)
 def sample_images(tmpdir_factory):
-
-    test_images = [
-        "IlliniLore_1944_00000011.tif"
-    ]
     if sample_images_path := os.getenv("SAMPLES_PATH"):
-        if not os.path.exists(sample_images_path):
-            raise FileNotFoundError(f"provided sample path does not exist: {sample_images_path}")
-        for file in test_images:
-            if not os.path.exists(os.path.join(sample_images_path, file)):
-                raise FileNotFoundError(f"expected test file is missing: {file}")
-        yield sample_images_path
+        yield use_existing_sample_data(sample_images_path)
     else:
-        test_path = tmpdir_factory.mktemp("sample_files_data", numbered=False)
-        sample_images_path = os.path.join(test_path, "sample_images")
-        if not os.path.exists(sample_images_path):
-            os.makedirs(sample_images_path)
-        for test_image in test_images:
-            url = "{}/{}".format(USER_CONTENT_URL, test_image)
-
-            download_data(url, destination=sample_images_path)
-
-        yield sample_images_path
-        shutil.rmtree(test_path)
+        yield use_sample_files_from_download(
+            tmp_path=tmpdir_factory.mktemp("sample_files_data", numbered=False)
+        )

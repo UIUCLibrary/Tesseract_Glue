@@ -91,9 +91,17 @@ def get_training_data(path){
         httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
     }
 }
-def get_test_data(path){
-    dir(path) {
-        httpRequest url: 'https://nexus.library.illinois.edu/repository/sample-data/ocr_test_images/IlliniLore_1944_00000011.tif', outputFile: 'IlliniLore_1944_00000011.tif'
+def get_test_data(csvFile, path){
+    if(! fileExists(csvFile)){
+        error "CSV File not found: ${csvFile}"
+    }
+    def data = readCSV(file: csvFile )
+    data.each{ row ->
+        def filename = "${path}/${row[0]}"
+        def url = row[1]
+        def expectedSha256 = row[2]
+        httpRequest url: url, outputFile: filename
+        verifySha256 file: filename, hash: expectedSha256
     }
 }
 
@@ -816,12 +824,12 @@ def call(){
             booleanParam(name: 'DEPLOY_DOCS', defaultValue: false, description: 'Update online documentation')
         }
         stages {
-            stage('Downloading tessdata'){
+            stage('Download Tesseract Data and Sample Files'){
                 agent any
                 steps{
                     get_training_data('tessdata')
                     stash includes: 'tessdata/**', name: 'tessdata'
-                    get_test_data('testdata')
+                    get_test_data('tests/samplefiles.csv', 'testdata')
                     stash includes: 'testdata/**', name: 'testdata'
                 }
             }

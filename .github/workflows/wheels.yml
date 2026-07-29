@@ -16,8 +16,28 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  samplefiles:
+    name: Get sample files
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+      - name: Cache sample files
+        id: sample-files
+        uses: actions/cache@v6
+        with:
+          path: sample_files
+          key: samplefiles-${{ hashFiles('tests/samplefiles.csv') }}
+          restore-keys: samplefiles
+          enableCrossOsArchive: true
+
+      - name: Get sample files
+        if: steps.sample-files.outputs.cache-hit != 'true'
+        run: python tests/download_sample_files.py --download_path=./sample_files
+
   build_wheels:
     name: Build wheels on ${{ matrix.os }}
+    needs: samplefiles
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -55,8 +75,8 @@ jobs:
       - uses: actions/cache@v6
         id: cache-conan
         with:
-          path: "${{steps.conan-path-script.outputs.result}}/.conan2"
-          key: ${{ runner.os }}${{ hashFiles('**/conanfile.py') }}-${{ hashFiles('conan.lock') }}
+          path: ${{github.workspace}}/ciwheelbuilder/conan
+          key: conan-${{ runner.os }}-${{ hashFiles('conanfile.py') }}-${{ hashFiles('conan.lock') }}
       - name: Build wheels
         if: contains(matrix.os, 'windows')
         shell: cmd
@@ -65,17 +85,26 @@ jobs:
           uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
           uv run --only-group conan --isolated conan cache clean '*' --build --temp
         env:
-           CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
-           CONAN_HOME: ${{steps.conan-path-script.outputs.result}}\.conan2
+          CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
+          CONAN_HOME: ${{steps.conan-path-script.outputs.result}}\.conan2
+          SAMPLES_PATH: "sample_files"
+      - name: Restore cached sample files
+        id: cache-sample-files-restore
+        uses: actions/cache/restore@v6
+        with:
+          path: sample_files
+          key: samplefiles
+          enableCrossOsArchive: true
+          fail-on-cache-miss: true
       - name: Build wheels
         if: "!contains(matrix.os, 'windows')"
         run: |
           uv run --only-group cibuildwheel --isolated cibuildwheel --output-dir wheelhouse
           uv run --only-group conan --isolated conan cache clean
         env:
-           CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
-           CONAN_HOME: ${{steps.conan-path-script.outputs.result}}/.conan2
-
+          CONAN_USER_HOME: ${{steps.conan-path-script.outputs.result}}
+          CONAN_HOME: ${{steps.conan-path-script.outputs.result}}/.conan2
+          SAMPLES_PATH: ${{steps.conan-path-script.outputs.result}}/../../sample_files
         #   CIBW_SOME_OPTION: value
       - uses: actions/upload-artifact@v7
         if:  ${{ inputs.save }}
