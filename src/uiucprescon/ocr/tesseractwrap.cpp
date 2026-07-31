@@ -1,8 +1,8 @@
 #include "Capabilities.h"
 #include "OCRApi.h"
-#include "glue.h"
+#include "PDFBuilder.h"
 #include "glueExceptions.h"
-#include "pdf_writer.h"
+#include "glue.h"
 #include "reader2.h"
 #include "utils.h"
 
@@ -78,11 +78,4 @@ PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
         return Capabilities::ImagelibVersions();
         }, "Get the version of image libraries being used");
     m.def("load_image", &load_image, "Load image file");
-    m.def(
-        "create_pdf",
-        [](const std::vector<std::string> &files, const std::string &output, const std::shared_ptr<OCRApi> &api){
-            create_pdf(files, output, api);
-        },
-        "Create a pdf file",
-        py::arg("files"), py::arg("output"), py::arg("api"));
 }

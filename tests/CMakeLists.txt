@@ -45,7 +45,6 @@ if(BUILD_TESTING AND Catch2_FOUND)
 
     add_executable(tester
         test_basic.cpp
-        test_pdf_writer.cpp
         test_PDFBuilder.cpp
         test_glue.cpp
         test_OCRApi.cpp

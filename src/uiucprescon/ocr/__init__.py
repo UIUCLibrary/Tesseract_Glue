@@ -18,7 +18,6 @@ else:
 # pylint: disable=wrong-import-position
 from . import tesseractwrap                   # noqa: E402
 from .tesseractwrap import load_image         # noqa: E402
-from .tesseractwrap import create_pdf         # noqa: E402
 from .tesseractwrap import PDFBuilder         # noqa: E402
 from .tesseractwrap import OCRApi             # noqa: E402
 from .engine import Engine                    # noqa: E402
@@ -26,7 +25,6 @@ from .reader import Reader                    # noqa: E402
 from .languages import LANGUAGE_CODES         # noqa: E402
 from .capabilities import image_lib_versions  # noqa: E402
 __all__ = [
-    "create_pdf",
     "Reader",
     "Engine",
     "image_lib_versions",

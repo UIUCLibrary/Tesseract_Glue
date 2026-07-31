@@ -8,7 +8,6 @@
 
 #include "PDFBuilder.h"
 #include "glueExceptions.h"
-#include "pdf_writer.h"
 
 using std::string;
 using std::shared_ptr;
@@ -42,44 +41,5 @@ void pdf_builder_add_pages(IPDFBuilder &self, const std::string &file_path) {
             throw TesseractGlueException("Processing Error");
         default:
             throw TesseractGlueException("Unknown Error");
-    }
-}
-
-void create_pdf(const std::vector<std::string> &files, const std::string &output, const std::shared_ptr<OCRApi> &api, IPDFWriter *strategy) {
-    using enum PDFWriteErrorCodes;
-    if (!api) {
-        throw TesseractGlueException("Invalid OCRApi");
-    }
-
-    // Use default pdf creation strategy if not provided with one
-    IPDFWriter *activeStrategy = nullptr;
-    std::unique_ptr<PDFWriter> defaultStrategy = nullptr;
-    if (strategy!=nullptr) {
-        activeStrategy = strategy;
-    } else {
-        defaultStrategy = std::make_unique<PDFWriter>(api);
-        activeStrategy = defaultStrategy.get();
-    }
-
-    for (const auto &file : files) {
-        activeStrategy->add_page(file);
-    }
-    switch (activeStrategy->write(output, "output")) {
-        case NoPDFWriter:
-            throw TesseractGlueException("missing pdf write strategy");
-        case ReadError:
-            throw TesseractGlueException("Read Error");
-        case InitializationError:
-            throw TesseractGlueException("Initialization Error");
-        case ProcessingError:
-            throw TesseractGlueException("Processing Error");
-        case NoPagesGiven:
-            throw TesseractGlueException("No Pages Given");
-        case WriteError:
-            throw TesseractGlueException("Write Error");
-        case UnknownError:
-            throw TesseractGlueException("Unknown Error");
-        case Success:
-            break;
     }
 }
