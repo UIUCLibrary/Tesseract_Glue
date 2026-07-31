@@ -54,9 +54,17 @@ PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
         .def(
             "add_page",
             [](PDFBuilder &self, const std::string &file_path){
-                return pdf_builder_add_pages(self, file_path);
+                pdf_builder_add_pages(self, file_path);
             },
             py::arg("file_path"),
+            "Add image to pdf"
+        )
+        .def(
+            "add_page",
+            [](PDFBuilder &self, const Image &image, const std::string &source){
+                pdf_builder_add_pages(self, image, source);
+            },
+            py::arg("image"), py::arg("source_file")="",
             "Add image to pdf"
         )
         .def(
