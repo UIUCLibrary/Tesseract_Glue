@@ -5,8 +5,8 @@
 
 #include "Image.h"
 #include "OCRApi.h"
+#include "exceptions.h"
 #include "fileLoader.h"
-#include "glueExceptions.h"
 
 #include <tesseract/renderer.h>
 
@@ -73,7 +73,7 @@ namespace uiucprescon {
                     return ProcessingError;
                 }
                 m_page_index++;
-            } catch (const TesseractGlueException &e) {
+            } catch (const OCRException &e) {
                 std::cerr << "Unable to read image file. Reason: " << e.what()  << std::endl;
                 return ReadError;
             }

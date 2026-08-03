@@ -78,7 +78,7 @@ tesseract_extension = Pybind11Extension(
         'src/uiucprescon/ocr/Image.cpp',
         'src/uiucprescon/ocr/ImageLoaderStrategies.cpp',
         'src/uiucprescon/ocr/fileLoader.cpp',
-        'src/uiucprescon/ocr/glueExceptions.cpp',
+        'src/uiucprescon/ocr/exceptions.cpp',
         'src/uiucprescon/ocr/utils.cpp',
         'src/uiucprescon/ocr/OCRApi.cpp',
         'src/uiucprescon/ocr/PDFBuilder.cpp',

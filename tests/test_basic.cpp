@@ -1,6 +1,6 @@
 #include "ImageLoaderStrategies.h"
 #include "OCRApi.h"
-#include "glueExceptions.h"
+#include "exceptions.h"
 #include "fileLoader.h"
 #include "reader2.h"
 
@@ -36,7 +36,7 @@ TEST_CASE("Reader2"){
         auto api = ocr::OCRApi::create(TESS_DATA, "eng");
         const ocr::Reader2 reader(api);
         SECTION("invalid file throws an exception"){
-            REQUIRE_THROWS_AS(reader.get_ocr("invalid_file.tif"), TesseractGlueException);
+            REQUIRE_THROWS_AS(reader.get_ocr("invalid_file.tif"), ocr::OCRException);
         }
     }
 }

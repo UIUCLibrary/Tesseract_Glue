@@ -4,7 +4,7 @@
 
 #include "ImageLoaderStrategies.h"
 #include "Image.h"
-#include "glueExceptions.h"
+#include "exceptions.h"
 
 #include <leptonica/allheaders.h>
 
@@ -18,7 +18,7 @@ namespace uiucprescon {
         std::shared_ptr<Image> ImageLoaderStrategyStandard::load(const std::string &filename){
             const std::shared_ptr<Pix> imageData(pixRead(filename.c_str()), freePix);
             if(!imageData){
-                throw TesseractGlueException("Unable to load " + filename);
+                throw OCRException("Unable to load " + filename);
             }
             return std::make_shared<Image>(imageData);
         }

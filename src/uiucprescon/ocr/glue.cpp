@@ -8,7 +8,7 @@
 #include <string>
 
 #include "PDFBuilder.h"
-#include "glueExceptions.h"
+#include "exceptions.h"
 
 using std::string;
 using std::shared_ptr;
@@ -22,7 +22,11 @@ namespace {
 namespace uiucprescon {
     namespace glue {
         shared_ptr<ocr::Image> load_image(const string &source) {
-            return ocr::ImageLoader::loadImage(source);
+            try {
+                return ocr::ImageLoader::loadImage(source);
+            } catch (const ocr::OCRException &e) {
+                throw TesseractGlueException(e.what());
+            }
         }
 
         void pdf_builder_open(ocr::IPDFBuilder &self) {
@@ -49,19 +53,20 @@ namespace uiucprescon {
 namespace {
     void react_to_pdf_builder_add_pages(const PDFBuilderStatusCodes return_code) {
         using enum PDFBuilderStatusCodes;
+        namespace glue = uiucprescon::glue;
         switch (return_code) {
             case Success:
                 return;
             case InitializationError:
-                throw TesseractGlueException("Initialization Error");
+                throw glue::TesseractGlueException("Initialization Error");
             case FileNotFound:
-                throw TesseractGlueException("File Not Found");
+                throw glue::TesseractGlueException("File Not Found");
             case ReadError:
-                throw TesseractGlueException("File Read Error");
+                throw glue::TesseractGlueException("File Read Error");
             case ProcessingError:
-                throw TesseractGlueException("Processing Error");
+                throw glue::TesseractGlueException("Processing Error");
             default:
-                throw TesseractGlueException("Unknown Error");
+                throw glue::TesseractGlueException("Unknown Error");
         }
     }
 } // namespace

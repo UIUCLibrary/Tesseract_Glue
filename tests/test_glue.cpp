@@ -8,13 +8,12 @@
 
 #include "Image.h"
 #include "PDFBuilder.h"
+#include "exceptions.h"
 #include "glue.h"
 
-#include <memory>
 #include <string>
 #include <tuple>
 
-#include "glueExceptions.h"
 
 using Catch::Matchers::Message;
 namespace glue = uiucprescon::glue;
@@ -53,7 +52,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("the return code is a " << enum_name) {
                 strategy.return_code = return_code;
                 THEN("Then the exception should be raised") {
-                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_add_pages(strategy, "page.tif"), TesseractGlueException, Message(expected));
+                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_add_pages(strategy, "page.tif"), glue::TesseractGlueException, Message(expected));
                 }
             }
         }
@@ -70,7 +69,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("open() is run and the return code is a " << enum_name) {
                 strategy.return_code = return_code;
                 THEN("Then the exception should be raised") {
-                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_open(strategy), TesseractGlueException, Message(expected));
+                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_open(strategy), glue::TesseractGlueException, Message(expected));
                 }
             }
         }

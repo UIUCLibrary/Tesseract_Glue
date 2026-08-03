@@ -1,7 +1,7 @@
 #include "Capabilities.h"
 #include "OCRApi.h"
 #include "PDFBuilder.h"
-#include "glueExceptions.h"
+#include "exceptions.h"
 #include "glue.h"
 #include "reader2.h"
 #include "utils.h"
@@ -20,7 +20,7 @@ namespace glue = uiucprescon::glue;
 
 PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
     py::options options;
-    py::register_exception<TesseractGlueException>(m, "TesseractGlueException");
+    py::register_exception<glue::TesseractGlueException>(m, "TesseractGlueException");
     options.enable_function_signatures();
     m.doc() = R"pbdoc(Wrapper to Tesseract's C++ API)pbdoc";
 

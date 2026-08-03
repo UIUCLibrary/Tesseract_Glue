@@ -1,5 +1,5 @@
 add_library(glue OBJECT glue.cpp reader.cpp reader2.cpp utils.cpp fileLoader.cpp fileLoader
-        ImageLoaderStrategies.cpp Image.cpp glueExceptions.cpp Capabilities.cpp Capabilities.h
+        ImageLoaderStrategies.cpp Image.cpp exceptions.cpp Capabilities.cpp Capabilities.h
         PDFBuilder.cpp
         PDFBuilder.h
         OCRApi.cpp
