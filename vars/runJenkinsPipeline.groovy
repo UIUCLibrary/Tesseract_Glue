@@ -1111,6 +1111,11 @@ def call(){
                                                             recordIssues sourceCodeRetention: 'LAST_BUILD', tools: [gcc(pattern: 'logs/gcc.log')]
                                                         }
                                                         parallel([
+                                                            'Clang Format Analysis': {
+                                                                catchError(buildResult: 'SUCCESS', message: 'clang-format found issues', stageResult: 'UNSTABLE') {
+                                                                    sh(label: 'Run Clang Format', script: 'find src/ \\( -name "*.cpp" -o -name "*.h" \\) -print0 | xargs -0 clang-format --dry-run --Werror')
+                                                                }
+                                                            },
                                                             'Clang Tidy Analysis': {
                                                                 tee('logs/clang-tidy.log') {
                                                                     catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {

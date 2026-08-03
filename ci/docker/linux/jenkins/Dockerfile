@@ -21,10 +21,9 @@ FROM ghcr.io/astral-sh/uv:latest AS uv_builder
 FROM python:${PYTHON_VERSION} AS base_python
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
     --mount=type=cache,target=/var/lib/apt,sharing=locked \
-    rm -f /etc/apt/apt.conf.d/docker-clean && \
+    --mount=type=bind,source=ci/docker/linux/jenkins/apt-packages.txt,target=/tmp/apt-packages.txt \
     apt-get update -y &&  \
-    apt-get install -y --no-install-recommends ca-certificates git clang-tidy && \
-    rm -rf /var/lib/apt/lists/*
+    < /tmp/apt-packages.txt xargs apt-get install -y --no-install-recommends
 
 RUN mkdir -p /.cache/pip && \
     chmod -R 777 /.cache
