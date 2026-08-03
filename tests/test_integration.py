@@ -72,6 +72,20 @@ class TestPDFBuilder:
                 os.path.join(sample_images, "IlliniLore_1944_00000011.tif")
             )
         assert os.path.exists(str(output_pdf))
+
+    @pytest.mark.integration
+    def test_add_image(self, tessdata_eng, sample_images, tmpdir):
+        output_pdf =  tmpdir / "output.pdf"
+        api = ocr.OCRApi(datapath=tessdata_eng, language_code="eng")
+        with ocr.PDFBuilder(
+            str(output_pdf),
+            api
+        ) as builder:
+            source = os.path.join(sample_images, "IlliniLore_1944_00000011.tif")
+            image = ocr.load_image(source)
+            builder.add_page(image, source_file=source)
+        assert os.path.exists(str(output_pdf))
+
     @pytest.fixture(scope="package")
     def generated_pdf(self, tessdata_eng, sample_images, tmp_path_factory):
         test_path = tmp_path_factory.mktemp("test_path")
