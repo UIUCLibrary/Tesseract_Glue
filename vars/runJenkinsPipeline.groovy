@@ -87,24 +87,30 @@ def getPypiConfig() {
 
 def get_training_data(path){
     dir(path) {
-        httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata', outputFile: 'eng.traineddata'
-        httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
+        parallel(
+            'Tesseract training data: eng.traineddata': {
+                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata', outputFile: 'eng.traineddata'
+            },
+            'Tesseract training data: osd.traineddata': {
+                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
+            }
+        )
     }
 }
 def get_test_data(csvFile, path){
     if(! fileExists(csvFile)){
         error "CSV File not found: ${csvFile}"
     }
-    def data = readCSV(file: csvFile )
-    data.each{ row ->
-        def filename = "${path}/${row[0]}"
-        def url = row[1]
-        def expectedSha256 = row[2]
-        if(!fileExists(filename)){
-            httpRequest url: url, outputFile: filename
-        }
-        verifySha256 file: filename, hash: expectedSha256
+    def tasks = [failFast: true] << readCSV(file: csvFile ).collectEntries{ row ->
+        ["Sample file: ${row[0]}": {
+            def filename = "${path}/${row[0]}"
+            if(!fileExists(filename)){
+                httpRequest url: row[1], outputFile: filename
+            }
+            verifySha256 file: filename, hash: row[2]
+        }]
     }
+    parallel(tasks)
 }
 
 def linux_wheels(Map args){
@@ -829,12 +835,20 @@ def call(){
             stage('Download Tesseract Data and Sample Files'){
                 agent any
                 steps{
-                    get_training_data('tessdata')
-                    stash includes: 'tessdata/**', name: 'tessdata'
-                    cache(caches: [arbitraryFileCache(cacheName: 'OCR_sample_test_data', cacheValidityDecidingFile: 'tests/samplefiles.csv', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'testdata')], maxCacheSize: 120) {
-                        get_test_data('tests/samplefiles.csv', 'testdata')
+                    script{
+                        parallel(
+                            'tessdata':{
+                                get_training_data('tessdata')
+                                stash includes: 'tessdata/**', name: 'tessdata'
+                            },
+                            'testdata':{
+                                cache(caches: [arbitraryFileCache(cacheName: 'OCR_sample_test_data', cacheValidityDecidingFile: 'tests/samplefiles.csv', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'testdata')], maxCacheSize: 120) {
+                                    get_test_data('tests/samplefiles.csv', 'testdata')
+                                }
+                                stash includes: 'testdata/**', name: 'testdata'
+                            }
+                        )
                     }
-                    stash includes: 'testdata/**', name: 'testdata'
                 }
             }
             stage('Building and Testing'){
