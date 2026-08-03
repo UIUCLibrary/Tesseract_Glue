@@ -10,24 +10,21 @@
 
 struct Pix;
 
-namespace uiucprescon {
-    namespace ocr {
+namespace uiucprescon::ocr {
+    class Image;
 
-        class Image;
+    class abcImageLoaderStrategy {
+    public:
+        virtual ~abcImageLoaderStrategy() = default;
+        virtual std::shared_ptr<Image> load(const std::string& filename) = 0;
+    };
 
-        class abcImageLoaderStrategy {
-        public:
-            virtual ~abcImageLoaderStrategy() = default;
-            virtual std::shared_ptr<Image> load(const std::string& filename) = 0;
-        };
+    class ImageLoaderStrategyStandard final : public abcImageLoaderStrategy {
+        static void freePix(Pix* src);
 
-        class ImageLoaderStrategyStandard final : public abcImageLoaderStrategy {
-            static void freePix(Pix* src);
-
-        public:
-            std::shared_ptr<Image> load(const std::string& filename) override;
-        };
-    } // namespace ocr
-} // namespace uiucprescon
+    public:
+        std::shared_ptr<Image> load(const std::string& filename) override;
+    };
+} // namespace uiucprescon::ocr
 
 #endif // OCR_IMAGELOADERSTRATEGIES_H

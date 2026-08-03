@@ -19,48 +19,46 @@ namespace {
 } // namespace
 
 
-namespace uiucprescon {
-    namespace glue {
-        shared_ptr<ocr::Image> load_image(const string& source) {
-            try {
-                return ocr::ImageLoader::loadImage(source);
-            }
-            catch (const ocr::OCRException& e) {
-                throw TesseractGlueException(e.what());
-            }
+namespace uiucprescon::glue {
+    shared_ptr<ocr::Image> load_image(const string& source) {
+        try {
+            return ocr::ImageLoader::loadImage(source);
         }
+        catch (const ocr::OCRException& e) {
+            throw TesseractGlueException(e.what());
+        }
+    }
 
-        void pdf_builder_open(ocr::IPDFBuilder& self) {
-            switch (self.open()) {
-                case PDFBuilderStatusCodes::Success:
-                    return;
-                case PDFBuilderStatusCodes::InitializationError:
-                    throw TesseractGlueException("Initialization Error");
-                default:
-                    throw TesseractGlueException("Unknown error");
-            }
+    void pdf_builder_open(ocr::IPDFBuilder& self) {
+        switch (self.open()) {
+            case PDFBuilderStatusCodes::Success:
+                return;
+            case PDFBuilderStatusCodes::InitializationError:
+                throw TesseractGlueException("Initialization Error");
+            default:
+                throw TesseractGlueException("Unknown error");
         }
+    }
 
-        ocr::Image pixScaleToSize(const ocr::Image& image, int targetWidth, int targetHeight) {
-            if (targetWidth < 0 || targetHeight < 0) {
-                throw TesseractGlueException("Invalid target image size. Value cannot be less than 0");
-            }
-            if (targetWidth == 0 && targetHeight == 0) {
-                throw TesseractGlueException("Invalid target image size. Both target width and height cannot be 0.");
-            }
-            return ocr::Image(std::shared_ptr<Pix>(pixScaleToSize(image.getPix().get(), targetWidth, targetHeight),
-                                                   [](Pix* pix) { pixDestroy(&pix); }));
+    ocr::Image pixScaleToSize(const ocr::Image& image, int targetWidth, int targetHeight) {
+        if (targetWidth < 0 || targetHeight < 0) {
+            throw TesseractGlueException("Invalid target image size. Value cannot be less than 0");
         }
+        if (targetWidth == 0 && targetHeight == 0) {
+            throw TesseractGlueException("Invalid target image size. Both target width and height cannot be 0.");
+        }
+        return ocr::Image(std::shared_ptr<Pix>(pixScaleToSize(image.getPix().get(), targetWidth, targetHeight),
+                                               [](Pix* pix) { pixDestroy(&pix); }));
+    }
 
-        void pdf_builder_add_pages(ocr::IPDFBuilder& self, const ocr::Image& image, const std::string& source) {
-            react_to_pdf_builder_add_pages(self.add_page(image, source));
-        }
+    void pdf_builder_add_pages(ocr::IPDFBuilder& self, const ocr::Image& image, const std::string& source) {
+        react_to_pdf_builder_add_pages(self.add_page(image, source));
+    }
 
-        void pdf_builder_add_pages(ocr::IPDFBuilder& self, const std::string& file_path) {
-            react_to_pdf_builder_add_pages(self.add_page(file_path));
-        }
-    } // namespace glue
-} // namespace uiucprescon
+    void pdf_builder_add_pages(ocr::IPDFBuilder& self, const std::string& file_path) {
+        react_to_pdf_builder_add_pages(self.add_page(file_path));
+    }
+} // namespace uiucprescon::glue
 
 namespace {
     void react_to_pdf_builder_add_pages(const PDFBuilderStatusCodes return_code) {

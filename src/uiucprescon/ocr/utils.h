@@ -1,9 +1,6 @@
 #pragma once
 #include <string>
 
-namespace uiucprescon {
-    namespace ocr {
-        std::string tesseract_version();
-
-    } // namespace ocr
-} // namespace uiucprescon
+namespace uiucprescon::ocr {
+    std::string tesseract_version();
+} // namespace uiucprescon::ocr

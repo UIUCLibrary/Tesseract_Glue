@@ -11,38 +11,36 @@ namespace {
         return std::shared_ptr<Pix>(pixCopy(nullptr, pix.get()), [](Pix* pixData) { pixDestroy(&pixData); });
     }
 } // namespace
-namespace uiucprescon {
-    namespace ocr {
+namespace uiucprescon::ocr {
 
-        Image::Image(std::shared_ptr<Pix> image) : image(std::move(image)) {}
+    Image::Image(std::shared_ptr<Pix> image) : image(std::move(image)) {}
 
-        Image::Image(const Image& other) {
-            if (other.image != nullptr) {
-                this->image = copyPix(other.image);
-            }
+    Image::Image(const Image& other) {
+        if (other.image != nullptr) {
+            this->image = copyPix(other.image);
         }
+    }
 
-        std::shared_ptr<Pix> Image::getPix() const { return this->image; }
+    std::shared_ptr<Pix> Image::getPix() const { return this->image; }
 
-        Image& Image::operator=(const Image& other) {
-            if (this != &other) {
-                this->image = copyPix(other.image);
-            }
-            return *this;
+    Image& Image::operator=(const Image& other) {
+        if (this != &other) {
+            this->image = copyPix(other.image);
         }
+        return *this;
+    }
 
-        int Image::get_w() const {
-            if (image == nullptr) {
-                return 0;
-            }
-            return pixGetWidth(image.get());
+    int Image::get_w() const {
+        if (image == nullptr) {
+            return 0;
         }
+        return pixGetWidth(image.get());
+    }
 
-        int Image::get_h() const {
-            if (image == nullptr) {
-                return 0;
-            }
-            return pixGetHeight(image.get());
+    int Image::get_h() const {
+        if (image == nullptr) {
+            return 0;
         }
-    } // namespace ocr
-} // namespace uiucprescon
+        return pixGetHeight(image.get());
+    }
+} // namespace uiucprescon::ocr

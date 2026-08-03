@@ -8,13 +8,11 @@
 #include <map>
 #include <string>
 
-namespace uiucprescon {
-    namespace ocr {
-        class Capabilities {
-        public:
-            static std::string ImagelibVersions();
-        };
-    } // namespace ocr
-} // namespace uiucprescon
+namespace uiucprescon::ocr {
+    class Capabilities {
+    public:
+        static std::string ImagelibVersions();
+    };
+} // namespace uiucprescon::ocr
 
 #endif // OCR_CAPABILITIES_H

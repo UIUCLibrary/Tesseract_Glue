@@ -10,16 +10,14 @@
 
 #include <string>
 
-namespace uiucprescon {
-    namespace ocr {
-        class Image;
+namespace uiucprescon::ocr {
+    class Image;
 
-        class ImageLoader {
-        public:
-            static std::shared_ptr<Image> loadImage(const std::string& filename);
-            static std::shared_ptr<Image> loadImage(const std::string& filename, abcImageLoaderStrategy& strategy);
-        };
-    } // namespace ocr
-} // namespace uiucprescon
+    class ImageLoader {
+    public:
+        static std::shared_ptr<Image> loadImage(const std::string& filename);
+        static std::shared_ptr<Image> loadImage(const std::string& filename, abcImageLoaderStrategy& strategy);
+    };
+} // namespace uiucprescon::ocr
 
 #endif // OCR_FILELOADER_H

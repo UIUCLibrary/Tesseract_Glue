@@ -25,43 +25,41 @@ enum class PDFBuilderStatusCodes {
     ProcessingError,
     FileNotFound,
 };
-namespace uiucprescon {
-    namespace ocr {
-        class Image;
+namespace uiucprescon::ocr {
+    class Image;
 
-        class IPDFBuilder {
-        protected:
-            virtual PDFBuilderStatusCodes do_add_page(const Image& image, const std::string& file_path) = 0;
-            virtual PDFBuilderStatusCodes do_add_page(const std::string& file_path) = 0;
+    class IPDFBuilder {
+    protected:
+        virtual PDFBuilderStatusCodes do_add_page(const Image& image, const std::string& file_path) = 0;
+        virtual PDFBuilderStatusCodes do_add_page(const std::string& file_path) = 0;
 
-        public:
-            virtual ~IPDFBuilder() = default;
+    public:
+        virtual ~IPDFBuilder() = default;
 
-            PDFBuilderStatusCodes add_page(const Image& image, const std::string& file_path = "") {
-                return do_add_page(image, file_path);
-            };
-            virtual PDFBuilderStatusCodes add_page(const std::string& file_path) { return do_add_page(file_path); }
-            virtual PDFBuilderStatusCodes open() = 0;
+        PDFBuilderStatusCodes add_page(const Image& image, const std::string& file_path = "") {
+            return do_add_page(image, file_path);
         };
+        virtual PDFBuilderStatusCodes add_page(const std::string& file_path) { return do_add_page(file_path); }
+        virtual PDFBuilderStatusCodes open() = 0;
+    };
 
-        class PDFBuilder : public IPDFBuilder {
-            std::string m_pdf_file_path;
-            std::shared_ptr<OCRApi> m_api;
-            std::string m_title;
-            int m_page_index = -1;
-            std::unique_ptr<tesseract::TessPDFRenderer> m_renderer;
+    class PDFBuilder : public IPDFBuilder {
+        std::string m_pdf_file_path;
+        std::shared_ptr<OCRApi> m_api;
+        std::string m_title;
+        int m_page_index = -1;
+        std::unique_ptr<tesseract::TessPDFRenderer> m_renderer;
 
-        protected:
-            PDFBuilderStatusCodes do_add_page(const Image& image, const std::string& file_path) override;
-            PDFBuilderStatusCodes do_add_page(const std::string& file_path) override;
+    protected:
+        PDFBuilderStatusCodes do_add_page(const Image& image, const std::string& file_path) override;
+        PDFBuilderStatusCodes do_add_page(const std::string& file_path) override;
 
-        public:
-            explicit PDFBuilder(const std::string& file_path, const std::shared_ptr<OCRApi>& api,
-                                const std::string& title = std::string(""));
-            PDFBuilderStatusCodes open() override;
-            void close();
-        };
-    } // namespace ocr
-} // namespace uiucprescon
+    public:
+        explicit PDFBuilder(const std::string& file_path, const std::shared_ptr<OCRApi>& api,
+                            const std::string& title = std::string(""));
+        PDFBuilderStatusCodes open() override;
+        void close();
+    };
+} // namespace uiucprescon::ocr
 
 #endif // OCR_PDFBUILDER_H
