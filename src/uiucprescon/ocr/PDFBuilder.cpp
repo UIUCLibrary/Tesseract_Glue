@@ -24,6 +24,10 @@
 #else
     #include <filesystem>
 #endif
+
+namespace uiucprescon {
+    namespace ocr {
+
         PDFBuilder::PDFBuilder(
             const std::string &file_path,
             const std::shared_ptr<OCRApi> &api,
@@ -100,3 +104,5 @@
                 this->m_renderer.reset();
             }
         }
+    } // namespace ocr
+}  //namespace uiucprescon

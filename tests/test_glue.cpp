@@ -6,6 +6,7 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 
+#include "Image.h"
 #include "PDFBuilder.h"
 #include "glue.h"
 
@@ -16,11 +17,13 @@
 #include "glueExceptions.h"
 
 using Catch::Matchers::Message;
+namespace glue = uiucprescon::glue;
+namespace ocr = uiucprescon::ocr;
 
 SCENARIO("PDFBuilder") {
-    class MockPDFBuilder : public IPDFBuilder {
+    class MockPDFBuilder : public  ocr::IPDFBuilder {
     protected:
-        PDFBuilderStatusCodes do_add_page(const Image& /*file_path*/, const std::string& /*file_path*/) override {
+        PDFBuilderStatusCodes do_add_page(const ocr::Image& /*file_path*/, const std::string& /*file_path*/) override {
             return return_code;
         }
         PDFBuilderStatusCodes do_add_page(const std::string& /*file_path*/) override {
@@ -28,9 +31,6 @@ SCENARIO("PDFBuilder") {
         }
     public:
         PDFBuilderStatusCodes return_code = PDFBuilderStatusCodes::Success; // NOLINT(*-non-private-member-variables-in-classes)
-        PDFBuilderStatusCodes add_page(const std::string& /*file_path*/) override {
-            return return_code;
-        }
         PDFBuilderStatusCodes open() override {
             return return_code;
         }
@@ -40,7 +40,7 @@ SCENARIO("PDFBuilder") {
         WHEN("The return code of add_page() is success") {
             strategy.return_code = PDFBuilderStatusCodes::Success;
             THEN("Then no exception should be raised when running add_page()") {
-                pdf_builder_add_pages(strategy, "page.tif");
+                glue::pdf_builder_add_pages(strategy, "page.tif");
             }
         }
         WHEN("add_page() is run") {
@@ -53,7 +53,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("the return code is a " << enum_name) {
                 strategy.return_code = return_code;
                 THEN("Then the exception should be raised") {
-                    REQUIRE_THROWS_MATCHES(pdf_builder_add_pages(strategy, "page.tif"),TesseractGlueException, Message(expected));
+                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_add_pages(strategy, "page.tif"), TesseractGlueException, Message(expected));
                 }
             }
         }
@@ -61,7 +61,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("The return code of open() is success") {
                 strategy.return_code = PDFBuilderStatusCodes::Success;
                 THEN("Then no exception should be raised") {
-                    pdf_builder_open(strategy);
+                    glue::pdf_builder_open(strategy);
                 }
             }
             auto [enum_name, return_code, expected] = GENERATE(
@@ -70,7 +70,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("open() is run and the return code is a " << enum_name) {
                 strategy.return_code = return_code;
                 THEN("Then the exception should be raised") {
-                    REQUIRE_THROWS_MATCHES(pdf_builder_open(strategy),TesseractGlueException, Message(expected));
+                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_open(strategy), TesseractGlueException, Message(expected));
                 }
             }
         }

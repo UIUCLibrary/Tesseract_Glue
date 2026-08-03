@@ -1,8 +1,7 @@
 #include "ImageLoaderStrategies.h"
 #include "OCRApi.h"
-#include "fileLoader.h"
-#include "glue.h"
 #include "glueExceptions.h"
+#include "fileLoader.h"
 #include "reader2.h"
 
 #include <catch2/catch_test_macros.hpp>
@@ -15,48 +14,37 @@
 
 struct Pix;
 
+namespace ocr = uiucprescon::ocr;
+
 TEST_CASE("dummy"){
-    const auto api = OCRApi::create(TESS_DATA, "eng");
-    const Reader2 reader(api);
+    const auto api = ocr::OCRApi::create(TESS_DATA, "eng");
+    const ocr::Reader2 reader(api);
     std::string const data = reader.get_ocr(TEST_IMAGE_PATH "/" "engwithheadings.tif");
     std::cout  << data << std::endl;
     REQUIRE(!data.empty());
 }
 
 TEST_CASE("dummy2 blank page"){
-    const auto api = OCRApi::create(TESS_DATA, "eng");
-    const Reader2 reader(api);
+    const auto api = ocr::OCRApi::create(TESS_DATA, "eng");
+    const ocr::Reader2 reader(api);
     std::string const data = reader.get_ocr(TEST_IMAGE_PATH "/" "blankpage.tif");
     REQUIRE(data.empty());
 }
 
 TEST_CASE("Reader2"){
     SECTION("Valid reader"){
-        auto api = OCRApi::create(TESS_DATA, "eng");
-        const Reader2 reader(api);
+        auto api = ocr::OCRApi::create(TESS_DATA, "eng");
+        const ocr::Reader2 reader(api);
         SECTION("invalid file throws an exception"){
             REQUIRE_THROWS_AS(reader.get_ocr("invalid_file.tif"), TesseractGlueException);
         }
     }
-    // GIVEN("inValid reader"){
-    //     const auto api = std::make_shared<OCRApi>("nodata", "spam");
-    //     Reader2 reader(api);
-    //     WHEN("reader is checked"){
-    //         THEN("reader is not good"){
-    //             REQUIRE(reader.isGood() == false);
-    //         }
-    //         THEN("get_ocr_from_image returns empty string"){
-    //             std::shared_ptr<Image> i = load_image(TEST_IMAGE_PATH "/" "blankpage.tif");
-    //             REQUIRE(reader.get_ocr_from_image(i).empty());
-    //         }
-    //     }
-    // }
 }
 
 TEST_CASE("Image"){
     GIVEN("An Empty Image"){
         const std::shared_ptr<Pix> data;
-        const Image image(data);
+        const ocr::Image image(data);
         WHEN("Dimensions are checked"){
             THEN("Empty image has 0 for h"){
                 REQUIRE(image.get_h() == 0);
@@ -65,7 +53,22 @@ TEST_CASE("Image"){
                 REQUIRE(image.get_w() == 0);
             }
         }
-
+    }
+    GIVEN("An Image") {
+        const ocr::Image image = *ocr::ImageLoader::loadImage(TEST_IMAGE_PATH "/engwithheadings.tif");
+        WHEN("I make a copy with copy constructor") {
+            const ocr::Image copy = image;
+            THEN("The data is copied and has a new memory address") {
+                REQUIRE(copy.getPix().get() != image.getPix().get());
+            }
+        }
+        WHEN("I make a copy with copy assignment operator") {
+            auto other = ocr::Image(std::shared_ptr<Pix>());
+            other = image;
+            THEN("The data is copied and has a new memory address") {
+                REQUIRE(other.getPix().get() != image.getPix().get());
+            }
+        }
     }
 }
 
@@ -80,8 +83,7 @@ TEST_CASE("Image size"){
     for (const auto& tuple : test_cases) {
         DYNAMIC_SECTION("checking " << std::get<0>(tuple)) {
             const std::string image_path = TEST_IMAGE_PATH;
-
-            const std::shared_ptr<Image> image = load_image(image_path + "/" + std::get<0>(tuple));
+            const std::shared_ptr<ocr::Image> image = ocr::ImageLoader::loadImage(image_path + "/" + std::get<0>(tuple));
             const auto height = std::get<1>(tuple);
             DYNAMIC_SECTION("image has height of " << height){
                 REQUIRE(image->get_h() == height);
@@ -96,15 +98,13 @@ TEST_CASE("Image size"){
 
 TEST_CASE("ImageLoader"){
     SECTION("Load a dummyStrategy"){
-        class dummyStrategy: public abcImageLoaderStrategy{
+        class dummyStrategy: public ocr::abcImageLoaderStrategy{
         public:
-            std::shared_ptr<Image> load(const std::string& /*filename*/) override {
-                return std::shared_ptr<Image>();
+            std::shared_ptr<ocr::Image> load(const std::string& /*filename*/) override {
+                return std::shared_ptr<ocr::Image>();
             }
         };
-
         dummyStrategy strategy;
-        const std::shared_ptr<Image> my_image = ImageLoader::loadImage("invalid_file", strategy);
+        const std::shared_ptr<ocr::Image> my_image = ocr::ImageLoader::loadImage("invalid_file", strategy);
     }
-
 }

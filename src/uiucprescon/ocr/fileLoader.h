@@ -9,10 +9,16 @@
 #include "ImageLoaderStrategies.h"
 #include <string>
 
-class ImageLoader{
-public:
-    static std::shared_ptr<Image> loadImage(const std::string &filename);
-    static std::shared_ptr<Image> loadImage(const std::string &filename, abcImageLoaderStrategy &strategy);
+namespace uiucprescon {
+    namespace ocr {
+        class Image;
 
-};
+        class ImageLoader{
+        public:
+            static std::shared_ptr<Image> loadImage(const std::string &filename);
+            static std::shared_ptr<Image> loadImage(const std::string &filename, abcImageLoaderStrategy &strategy);
+        };
+    } // namespace ocr
+} //namespace uiucprescon
+
 #endif //OCR_FILELOADER_H

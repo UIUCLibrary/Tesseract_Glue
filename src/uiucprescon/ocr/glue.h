@@ -8,10 +8,14 @@
 #include <vector>
 
 
-class OCRApi;
+namespace uiucprescon {
+    namespace glue {
+        std::shared_ptr<ocr::Image> load_image(const std::string &source);
+        void pdf_builder_add_pages(ocr::IPDFBuilder &self, const std::string& file_path);
+        void pdf_builder_add_pages(ocr::IPDFBuilder &self, const ocr::Image &image, const std::string& source="");
+        void pdf_builder_open(ocr::IPDFBuilder &self);
+        ocr::Image pixScaleToSize(const ocr::Image &image, int targetWidth, int targetHeight);
+    } //namespace glue
+} // namespace uiucprescon
 
-std::shared_ptr<Image> load_image(const std::string &source);
-void pdf_builder_add_pages(IPDFBuilder &self, const std::string &file_path);
-void pdf_builder_add_pages(IPDFBuilder &self, const Image &image, const std::string& source="");
-void pdf_builder_open(IPDFBuilder &self);
 #endif /* GLUE_H */

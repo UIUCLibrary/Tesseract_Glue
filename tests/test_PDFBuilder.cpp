@@ -20,6 +20,7 @@
 constexpr int MAX_TEMP_DIRS = 10;
 
 namespace fs = std::filesystem;
+namespace ocr = uiucprescon::ocr;
 namespace {
 
     class TempDirectory {
@@ -73,8 +74,8 @@ SCENARIO("PDF Builder") {
         if (fs::exists(output_pdf)) {
             fs::remove(output_pdf);
         }
-        const auto api = OCRApi::create(TESS_DATA, "eng");
-        PDFBuilder builder(output_pdf, api);
+        const auto api = ocr::OCRApi::create(TESS_DATA, "eng");
+        ocr::PDFBuilder builder(output_pdf, api);
         THEN("No pdf has generated yet") {
             REQUIRE(!fs::exists(output_pdf));
         }

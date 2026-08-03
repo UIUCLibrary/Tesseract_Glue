@@ -6,6 +6,10 @@
 
 #include <string>
 
-std::string Capabilities::ImagelibVersions() {
-    return std::string(getImagelibVersions());
-}
+namespace uiucprescon {
+    namespace ocr {
+        std::string Capabilities::ImagelibVersions() {
+            return std::string(getImagelibVersions());
+        }
+    } // namespace ocr
+} // namespace uiucprescon

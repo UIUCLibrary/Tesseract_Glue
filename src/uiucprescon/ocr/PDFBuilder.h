@@ -25,7 +25,8 @@ enum class PDFBuilderStatusCodes {
     ProcessingError,
     FileNotFound,
 };
-
+namespace uiucprescon {
+    namespace ocr {
         class Image;
 
         class IPDFBuilder {
@@ -62,6 +63,7 @@ enum class PDFBuilderStatusCodes {
                 PDFBuilderStatusCodes open() override;
                 void close();
         };
-
+    } // namespace ocr
+}// namespace uiucprescon
 
 #endif //OCR_PDFBUILDER_H
