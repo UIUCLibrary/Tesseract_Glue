@@ -5,8 +5,6 @@
 #include "PDFBuilder.h"
 
 #include <string>
-#include <vector>
-
 
 namespace uiucprescon {
     namespace glue {
@@ -14,6 +12,7 @@ namespace uiucprescon {
         void pdf_builder_add_pages(ocr::IPDFBuilder& self, const std::string& file_path);
         void pdf_builder_add_pages(ocr::IPDFBuilder& self, const ocr::Image& image, const std::string& source = "");
         void pdf_builder_open(ocr::IPDFBuilder& self);
+        ocr::Image pixScaleToSize(const ocr::Image& image, int targetWidth, int targetHeight);
     } // namespace glue
 } // namespace uiucprescon
 

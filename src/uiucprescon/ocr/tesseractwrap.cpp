@@ -72,4 +72,10 @@ PYBIND11_MODULE(tesseractwrap, m, py::mod_gil_not_used()) {
     m.def("get_image_lib_versions", &ocr::Capabilities::ImagelibVersions,
           "Get the version of image libraries being used");
     m.def("load_image", &glue::load_image, "Load image file");
+    m.def(
+        "pixScaleToSize",
+        [](const ocr::Image& image, int targetWidth, int targetHeight) {
+            return glue::pixScaleToSize(image, targetWidth, targetHeight);
+        },
+        "Scale to size image", py::arg("image"), py::arg("target_width") = 0, py::arg("target_height") = 0);
 }

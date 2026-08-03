@@ -24,6 +24,7 @@ from .engine import Engine                    # noqa: E402
 from .reader import Reader                    # noqa: E402
 from .languages import LANGUAGE_CODES         # noqa: E402
 from .capabilities import image_lib_versions  # noqa: E402
+from . import utils
 __all__ = [
     "Reader",
     "Engine",
@@ -33,4 +34,5 @@ __all__ = [
     "load_image",
     "OCRApi",
     "PDFBuilder",
+    "utils"
 ]
