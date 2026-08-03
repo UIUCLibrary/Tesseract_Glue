@@ -1,5 +1,6 @@
 #include "glue.h"
 #include "Image.h"
+#include "OCRApi.h"
 #include "fileLoader.h"
 
 #include "leptonica/allheaders.h"
@@ -40,6 +41,8 @@ namespace uiucprescon::glue {
         }
     }
 
+    void _pdf_builder_open(ocr::PDFBuilder& self) { pdf_builder_open(self); }
+
     ocr::Image pixScaleToSize(const ocr::Image& image, int targetWidth, int targetHeight) {
         if (targetWidth < 0 || targetHeight < 0) {
             throw TesseractGlueException("Invalid target image size. Value cannot be less than 0");
@@ -57,6 +60,16 @@ namespace uiucprescon::glue {
 
     void pdf_builder_add_pages(ocr::IPDFBuilder& self, const std::string& file_path) {
         react_to_pdf_builder_add_pages(self.add_page(file_path));
+    }
+
+    ocr::PDFBuilder _pdf_builder_init(const std::string& file_path, const std::shared_ptr<ocr::OCRApi>& api,
+                                      const std::string& title) {
+        return ocr::PDFBuilder(file_path, api, title);
+    }
+
+    ocr::PDFBuilder* _pdf_builder_enter(ocr::PDFBuilder* self) {
+        self->open();
+        return self;
     }
 } // namespace uiucprescon::glue
 

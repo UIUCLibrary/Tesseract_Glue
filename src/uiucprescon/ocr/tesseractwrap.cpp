@@ -42,11 +42,9 @@ PYBIND11_MODULE(tesseractwrap, mod, py::mod_gil_not_used()) {
              py::arg("tessdata"), py::arg("language_code"))
         .def("get_ocr", &ocr::Reader2::get_ocr_from_image);
     py::class_<ocr::PDFBuilder>(mod, "PDFBuilder", "PDFBuilder builder class.")
-        .def(py::init([](const std::string& filename, const std::shared_ptr<ocr::OCRApi>& api,
-                         const std::string& title) { return ocr::PDFBuilder(filename, api, title); }),
-             py::arg("filename"), py::arg("api"), py::arg("title") = std::string(""))
-        .def(
-            "open", [](ocr::PDFBuilder& self) { glue::pdf_builder_open(self); }, "Open pdf file for write.")
+        .def(py::init(&glue::_pdf_builder_init), py::arg("filename"), py::arg("api"),
+             py::arg("title") = std::string(""))
+        .def("open", &glue::_pdf_builder_open, "Open pdf file for write.")
         .def("close", &ocr::PDFBuilder::close, "Close open file.")
         .def(
             "add_page",
@@ -61,22 +59,12 @@ PYBIND11_MODULE(tesseractwrap, mod, py::mod_gil_not_used()) {
         .def("__exit__",
              [](ocr::PDFBuilder& self, const py::object& /*exc_type*/, const py::object& /*exc_value*/,
                 const py::object& /*traceback*/) { self.close(); })
-        .def(
-            "__enter__",
-            [](ocr::PDFBuilder* self) {
-                self->open();
-                return self;
-            },
-            py::return_value_policy::reference);
+        .def("__enter__", &glue::_pdf_builder_enter, py::return_value_policy::reference);
     // ================================================================================================================
     mod.def("tesseract_version", &ocr::tesseract_version, "Get the version of tesseract being used");
     mod.def("get_image_lib_versions", &ocr::Capabilities::ImagelibVersions,
             "Get the version of image libraries being used");
     mod.def("load_image", &glue::load_image, "Load image file");
-    mod.def(
-        "pixScaleToSize",
-        [](const ocr::Image& image, int targetWidth, int targetHeight) {
-            return glue::pixScaleToSize(image, targetWidth, targetHeight);
-        },
-        "Scale to size image", py::arg("image"), py::arg("target_width") = 0, py::arg("target_height") = 0);
+    mod.def("pixScaleToSize", &glue::pixScaleToSize, "Scale to size image", py::arg("image"),
+            py::arg("target_width") = 0, py::arg("target_height") = 0);
 }
