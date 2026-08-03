@@ -186,7 +186,7 @@ def linux_wheels(Map args){
                                                                     findFiles(glob: 'dist/*.whl').each{
                                                                         docker.image('ghcr.io/astral-sh/uv:debian').inside("--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec"){
                                                                             withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
-                                                                                sh "uv python install ${pythonVersion}"
+                                                                                sh(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${pythonVersion} --quiet 2>/dev/null || uv python install cpython-${pythonVersion}")
                                                                                 def attempt = 0
                                                                                 retry(2){
                                                                                     withEnv([(attempt == 0) ? 'UV_OFFLINE=1' : 'UV_OFFLINE=0']){
@@ -291,7 +291,7 @@ def windows_wheels(Map args){
                                                         unstash 'testdata'
                                                         unstash 'tessdata'
                                                         bat """python -m pip install --disable-pip-version-check uv
-                                                               uv python install ${pythonVersion}
+                                                               uv python find cpython-${pythonVersion} --quiet 2>nul || uv python install cpython-${pythonVersion}
                                                             """
                                                         findFiles(glob: 'dist/*.whl').each{
                                                             def attempt = 0
@@ -654,7 +654,7 @@ def testWindowsSdist(jobParams, supported_versions){
                                                         unstash 'python sdist'
                                                         unstash 'testdata'
                                                         unstash 'tessdata'
-                                                        bat "uv python install ${pythonVersion}"
+                                                        bat(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${pythonVersion} --quiet 2>nul || uv python install cpython-${pythonVersion}")
                                                         findFiles(glob: 'dist/*.tar.gz').each{
                                                             def attempt = 0
                                                             retry(2){
@@ -1416,10 +1416,9 @@ def call(){
                                                                                     "TESSDATA_PREFIX=${WORKSPACE}/tessdata",
                                                                                     "SAMPLES_PATH=${WORKSPACE}/testdata",
                                                                                 ]){
+                                                                                    bat(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${version} --quiet 2>nul || uv python install cpython-${version}")
                                                                                     bat(label: 'Running Tox',
-                                                                                         script: """uv python install cpython-${version}
-                                                                                                    uv run --only-group=tox-uv --frozen -p ${version} tox run --recreate --runner uv-venv-lock-runner -e ${toxEnv} -vv
-                                                                                                 """
+                                                                                         script: "uv run --only-group=tox-uv --frozen -p ${version} tox run --recreate --runner uv-venv-lock-runner -e ${toxEnv} -vv"
                                                                                     )
                                                                                 }
                                                                             } finally{
