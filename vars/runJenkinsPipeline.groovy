@@ -100,7 +100,9 @@ def get_test_data(csvFile, path){
         def filename = "${path}/${row[0]}"
         def url = row[1]
         def expectedSha256 = row[2]
-        httpRequest url: url, outputFile: filename
+        if(!fileExists(filename)){
+            httpRequest url: url, outputFile: filename
+        }
         verifySha256 file: filename, hash: expectedSha256
     }
 }
@@ -829,7 +831,9 @@ def call(){
                 steps{
                     get_training_data('tessdata')
                     stash includes: 'tessdata/**', name: 'tessdata'
-                    get_test_data('tests/samplefiles.csv', 'testdata')
+                    cache(caches: [arbitraryFileCache(cacheName: 'OCR_sample_test_data', cacheValidityDecidingFile: 'tests/samplefiles.csv', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'testdata')], maxCacheSize: 120) {
+                        get_test_data('tests/samplefiles.csv', 'testdata')
+                    }
                     stash includes: 'testdata/**', name: 'testdata'
                 }
             }
