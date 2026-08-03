@@ -4,8 +4,6 @@
 
 namespace uiucprescon {
     namespace ocr {
-        std::string tesseract_version(){
-            return tesseract::TessBaseAPI::Version();
-        }
+        std::string tesseract_version() { return tesseract::TessBaseAPI::Version(); }
     } // namespace ocr
 } // namespace uiucprescon

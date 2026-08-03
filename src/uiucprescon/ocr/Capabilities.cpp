@@ -8,8 +8,6 @@
 
 namespace uiucprescon {
     namespace ocr {
-        std::string Capabilities::ImagelibVersions() {
-            return std::string(getImagelibVersions());
-        }
+        std::string Capabilities::ImagelibVersions() { return std::string(getImagelibVersions()); }
     } // namespace ocr
 } // namespace uiucprescon

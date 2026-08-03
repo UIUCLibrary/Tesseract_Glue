@@ -18,15 +18,16 @@ namespace uiucprescon {
         class abcImageLoaderStrategy {
         public:
             virtual ~abcImageLoaderStrategy() = default;
-            virtual std::shared_ptr<Image> load(const std::string &filename) = 0;
+            virtual std::shared_ptr<Image> load(const std::string& filename) = 0;
         };
 
         class ImageLoaderStrategyStandard final : public abcImageLoaderStrategy {
-            static void freePix(Pix *src);
+            static void freePix(Pix* src);
+
         public:
-            std::shared_ptr<Image> load(const std::string &filename) override;
+            std::shared_ptr<Image> load(const std::string& filename) override;
         };
     } // namespace ocr
 } // namespace uiucprescon
 
-#endif //OCR_IMAGELOADERSTRATEGIES_H
+#endif // OCR_IMAGELOADERSTRATEGIES_H

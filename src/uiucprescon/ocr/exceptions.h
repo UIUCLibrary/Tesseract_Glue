@@ -8,28 +8,22 @@
 #include <string>
 
 namespace uiucprescon {
-    class UIUCPresconException: public std::runtime_error{
-        // std::string message;
+    class UIUCPresconException : public std::runtime_error {
     public:
         using std::runtime_error::runtime_error;
-        // explicit UIUCPresconException(const std::string &message) noexcept;
-        // const char *what() const noexcept override {
-        //     return message.c_str();
-        // };
     };
     namespace glue {
-        // class TesseractGlueException final: public std::runtime_error {
-        class TesseractGlueException final: public UIUCPresconException {
+        class TesseractGlueException final : public UIUCPresconException {
         public:
-            explicit TesseractGlueException(const std::string &message) noexcept;
+            explicit TesseractGlueException(const std::string& message) noexcept;
         };
     } // namespace glue
     namespace ocr {
-        class OCRException final: public UIUCPresconException{
+        class OCRException final : public UIUCPresconException {
         public:
-            explicit OCRException(const std::string &message) noexcept;
+            explicit OCRException(const std::string& message) noexcept;
         };
     } // namespace ocr
 } // namespace uiucprescon
 
-#endif //EXCEPTIONS_H
+#endif // EXCEPTIONS_H

@@ -14,6 +14,7 @@ namespace uiucprescon {
 
         class Image {
             std::shared_ptr<Pix> image;
+
         public:
             explicit Image(std::shared_ptr<Pix> image);
             Image(const Image& other);
@@ -29,4 +30,4 @@ namespace uiucprescon {
     } // namespace ocr
 } // namespace uiucprescon
 
-#endif //OCR_IMAGE_H
+#endif // OCR_IMAGE_H

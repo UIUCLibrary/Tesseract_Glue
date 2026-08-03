@@ -8,19 +8,17 @@
 
 namespace uiucprescon {
     namespace ocr {
-        Reader::Reader(const std::string &tessdata, const std::string &lang):language(lang), tessdata(tessdata){
-            if (0 != tess.Init(tessdata.c_str(), "eng")){
+        Reader::Reader(const std::string& tessdata, const std::string& lang) : language(lang), tessdata(tessdata) {
+            if (0 != tess.Init(tessdata.c_str(), "eng")) {
                 std::cout << "OCRTesseract: Could not initialize tesseract." << std::endl;
             }
         }
 
-        Reader::~Reader(){
-            tess.End();
-        }
+        Reader::~Reader() { tess.End(); }
 
-        std::string Reader::get_ocr(const std::string &image_filename){
+        std::string Reader::get_ocr(const std::string& image_filename) {
 
-            Pix *image = pixRead(image_filename.c_str());
+            Pix* image = pixRead(image_filename.c_str());
 
             tess.SetImage(image);
             auto result = std::string(tess.GetUTF8Text());

@@ -9,9 +9,10 @@
 
 namespace uiucprescon {
     namespace glue {
-        TesseractGlueException::TesseractGlueException(const std::string &message) noexcept: UIUCPresconException(message) {}
+        TesseractGlueException::TesseractGlueException(const std::string& message) noexcept :
+            UIUCPresconException(message) {}
     } // namespace glue
-    namespace ocr{
-        OCRException::OCRException(const std::string &message) noexcept : UIUCPresconException(message){}
-    }// namespace ocr
+    namespace ocr {
+        OCRException::OCRException(const std::string& message) noexcept : UIUCPresconException(message) {}
+    } // namespace ocr
 } // namespace uiucprescon

@@ -17,4 +17,4 @@ namespace uiucprescon {
     } // namespace ocr
 } // namespace uiucprescon
 
-#endif //OCR_CAPABILITIES_H
+#endif // OCR_CAPABILITIES_H
