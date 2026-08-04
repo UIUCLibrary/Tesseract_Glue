@@ -291,8 +291,9 @@ def windows_wheels(Map args){
                                                         unstash 'testdata'
                                                         unstash 'tessdata'
                                                         bat """python -m pip install --disable-pip-version-check uv
-                                                               uv python find cpython-${pythonVersion} --quiet 2>nul || uv python install cpython-${pythonVersion}
+                                                               uv python update-shell
                                                             """
+                                                        bat(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${pythonVersion} --quiet 2>nul || uv python install cpython-${pythonVersion}")
                                                         findFiles(glob: 'dist/*.whl').each{
                                                             def attempt = 0
                                                             retry(2){
