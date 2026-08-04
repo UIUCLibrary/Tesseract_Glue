@@ -5,23 +5,26 @@
 #ifndef OCR_IMAGELOADERSTRATEGIES_H
 #define OCR_IMAGELOADERSTRATEGIES_H
 
-#include <leptonica/allheaders.h>
 #include <memory>
 #include <string>
 
-class Image;
+struct Pix;
 
-class abcImageLoaderStrategy {
+namespace uiucprescon::ocr {
+    class Image;
 
-public:
-    virtual ~abcImageLoaderStrategy() = default;
-    virtual std::shared_ptr<Image> load(const std::string &filename) = 0;
-};
+    class abcImageLoaderStrategy {
+    public:
+        virtual ~abcImageLoaderStrategy() = default;
+        virtual std::shared_ptr<Image> load(const std::string& filename) = 0;
+    };
 
-class ImageLoaderStrategyStandard final : public abcImageLoaderStrategy {
-    static void freePix(Pix *src);
-public:
-    std::shared_ptr<Image> load(const std::string &filename) override;
-};
+    class ImageLoaderStrategyStandard final : public abcImageLoaderStrategy {
+        static void freePix(Pix* src);
 
-#endif //OCR_IMAGELOADERSTRATEGIES_H
+    public:
+        std::shared_ptr<Image> load(const std::string& filename) override;
+    };
+} // namespace uiucprescon::ocr
+
+#endif // OCR_IMAGELOADERSTRATEGIES_H

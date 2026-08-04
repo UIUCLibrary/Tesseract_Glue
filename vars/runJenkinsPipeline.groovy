@@ -87,22 +87,30 @@ def getPypiConfig() {
 
 def get_training_data(path){
     dir(path) {
-        httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata', outputFile: 'eng.traineddata'
-        httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
+        parallel(
+            'Tesseract training data: eng.traineddata': {
+                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata', outputFile: 'eng.traineddata'
+            },
+            'Tesseract training data: osd.traineddata': {
+                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
+            }
+        )
     }
 }
 def get_test_data(csvFile, path){
     if(! fileExists(csvFile)){
         error "CSV File not found: ${csvFile}"
     }
-    def data = readCSV(file: csvFile )
-    data.each{ row ->
-        def filename = "${path}/${row[0]}"
-        def url = row[1]
-        def expectedSha256 = row[2]
-        httpRequest url: url, outputFile: filename
-        verifySha256 file: filename, hash: expectedSha256
+    def tasks = [failFast: true] << readCSV(file: csvFile ).collectEntries{ row ->
+        ["Sample file: ${row[0]}": {
+            def filename = "${path}/${row[0]}"
+            if(!fileExists(filename)){
+                httpRequest url: row[1], outputFile: filename
+            }
+            verifySha256 file: filename, hash: row[2]
+        }]
     }
+    parallel(tasks)
 }
 
 def linux_wheels(Map args){
@@ -176,9 +184,9 @@ def linux_wheels(Map args){
                                                                     unstash 'testdata'
                                                                     unstash 'tessdata'
                                                                     findFiles(glob: 'dist/*.whl').each{
-                                                                        docker.image('ghcr.io/astral-sh/uv:debian').inside("--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec"){
+                                                                        docker.image('ghcr.io/astral-sh/uv:debian').inside("--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.local/share:exec --tmpfs /.local/bin:exec -e PATH=\"/.local/bin:\$PATH\""){
                                                                             withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
-                                                                                sh "uv python install ${pythonVersion}"
+                                                                                sh(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${pythonVersion} --quiet 2>/dev/null || uv python install cpython-${pythonVersion}")
                                                                                 def attempt = 0
                                                                                 retry(2){
                                                                                     withEnv([(attempt == 0) ? 'UV_OFFLINE=1' : 'UV_OFFLINE=0']){
@@ -283,8 +291,9 @@ def windows_wheels(Map args){
                                                         unstash 'testdata'
                                                         unstash 'tessdata'
                                                         bat """python -m pip install --disable-pip-version-check uv
-                                                               uv python install ${pythonVersion}
+                                                               uv python update-shell
                                                             """
+                                                        bat(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${pythonVersion} --quiet 2>nul || uv python install cpython-${pythonVersion}")
                                                         findFiles(glob: 'dist/*.whl').each{
                                                             def attempt = 0
                                                             retry(2){
@@ -646,7 +655,7 @@ def testWindowsSdist(jobParams, supported_versions){
                                                         unstash 'python sdist'
                                                         unstash 'testdata'
                                                         unstash 'tessdata'
-                                                        bat "uv python install ${pythonVersion}"
+                                                        bat(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${pythonVersion} --quiet 2>nul || uv python install cpython-${pythonVersion}")
                                                         findFiles(glob: 'dist/*.tar.gz').each{
                                                             def attempt = 0
                                                             retry(2){
@@ -827,10 +836,20 @@ def call(){
             stage('Download Tesseract Data and Sample Files'){
                 agent any
                 steps{
-                    get_training_data('tessdata')
-                    stash includes: 'tessdata/**', name: 'tessdata'
-                    get_test_data('tests/samplefiles.csv', 'testdata')
-                    stash includes: 'testdata/**', name: 'testdata'
+                    script{
+                        parallel(
+                            'tessdata':{
+                                get_training_data('tessdata')
+                                stash includes: 'tessdata/**', name: 'tessdata'
+                            },
+                            'testdata':{
+                                cache(caches: [arbitraryFileCache(cacheName: 'OCR_sample_test_data', cacheValidityDecidingFile: 'tests/samplefiles.csv', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'testdata')], maxCacheSize: 120) {
+                                    get_test_data('tests/samplefiles.csv', 'testdata')
+                                }
+                                stash includes: 'testdata/**', name: 'testdata'
+                            }
+                        )
+                    }
                 }
             }
             stage('Building and Testing'){
@@ -1107,6 +1126,11 @@ def call(){
                                                             recordIssues sourceCodeRetention: 'LAST_BUILD', tools: [gcc(pattern: 'logs/gcc.log')]
                                                         }
                                                         parallel([
+                                                            'Clang Format Analysis': {
+                                                                catchError(buildResult: 'SUCCESS', message: 'clang-format found issues', stageResult: 'UNSTABLE') {
+                                                                    sh(label: 'Run Clang Format', script: 'find src/ \\( -name "*.cpp" -o -name "*.h" \\) -print0 | xargs -0 clang-format --dry-run --Werror')
+                                                                }
+                                                            },
                                                             'Clang Tidy Analysis': {
                                                                 tee('logs/clang-tidy.log') {
                                                                     catchError(buildResult: 'SUCCESS', message: 'clang tidy found issues', stageResult: 'UNSTABLE') {
@@ -1393,10 +1417,9 @@ def call(){
                                                                                     "TESSDATA_PREFIX=${WORKSPACE}/tessdata",
                                                                                     "SAMPLES_PATH=${WORKSPACE}/testdata",
                                                                                 ]){
+                                                                                    bat(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${version} --quiet 2>nul || uv python install cpython-${version}")
                                                                                     bat(label: 'Running Tox',
-                                                                                         script: """uv python install cpython-${version}
-                                                                                                    uv run --only-group=tox-uv --frozen -p ${version} tox run --recreate --runner uv-venv-lock-runner -e ${toxEnv} -vv
-                                                                                                 """
+                                                                                         script: "uv run --only-group=tox-uv --frozen -p ${version} tox run --recreate --runner uv-venv-lock-runner -e ${toxEnv} -vv"
                                                                                     )
                                                                                 }
                                                                             } finally{

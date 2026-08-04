@@ -6,25 +6,30 @@
 #include <catch2/matchers/catch_matchers.hpp>
 #include <catch2/matchers/catch_matchers_exception.hpp>
 
+#include "Image.h"
 #include "PDFBuilder.h"
+#include "exceptions.h"
 #include "glue.h"
-#include "pdf_writer.h"
 
-#include <memory>
 #include <string>
 #include <tuple>
 
-#include "glueExceptions.h"
 
 using Catch::Matchers::Message;
+namespace glue = uiucprescon::glue;
+namespace ocr = uiucprescon::ocr;
 
 SCENARIO("PDFBuilder") {
-    class MockPDFBuilder : public IPDFBuilder {
-    public:
-        PDFBuilderStatusCodes return_code = PDFBuilderStatusCodes::Success; // NOLINT(*-non-private-member-variables-in-classes)
-        PDFBuilderStatusCodes add_page(const std::string& /*file_path*/) override {
+    class MockPDFBuilder : public  ocr::IPDFBuilder {
+    protected:
+        PDFBuilderStatusCodes do_add_page(const ocr::Image& /*file_path*/, const std::string& /*file_path*/) override {
             return return_code;
         }
+        PDFBuilderStatusCodes do_add_page(const std::string& /*file_path*/) override {
+            return return_code;
+        }
+    public:
+        PDFBuilderStatusCodes return_code = PDFBuilderStatusCodes::Success; // NOLINT(*-non-private-member-variables-in-classes)
         PDFBuilderStatusCodes open() override {
             return return_code;
         }
@@ -34,7 +39,7 @@ SCENARIO("PDFBuilder") {
         WHEN("The return code of add_page() is success") {
             strategy.return_code = PDFBuilderStatusCodes::Success;
             THEN("Then no exception should be raised when running add_page()") {
-                pdf_builder_add_pages(strategy, "page.tif");
+                glue::pdf_builder_add_pages(strategy, "page.tif");
             }
         }
         WHEN("add_page() is run") {
@@ -47,7 +52,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("the return code is a " << enum_name) {
                 strategy.return_code = return_code;
                 THEN("Then the exception should be raised") {
-                    REQUIRE_THROWS_MATCHES(pdf_builder_add_pages(strategy, "page.tif"),TesseractGlueException, Message(expected));
+                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_add_pages(strategy, "page.tif"), glue::TesseractGlueException, Message(expected));
                 }
             }
         }
@@ -55,7 +60,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("The return code of open() is success") {
                 strategy.return_code = PDFBuilderStatusCodes::Success;
                 THEN("Then no exception should be raised") {
-                    pdf_builder_open(strategy);
+                    glue::pdf_builder_open(strategy);
                 }
             }
             auto [enum_name, return_code, expected] = GENERATE(
@@ -64,52 +69,7 @@ SCENARIO("PDFBuilder") {
             AND_WHEN("open() is run and the return code is a " << enum_name) {
                 strategy.return_code = return_code;
                 THEN("Then the exception should be raised") {
-                    REQUIRE_THROWS_MATCHES(pdf_builder_open(strategy),TesseractGlueException, Message(expected));
-                }
-            }
-        }
-    }
-}
-
-SCENARIO("create_pdf") {
-    struct MockStrategy: IPDFWriter {
-        PDFWriteErrorCodes return_code = PDFWriteErrorCodes::Success; // NOLINT(*-non-private-member-variables-in-classes)
-        int number_of_pages_added = 0; // NOLINT(*-non-private-member-variables-in-classes)
-        void add_page(const std::string &/*filename*/) override {
-            number_of_pages_added++;
-        };
-    private:
-        PDFWriteErrorCodes do_write(const std::string& /*filename*/, const std::string& /*title*/) const override {
-            return return_code;
-        };
-    };
-    GIVEN("A mock strategy") {
-        auto strategy = MockStrategy();
-        WHEN("create_pdf() is run with without an api given") {
-            THEN("Then an exception should be raised") {
-                REQUIRE_THROWS_AS(create_pdf({""},"output.pdf", nullptr, &strategy), TesseractGlueException);
-            }
-        }
-        AND_GIVEN("An Api object") {
-            const auto api = OCRApi::create(TESS_DATA, "eng");
-
-            WHEN("create_pdf() is run with a single page") {
-                create_pdf({""},"output.pdf", api, &strategy);
-                THEN("The add_page pages was called because number_of_pages_added was set to one") {
-                    REQUIRE(strategy.number_of_pages_added == 1);
-                }
-            }
-            auto [enum_name, return_code, expected] = GENERATE(
-                std::make_tuple("InitializationError", PDFWriteErrorCodes::InitializationError, "Initialization Error"),
-                std::make_tuple("ProcessingError", PDFWriteErrorCodes::ProcessingError, "Processing Error"),
-                std::make_tuple("NoPagesGiven", PDFWriteErrorCodes::NoPagesGiven, "No Pages Given"),
-                std::make_tuple("WriteError", PDFWriteErrorCodes::WriteError, "Write Error"),
-                std::make_tuple("UnknownError", PDFWriteErrorCodes::UnknownError, "Unknown Error")
-            );
-            WHEN("create_pdf() is run and the return code is a " << enum_name) {
-                strategy.return_code = return_code;
-                THEN("Then the exception should be raised") {
-                    REQUIRE_THROWS_MATCHES(create_pdf({""},"output.pdf", api, &strategy), TesseractGlueException, Message(expected));
+                    REQUIRE_THROWS_MATCHES(glue::pdf_builder_open(strategy), glue::TesseractGlueException, Message(expected));
                 }
             }
         }

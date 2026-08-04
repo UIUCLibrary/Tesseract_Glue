@@ -9,28 +9,28 @@
 
 #include <tesseract/baseapi.h>
 
-class OCRApi {
-    std::unique_ptr<tesseract::TessBaseAPI> api = nullptr;
-public:
-    OCRApi();
+namespace uiucprescon::ocr {
+    class OCRApi {
+        std::unique_ptr<tesseract::TessBaseAPI> api = nullptr;
 
-    static std::shared_ptr<OCRApi> create(const std::string &tessdata_path, const std::string &lang_code);
-    bool ProcessPage(Pix *pix, int page_index, const char *filename,
-                     const char *retry_config, int timeout_millisec,
-                     tesseract::TessResultRenderer *renderer) const;
-    const char *get_tesseract_data_path() const;
+    public:
+        OCRApi();
 
-    void SetPageSegMode(tesseract::PageSegMode mode);
-    tesseract::PageSegMode GetPageSegMode() const;
+        static std::shared_ptr<OCRApi> create(const std::string& tessdata_path, const std::string& lang_code);
+        bool ProcessPage(Pix* pix, int page_index, const char* filename, const char* retry_config, int timeout_millisec,
+                         tesseract::TessResultRenderer* renderer) const;
+        const char* get_tesseract_data_path() const;
 
-    void set_image(Pix *pix);
-    void End();
+        void SetPageSegMode(tesseract::PageSegMode mode);
+        tesseract::PageSegMode GetPageSegMode() const;
 
-    int recognize(tesseract::ETEXT_DESC *monitor);
-    char *get_utf8_text();
-    ~OCRApi();
+        void set_image(Pix* pix);
+        void End();
 
-};
+        int recognize(tesseract::ETEXT_DESC* monitor);
+        char* get_utf8_text();
+        ~OCRApi();
+    };
+} // namespace uiucprescon::ocr
 
-
-#endif //OCR_OCR_API_H
+#endif // OCR_OCR_API_H

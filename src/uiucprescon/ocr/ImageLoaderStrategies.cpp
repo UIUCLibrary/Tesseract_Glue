@@ -4,7 +4,7 @@
 
 #include "ImageLoaderStrategies.h"
 #include "Image.h"
-#include "glueExceptions.h"
+#include "exceptions.h"
 
 #include <leptonica/allheaders.h>
 
@@ -13,14 +13,18 @@
 
 struct Pix;
 
-std::shared_ptr<Image> ImageLoaderStrategyStandard::load(const std::string &filename){
-    const std::shared_ptr<Pix> imageData(pixRead(filename.c_str()), freePix);
-    if(!imageData){
-        throw TesseractGlueException("Unable to load " + filename);
+namespace uiucprescon::ocr {
+    std::shared_ptr<Image> ImageLoaderStrategyStandard::load(const std::string& filename) {
+        const std::shared_ptr<Pix> imageData(pixRead(filename.c_str()), freePix);
+        if (!imageData) {
+            throw OCRException("Unable to load " + filename);
+        }
+        return std::make_shared<Image>(imageData);
     }
-    return std::make_shared<Image>(imageData);
-}
 
-void ImageLoaderStrategyStandard::freePix(Pix *src) {
-    pixDestroy(&src);
-}
+    void ImageLoaderStrategyStandard::freePix(Pix* src) {
+        if (src != nullptr) {
+            pixDestroy(&src);
+        }
+    }
+} // namespace uiucprescon::ocr

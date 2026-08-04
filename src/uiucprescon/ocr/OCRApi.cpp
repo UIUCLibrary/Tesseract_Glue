@@ -10,50 +10,38 @@
 #include <memory>
 #include <string>
 
-OCRApi::OCRApi(): api(std::make_unique<tesseract::TessBaseAPI>()) {}
+namespace uiucprescon::ocr {
+    OCRApi::OCRApi() : api(std::make_unique<tesseract::TessBaseAPI>()) {}
 
-std::shared_ptr<OCRApi> OCRApi::create(const std::string &tessdata_path, const std::string &lang_code) {
-    auto ptr = std::make_shared<OCRApi>();
-    ptr->api->Init(tessdata_path.c_str(), lang_code.c_str());
-    return ptr;
-}
-
-bool OCRApi::ProcessPage(Pix *pix, int page_index, const char *filename, const char *retry_config, int timeout_millisec,
-                         tesseract::TessResultRenderer *renderer) const{
-    return api->ProcessPage(pix, page_index, filename, retry_config, timeout_millisec, renderer);
-}
-
-const char * OCRApi::get_tesseract_data_path() const {
-    if (!api) {
-        return "";
+    std::shared_ptr<OCRApi> OCRApi::create(const std::string& tessdata_path, const std::string& lang_code) {
+        auto ptr = std::make_shared<OCRApi>();
+        ptr->api->Init(tessdata_path.c_str(), lang_code.c_str());
+        return ptr;
     }
-    return api->GetDatapath();
-}
 
-void OCRApi::SetPageSegMode(tesseract::PageSegMode mode) {
-    api->SetPageSegMode(mode);
-}
+    bool OCRApi::ProcessPage(Pix* pix, int page_index, const char* filename, const char* retry_config,
+                             int timeout_millisec, tesseract::TessResultRenderer* renderer) const {
+        return api->ProcessPage(pix, page_index, filename, retry_config, timeout_millisec, renderer);
+    }
 
-tesseract::PageSegMode OCRApi::GetPageSegMode() const {
-    return api->GetPageSegMode();
-}
+    const char* OCRApi::get_tesseract_data_path() const {
+        if (!api) {
+            return "";
+        }
+        return api->GetDatapath();
+    }
 
-void OCRApi::set_image(Pix *pix) {
-    api->SetImage(pix);
-}
+    void OCRApi::SetPageSegMode(tesseract::PageSegMode mode) { api->SetPageSegMode(mode); }
 
-void OCRApi::End() {
-    api->End();
-}
+    tesseract::PageSegMode OCRApi::GetPageSegMode() const { return api->GetPageSegMode(); }
 
-int OCRApi::recognize(tesseract::ETEXT_DESC *monitor) {
-    return api->Recognize(monitor);
-}
+    void OCRApi::set_image(Pix* pix) { api->SetImage(pix); }
 
-char * OCRApi::get_utf8_text() {
-    return api->GetUTF8Text();
-}
+    void OCRApi::End() { api->End(); }
 
-OCRApi::~OCRApi() {
-    api->End();
-}
+    int OCRApi::recognize(tesseract::ETEXT_DESC* monitor) { return api->Recognize(monitor); }
+
+    char* OCRApi::get_utf8_text() { return api->GetUTF8Text(); }
+
+    OCRApi::~OCRApi() { api->End(); }
+} // namespace uiucprescon::ocr

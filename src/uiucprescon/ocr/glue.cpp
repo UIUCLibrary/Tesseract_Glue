@@ -1,85 +1,96 @@
-#include "Image.h"
-#include "fileLoader.h"
 #include "glue.h"
+#include "Image.h"
+#include "OCRApi.h"
+#include "fileLoader.h"
+
+#include "leptonica/allheaders.h"
 
 #include <memory>
 #include <string>
-#include <vector>
 
 #include "PDFBuilder.h"
-#include "glueExceptions.h"
-#include "pdf_writer.h"
+#include "exceptions.h"
 
-using std::string;
 using std::shared_ptr;
+using std::string;
 
-shared_ptr<Image> load_image(const string &source) {
-    return ImageLoader::loadImage(source);
-}
 
-void pdf_builder_open(IPDFBuilder &self) {
-    switch (self.open()) {
-        case PDFBuilderStatusCodes::Success:
-            return;
-        case PDFBuilderStatusCodes::InitializationError:
-            throw TesseractGlueException("Initialization Error");
-        default:
-            throw TesseractGlueException("Unknown error");
-    };
-}
-void pdf_builder_add_pages(IPDFBuilder &self, const std::string &file_path) {
-    using enum PDFBuilderStatusCodes;
-    switch (self.add_page(file_path)) {
-        case Success:
-            return;
-        case InitializationError:
-            throw TesseractGlueException("Initialization Error");
-        case FileNotFound:
-            throw TesseractGlueException("File Not Found");
-        case ReadError:
-            throw TesseractGlueException("File Read Error");
-        case ProcessingError:
-            throw TesseractGlueException("Processing Error");
-        default:
-            throw TesseractGlueException("Unknown Error");
-    }
-}
+namespace {
+    void react_to_pdf_builder_add_pages(PDFBuilderStatusCodes return_code);
+} // namespace
 
-void create_pdf(const std::vector<std::string> &files, const std::string &output, const std::shared_ptr<OCRApi> &api, IPDFWriter *strategy) {
-    using enum PDFWriteErrorCodes;
-    if (!api) {
-        throw TesseractGlueException("Invalid OCRApi");
+
+namespace uiucprescon::glue {
+    shared_ptr<ocr::Image> load_image(const string& source) {
+        try {
+            return ocr::ImageLoader::loadImage(source);
+        }
+        catch (const ocr::OCRException& e) {
+            throw TesseractGlueException(e.what());
+        }
     }
 
-    // Use default pdf creation strategy if not provided with one
-    IPDFWriter *activeStrategy = nullptr;
-    std::unique_ptr<PDFWriter> defaultStrategy = nullptr;
-    if (strategy!=nullptr) {
-        activeStrategy = strategy;
-    } else {
-        defaultStrategy = std::make_unique<PDFWriter>(api);
-        activeStrategy = defaultStrategy.get();
+    void pdf_builder_open(ocr::IPDFBuilder& self) {
+        switch (self.open()) {
+            case PDFBuilderStatusCodes::Success:
+                return;
+            case PDFBuilderStatusCodes::InitializationError:
+                throw TesseractGlueException("Initialization Error");
+            default:
+                throw TesseractGlueException("Unknown error");
+        }
     }
 
-    for (const auto &file : files) {
-        activeStrategy->add_page(file);
+    void _pdf_builder_open(ocr::PDFBuilder& self) { pdf_builder_open(self); }
+
+    ocr::Image pixScaleToSize(const ocr::Image& image, int targetWidth, int targetHeight) {
+        if (targetWidth < 0 || targetHeight < 0) {
+            throw TesseractGlueException("Invalid target image size. Value cannot be less than 0");
+        }
+        if (targetWidth == 0 && targetHeight == 0) {
+            throw TesseractGlueException("Invalid target image size. Both target width and height cannot be 0.");
+        }
+        return ocr::Image(std::shared_ptr<Pix>(pixScaleToSize(image.getPix().get(), targetWidth, targetHeight),
+                                               [](Pix* pix) { pixDestroy(&pix); }));
     }
-    switch (activeStrategy->write(output, "output")) {
-        case NoPDFWriter:
-            throw TesseractGlueException("missing pdf write strategy");
-        case ReadError:
-            throw TesseractGlueException("Read Error");
-        case InitializationError:
-            throw TesseractGlueException("Initialization Error");
-        case ProcessingError:
-            throw TesseractGlueException("Processing Error");
-        case NoPagesGiven:
-            throw TesseractGlueException("No Pages Given");
-        case WriteError:
-            throw TesseractGlueException("Write Error");
-        case UnknownError:
-            throw TesseractGlueException("Unknown Error");
-        case Success:
-            break;
+
+    void pdf_builder_add_pages(ocr::IPDFBuilder& self, const ocr::Image& image, const std::string& source) {
+        react_to_pdf_builder_add_pages(self.add_page(image, source));
     }
-}
+
+    void pdf_builder_add_pages(ocr::IPDFBuilder& self, const std::string& file_path) {
+        react_to_pdf_builder_add_pages(self.add_page(file_path));
+    }
+
+    ocr::PDFBuilder _pdf_builder_init(const std::string& file_path, const std::shared_ptr<ocr::OCRApi>& api,
+                                      const std::string& title) {
+        return ocr::PDFBuilder(file_path, api, title);
+    }
+
+    ocr::PDFBuilder* _pdf_builder_enter(ocr::PDFBuilder* self) {
+        self->open();
+        return self;
+    }
+} // namespace uiucprescon::glue
+
+namespace {
+    void react_to_pdf_builder_add_pages(const PDFBuilderStatusCodes return_code) {
+        using enum PDFBuilderStatusCodes;
+        namespace glue = uiucprescon::glue;
+
+        switch (return_code) {
+            case Success:
+                return;
+            case InitializationError:
+                throw glue::TesseractGlueException("Initialization Error");
+            case FileNotFound:
+                throw glue::TesseractGlueException("File Not Found");
+            case ReadError:
+                throw glue::TesseractGlueException("File Read Error");
+            case ProcessingError:
+                throw glue::TesseractGlueException("Processing Error");
+            default:
+                throw glue::TesseractGlueException("Unknown Error");
+        }
+    }
+} // namespace

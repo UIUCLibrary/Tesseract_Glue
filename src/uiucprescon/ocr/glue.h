@@ -2,17 +2,24 @@
 #define GLUE_H
 
 #include "Image.h"
+#include "OCRApi.h"
 #include "PDFBuilder.h"
-#include "pdf_writer.h"
 
 #include <string>
-#include <vector>
 
 
-class OCRApi;
+namespace uiucprescon::glue {
+    std::shared_ptr<ocr::Image> load_image(const std::string& source);
+    void pdf_builder_add_pages(ocr::IPDFBuilder& self, const std::string& file_path);
+    void _pdf_builder_add_pages(ocr::PDFBuilder& self, const std::string& file_path);
+    void pdf_builder_add_pages(ocr::IPDFBuilder& self, const ocr::Image& image, const std::string& source = "");
+    void _pdf_builder_add_pages(ocr::PDFBuilder& self, const ocr::Image& image, const std::string& source = "");
+    void pdf_builder_open(ocr::IPDFBuilder& self);
+    void _pdf_builder_open(ocr::PDFBuilder& self);
+    ocr::PDFBuilder _pdf_builder_init(const std::string& file_path, const std::shared_ptr<ocr::OCRApi>& api,
+                                      const std::string& title);
+    ocr::PDFBuilder* _pdf_builder_enter(ocr::PDFBuilder* self);
+    ocr::Image pixScaleToSize(const ocr::Image& image, int targetWidth, int targetHeight);
+} // namespace uiucprescon::glue
 
-std::shared_ptr<Image> load_image(const std::string &source);
-void create_pdf(const std::vector<std::string> &files, const std::string &output, const std::shared_ptr<OCRApi> &api, IPDFWriter *strategy=nullptr);
-void pdf_builder_add_pages(IPDFBuilder &self, const std::string &file_path);
-void pdf_builder_open(IPDFBuilder &self);
 #endif /* GLUE_H */

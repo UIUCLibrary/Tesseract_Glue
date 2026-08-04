@@ -7,12 +7,17 @@
 
 
 #include "ImageLoaderStrategies.h"
+
 #include <string>
 
-class ImageLoader{
-public:
-    static std::shared_ptr<Image> loadImage(const std::string &filename);
-    static std::shared_ptr<Image> loadImage(const std::string &filename, abcImageLoaderStrategy &strategy);
+namespace uiucprescon::ocr {
+    class Image;
 
-};
-#endif //OCR_FILELOADER_H
+    class ImageLoader {
+    public:
+        static std::shared_ptr<Image> loadImage(const std::string& filename);
+        static std::shared_ptr<Image> loadImage(const std::string& filename, abcImageLoaderStrategy& strategy);
+    };
+} // namespace uiucprescon::ocr
+
+#endif // OCR_FILELOADER_H
