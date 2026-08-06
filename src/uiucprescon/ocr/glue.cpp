@@ -17,10 +17,21 @@ using std::string;
 
 namespace {
     void react_to_pdf_builder_add_pages(PDFBuilderStatusCodes return_code);
+
 } // namespace
 
 
 namespace uiucprescon::glue {
+    void react_pdf_builder_open_return_code(const PDFBuilderStatusCodes return_code) {
+        switch (return_code) {
+            case PDFBuilderStatusCodes::Success:
+                return;
+            case PDFBuilderStatusCodes::InitializationError:
+                throw glue::TesseractGlueException("Initialization Error");
+            default:
+                throw glue::TesseractGlueException("Unknown error");
+        }
+    }
     shared_ptr<ocr::Image> load_image(const string& source) {
         try {
             return ocr::ImageLoader::loadImage(source);
@@ -30,16 +41,7 @@ namespace uiucprescon::glue {
         }
     }
 
-    void pdf_builder_open(ocr::IPDFBuilder& self) {
-        switch (self.open()) {
-            case PDFBuilderStatusCodes::Success:
-                return;
-            case PDFBuilderStatusCodes::InitializationError:
-                throw TesseractGlueException("Initialization Error");
-            default:
-                throw TesseractGlueException("Unknown error");
-        }
-    }
+    void pdf_builder_open(ocr::IPDFBuilder& self) { react_pdf_builder_open_return_code(self.open()); }
 
     void _pdf_builder_open(ocr::PDFBuilder& self) { pdf_builder_open(self); }
 
@@ -74,6 +76,7 @@ namespace uiucprescon::glue {
 } // namespace uiucprescon::glue
 
 namespace {
+
     void react_to_pdf_builder_add_pages(const PDFBuilderStatusCodes return_code) {
         using enum PDFBuilderStatusCodes;
         namespace glue = uiucprescon::glue;
