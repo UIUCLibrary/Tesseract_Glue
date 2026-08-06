@@ -72,7 +72,6 @@ tesseract_extension = Pybind11Extension(
     sources=[
         'src/uiucprescon/ocr/Capabilities.cpp',
         'src/uiucprescon/ocr/glue.cpp',
-        'src/uiucprescon/ocr/reader.cpp',
         'src/uiucprescon/ocr/reader2.cpp',
         'src/uiucprescon/ocr/tesseractwrap.cpp',
         'src/uiucprescon/ocr/Image.cpp',
