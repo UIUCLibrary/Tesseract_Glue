@@ -187,12 +187,31 @@ repair-wheel-command = "auditwheel repair -w {dest_dir} {wheel}"
 environment-pass = ["CONAN_COMPILER_VERSION", "HOME",  "CONAN_USER_HOME", "CONAN_HOME"]
 manylinux-x86_64-image = "quay.io/pypa/manylinux_2_28"
 manylinux-aarch64-image = "quay.io/pypa/manylinux_2_28"
+
 [tool.cibuildwheel.linux.environment]
 #CONAN_USER_HOME="$(bash -c 'echo ${CIBW_CACHE_PATH:-$HOME/Library/Caches/cibuildwheel}/conan/manylinux2014')"
 PYTHONFAULTHANDLER="True"
 
 [localbuilder]
 conanfile = 'conanfile.py'
+
+[tool.commitizen]
+name = "cz_conventional_commits"
+tag_format = "v$version"
+version_scheme = "pep440"
+version_provider = "uv"
+update_changelog_on_bump = true
+major_version_zero = true
+changelog_start_rev = "v0.1.2"
+ignored_tag_formats = [
+    "*.post*",
+    "*.post[0-9]*",
+]
+legacy_tag_formats = [
+    "${version}",
+]
+changelog_merge_prerelease = true
+
 
 [tool.mypy]
 mypy_path = "src"
@@ -225,3 +244,4 @@ cache-keys = [
     { file = "src/**/*.h" },
     { file = "src/**/*.cpp" },
 ]
+

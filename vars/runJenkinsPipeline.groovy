@@ -1110,8 +1110,8 @@ def call(){
                                                                            uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
                                                                             -S $WORKSPACE \
                                                                             -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
-                                                                            -DCMAKE_C_FLAGS="-Wall -Wextra --coverage" \
-                                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage" \
+                                                                            -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
+                                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
                                                                             -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
                                                                             -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp
                                                                         '''
