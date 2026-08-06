@@ -20,6 +20,7 @@ namespace uiucprescon::glue {
                                       const std::string& title);
     ocr::PDFBuilder* _pdf_builder_enter(ocr::PDFBuilder* self);
     ocr::Image pixScaleToSize(const ocr::Image& image, int targetWidth, int targetHeight);
+    void react_pdf_builder_open_return_code(const PDFBuilderStatusCodes return_code);
 } // namespace uiucprescon::glue
 
 #endif /* GLUE_H */
