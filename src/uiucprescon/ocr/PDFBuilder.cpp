@@ -26,6 +26,7 @@
 #endif
 
 namespace uiucprescon::ocr {
+    bool is_renderer_ready_to_use(const tesseract::TessPDFRenderer* renderer) { return renderer && renderer->happy(); }
     PDFBuilder::PDFBuilder(const std::string& file_path, const std::shared_ptr<OCRApi>& api, const std::string& title) :
         m_pdf_file_path(file_path), m_api(api), m_title(title) {}
 
@@ -55,16 +56,30 @@ namespace uiucprescon::ocr {
         return this->add_page(*image);
     }
 
+    bool PDFBuilder::renderer_is_ready() const noexcept { return is_renderer_ready_to_use(m_renderer.get()); }
+
+    bool PDFBuilder::process_page(std::shared_ptr<Pix> pix, int page_index, const std::string& filename,
+                                  const char* retry_config, int timeout_millisec) const {
+        return m_api->ProcessPage(pix.get(), page_index, filename.c_str(), retry_config, timeout_millisec,
+                                  m_renderer.get());
+    }
+
+    std::unique_ptr<tesseract::TessPDFRenderer> PDFBuilder::create_renderer() const noexcept {
+        return std::make_unique<tesseract::TessPDFRenderer>(
+            (m_pdf_file_path.ends_with(".pdf") ? m_pdf_file_path.substr(0, m_pdf_file_path.length() - 4)
+                                               : m_pdf_file_path)
+                .c_str(),
+            m_api->get_tesseract_data_path(), false);
+    }
+
     PDFBuilderStatusCodes PDFBuilder::do_add_page(const Image& image, const std::string& file_path) {
         using enum PDFBuilderStatusCodes;
-        if (!m_renderer || !m_renderer->happy()) {
+        if (!renderer_is_ready()) {
             std::cerr << "tesseract renderer not initialized. Was the file opened?" << std::endl;
             return InitializationError;
         }
         try {
-            if (const bool success = m_api->ProcessPage(image.getPix().get(), m_page_index, file_path.c_str(), nullptr,
-                                                        0, m_renderer.get());
-                !success) {
+            if (!this->process_page(image.getPix(), m_page_index, file_path, nullptr, 0)) {
                 return ProcessingError;
             }
             m_page_index++;
@@ -77,13 +92,9 @@ namespace uiucprescon::ocr {
     }
 
     PDFBuilderStatusCodes PDFBuilder::open() {
-        this->m_renderer = std::make_unique<tesseract::TessPDFRenderer>(
-            (m_pdf_file_path.ends_with(".pdf") ? m_pdf_file_path.substr(0, m_pdf_file_path.length() - 4)
-                                               : m_pdf_file_path)
-                .c_str(),
-            m_api->get_tesseract_data_path(), false);
+        this->m_renderer = create_renderer();
         using enum PDFBuilderStatusCodes;
-        if (!m_renderer || !m_renderer->happy()) {
+        if (!renderer_is_ready()) {
             std::cerr << "Unable to initialize tesseract renderer." << std::endl;
             return InitializationError;
         }

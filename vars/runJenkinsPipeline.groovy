@@ -85,17 +85,20 @@ def getPypiConfig() {
     }
 }
 
-def get_training_data(path){
-    dir(path) {
-        parallel(
-            'Tesseract training data: eng.traineddata': {
-                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata', outputFile: 'eng.traineddata'
-            },
-            'Tesseract training data: osd.traineddata': {
-                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
-            }
-        )
+def get_training_data(csvFile, path){
+    if(! fileExists(csvFile)){
+        error "CSV File not found: ${csvFile}"
     }
+    def tasks = [failFast: true] << readCSV(file: csvFile ).collectEntries{ row ->
+    ["tessdata: ${row[0]}": {
+                def filename = "${path}/${row[0]}"
+                if(!fileExists(filename)){
+                    httpRequest url: row[1], outputFile: filename
+                }
+                verifySha256 file: filename, hash: row[2]
+            }]
+        }
+        parallel(tasks)
 }
 def get_test_data(csvFile, path){
     if(! fileExists(csvFile)){
@@ -156,6 +159,9 @@ def linux_wheels(Map args){
                                                                             archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
                                                                         }
                                                                     }
+                                                                } catch(e){
+                                                                    sleep 5
+                                                                    throw e
                                                                 } finally{
                                                                     sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                                 }
@@ -361,6 +367,7 @@ def mac_wheels(Map args){
                                                                         notFailBuild: true,
                                                                         deleteDirs: true
                                                                     )
+                                                                    sleep 5
                                                                     throw e
                                                                 }
                                                             }
@@ -839,7 +846,9 @@ def call(){
                     script{
                         parallel(
                             'tessdata':{
-                                get_training_data('tessdata')
+                                cache(caches: [arbitraryFileCache(cacheName: 'OCR_tesseract_datafiles', cacheValidityDecidingFile: 'tests/tessdata.csv', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'tessdata')], maxCacheSize: 120) {
+                                    get_training_data('tests/tessdata.csv', 'tessdata')
+                                }
                                 stash includes: 'tessdata/**', name: 'tessdata'
                             },
                             'testdata':{
@@ -1104,18 +1113,21 @@ def call(){
                                                 steps{
                                                     script{
                                                         try{
-                                                            sh(
-                                                                label: 'Setting up C++ project for metrics',
-                                                                script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
-                                                                           uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
-                                                                            -S $WORKSPACE \
-                                                                            -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
-                                                                            -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
-                                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
-                                                                            -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
-                                                                            -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp
-                                                                        '''
-                                                            )
+                                                            cache(caches: [arbitraryFileCache(cacheName: 'pybind11-src', cacheValidityDecidingFile: 'CMakeLists.txt', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'lib/libpybind11-src')], maxCacheSize: 120) {
+                                                                sh(
+                                                                    label: 'Setting up C++ project for metrics',
+                                                                    script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
+                                                                               uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
+                                                                                -S $WORKSPACE \
+                                                                                -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
+                                                                                -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
+                                                                                -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
+                                                                                -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
+                                                                                -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp \
+                                                                                -DFETCHCONTENT_BASE_DIR=$WORKSPACE/lib/
+                                                                            '''
+                                                                )
+                                                            }
                                                             tee('logs/gcc.log'){
                                                                 sh(
                                                                     label: 'Building C++ project for metrics',
@@ -1140,6 +1152,8 @@ def call(){
                                                                 recordIssues(tools: [clangTidy(pattern: 'logs/clang-tidy.log')])
                                                             },
                                                             'C++ Tests': {
+                                                                unstash 'testdata'
+                                                                unstash 'tessdata'
                                                                 try{
                                                                     sh(
                                                                         label: 'Running CTest',
