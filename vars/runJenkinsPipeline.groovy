@@ -85,17 +85,20 @@ def getPypiConfig() {
     }
 }
 
-def get_training_data(path){
-    dir(path) {
-        parallel(
-            'Tesseract training data: eng.traineddata': {
-                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/eng.traineddata', outputFile: 'eng.traineddata'
-            },
-            'Tesseract training data: osd.traineddata': {
-                httpRequest url: 'https://github.com/tesseract-ocr/tessdata/raw/main/osd.traineddata', outputFile: 'osd.traineddata'
-            }
-        )
+def get_training_data(csvFile, path){
+    if(! fileExists(csvFile)){
+        error "CSV File not found: ${csvFile}"
     }
+    def tasks = [failFast: true] << readCSV(file: csvFile ).collectEntries{ row ->
+    ["tessdata: ${row[0]}": {
+                def filename = "${path}/${row[0]}"
+                if(!fileExists(filename)){
+                    httpRequest url: row[1], outputFile: filename
+                }
+                verifySha256 file: filename, hash: row[2]
+            }]
+        }
+        parallel(tasks)
 }
 def get_test_data(csvFile, path){
     if(! fileExists(csvFile)){
@@ -839,7 +842,9 @@ def call(){
                     script{
                         parallel(
                             'tessdata':{
-                                get_training_data('tessdata')
+                                cache(caches: [arbitraryFileCache(cacheName: 'OCR_tesseract_datafiles', cacheValidityDecidingFile: 'tests/tessdata.csv', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'tessdata')], maxCacheSize: 120) {
+                                    get_training_data('tests/tessdata.csv', 'tessdata')
+                                }
                                 stash includes: 'tessdata/**', name: 'tessdata'
                             },
                             'testdata':{
