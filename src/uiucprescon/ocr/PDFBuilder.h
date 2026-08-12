@@ -26,6 +26,7 @@ enum class PDFBuilderStatusCodes {
     FileNotFound,
 };
 namespace uiucprescon::ocr {
+    bool is_renderer_ready_to_use(const tesseract::TessPDFRenderer* renderer);
     class Image;
 
     class IPDFBuilder {
@@ -53,9 +54,10 @@ namespace uiucprescon::ocr {
     protected:
         PDFBuilderStatusCodes do_add_page(const Image& image, const std::string& file_path) override;
         PDFBuilderStatusCodes do_add_page(const std::string& file_path) override;
-        virtual bool renderer_is_ready() const;
+        virtual bool renderer_is_ready() const noexcept;
         virtual bool process_page(std::shared_ptr<Pix> pix, int page_index, const std::string& filename,
                                   const char* retry_config, int timeout_millisec) const;
+        virtual std::unique_ptr<tesseract::TessPDFRenderer> create_renderer() const noexcept;
 
     public:
         explicit PDFBuilder(const std::string& file_path, const std::shared_ptr<OCRApi>& api,

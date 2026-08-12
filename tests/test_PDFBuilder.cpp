@@ -11,6 +11,8 @@
 #include <utility>
 
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
+
 #ifdef TEST_WITH_POPPLER
 #include <poppler/cpp/poppler-document.h>
 #endif
@@ -81,11 +83,13 @@ namespace {
     };
 } // namespace
 
-
+TEST_CASE("renderer is ready") {
+    SECTION("null ptr") { REQUIRE(ocr::is_renderer_ready_to_use(nullptr) == false); }
+}
 TEST_CASE_PERSISTENT_FIXTURE(APIResource, "PDF Builder") {
     class TestablePDFBuilder : public ocr::PDFBuilder {
     protected:
-        bool renderer_is_ready() const final { return is_renderer_is_ready; }
+        bool renderer_is_ready() const noexcept final { return is_renderer_is_ready; }
         bool process_page(std::shared_ptr<Pix> /*pix*/, int /*page_index*/, const std::string& /*filename*/,
                           const char* /*retry_config*/, int /*timeout_millisec*/) const final {
             process_side_effect();
@@ -101,6 +105,14 @@ TEST_CASE_PERSISTENT_FIXTURE(APIResource, "PDF Builder") {
         // NOLINTEND(misc-non-private-member-variables-in-classes)
     };
 
+    SECTION("PDFBuilder.create_renderer()") {
+        auto const& file_name = GENERATE(as<std::string>{}, "output", "output.pdf");
+        DYNAMIC_SECTION("Testing with file name: " << file_name) {
+            TestablePDFBuilder builder(file_name, api);
+            builder.is_renderer_is_ready = true;
+            REQUIRE(builder.open() == PDFBuilderStatusCodes::Success);
+        }
+    }
     GIVEN("A testable pdf builder") {
         const auto output_pdf = std::string(get_temp_dir() / "output.pdf");
         TestablePDFBuilder builder(output_pdf, api);
@@ -133,6 +145,7 @@ TEST_CASE_PERSISTENT_FIXTURE(APIResource, "PDF Builder") {
 }
 
 TEST_CASE_PERSISTENT_FIXTURE(APIResource, "PDF Builder success", "[slow]") {
+
     GIVEN("PDFBuilder builder") {
         const auto output_pdf = std::string(get_temp_dir() / "output.pdf");
         if (fs::exists(output_pdf)) {
