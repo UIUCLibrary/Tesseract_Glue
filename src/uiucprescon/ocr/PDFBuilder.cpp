@@ -55,16 +55,22 @@ namespace uiucprescon::ocr {
         return this->add_page(*image);
     }
 
+    bool PDFBuilder::renderer_is_ready() const { return m_renderer && m_renderer->happy(); }
+
+    bool PDFBuilder::process_page(std::shared_ptr<Pix> pix, int page_index, const std::string& filename,
+                                  const char* retry_config, int timeout_millisec) const {
+        return m_api->ProcessPage(pix.get(), page_index, filename.c_str(), retry_config, timeout_millisec,
+                                  m_renderer.get());
+    }
+
     PDFBuilderStatusCodes PDFBuilder::do_add_page(const Image& image, const std::string& file_path) {
         using enum PDFBuilderStatusCodes;
-        if (!m_renderer || !m_renderer->happy()) {
+        if (!renderer_is_ready()) {
             std::cerr << "tesseract renderer not initialized. Was the file opened?" << std::endl;
             return InitializationError;
         }
         try {
-            if (const bool success = m_api->ProcessPage(image.getPix().get(), m_page_index, file_path.c_str(), nullptr,
-                                                        0, m_renderer.get());
-                !success) {
+            if (!this->process_page(image.getPix(), m_page_index, file_path, nullptr, 0)) {
                 return ProcessingError;
             }
             m_page_index++;
@@ -83,7 +89,7 @@ namespace uiucprescon::ocr {
                 .c_str(),
             m_api->get_tesseract_data_path(), false);
         using enum PDFBuilderStatusCodes;
-        if (!m_renderer || !m_renderer->happy()) {
+        if (!renderer_is_ready()) {
             std::cerr << "Unable to initialize tesseract renderer." << std::endl;
             return InitializationError;
         }

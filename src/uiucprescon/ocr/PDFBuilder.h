@@ -53,6 +53,9 @@ namespace uiucprescon::ocr {
     protected:
         PDFBuilderStatusCodes do_add_page(const Image& image, const std::string& file_path) override;
         PDFBuilderStatusCodes do_add_page(const std::string& file_path) override;
+        virtual bool renderer_is_ready() const;
+        virtual bool process_page(std::shared_ptr<Pix> pix, int page_index, const std::string& filename,
+                                  const char* retry_config, int timeout_millisec) const;
 
     public:
         explicit PDFBuilder(const std::string& file_path, const std::shared_ptr<OCRApi>& api,
