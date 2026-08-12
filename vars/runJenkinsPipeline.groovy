@@ -159,6 +159,9 @@ def linux_wheels(Map args){
                                                                             archiveArtifacts artifacts: 'dist/*manylinux*.*whl'
                                                                         }
                                                                     }
+                                                                } catch(e){
+                                                                    sleep 5
+                                                                    throw e
                                                                 } finally{
                                                                     sh "${tool(name: 'Default', type: 'git')} clean -dfx"
                                                                 }
@@ -364,6 +367,7 @@ def mac_wheels(Map args){
                                                                         notFailBuild: true,
                                                                         deleteDirs: true
                                                                     )
+                                                                    sleep 5
                                                                     throw e
                                                                 }
                                                             }
