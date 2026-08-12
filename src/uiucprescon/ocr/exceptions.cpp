@@ -4,7 +4,6 @@
 
 #include "exceptions.h"
 
-#include <iostream>
 #include <string>
 
 namespace uiucprescon {
