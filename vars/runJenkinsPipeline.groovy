@@ -1109,18 +1109,21 @@ def call(){
                                                 steps{
                                                     script{
                                                         try{
-                                                            sh(
-                                                                label: 'Setting up C++ project for metrics',
-                                                                script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
-                                                                           uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
-                                                                            -S $WORKSPACE \
-                                                                            -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
-                                                                            -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
-                                                                            -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
-                                                                            -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
-                                                                            -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp
-                                                                        '''
-                                                            )
+                                                            cache(caches: [arbitraryFileCache(cacheName: 'pybind11-src', cacheValidityDecidingFile: 'CMakeLists.txt', compressionMethod: 'TAR_ZSTD', includes: '**/*', path: 'lib/libpybind11-src')], maxCacheSize: 120) {
+                                                                sh(
+                                                                    label: 'Setting up C++ project for metrics',
+                                                                    script: '''uv run conan install conanfile.py -of $WORKSPACE/build/cpp --build=missing -pr:b=default -s build_type=Debug
+                                                                               uv run cmake --preset conan-debug -B $WORKSPACE/build/cpp \
+                                                                                -S $WORKSPACE \
+                                                                                -DCMAKE_EXPORT_COMPILE_COMMANDS:BOOL=ON \
+                                                                                -DCMAKE_C_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
+                                                                                -DCMAKE_CXX_FLAGS="-Wall -Wextra --coverage -fsanitize=address -fsanitize=undefined" \
+                                                                                -DCMAKE_CXX_OUTPUT_EXTENSION_REPLACE:BOOL=ON \
+                                                                                -DCMAKE_MODULE_PATH=$WORKSPACE/build/cpp \
+                                                                                -DFETCHCONTENT_BASE_DIR=$WORKSPACE/lib/
+                                                                            '''
+                                                                )
+                                                            }
                                                             tee('logs/gcc.log'){
                                                                 sh(
                                                                     label: 'Building C++ project for metrics',
@@ -1145,6 +1148,8 @@ def call(){
                                                                 recordIssues(tools: [clangTidy(pattern: 'logs/clang-tidy.log')])
                                                             },
                                                             'C++ Tests': {
+                                                                unstash 'testdata'
+                                                                unstash 'tessdata'
                                                                 try{
                                                                     sh(
                                                                         label: 'Running CTest',
