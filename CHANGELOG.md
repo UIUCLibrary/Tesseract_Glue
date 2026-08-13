@@ -1,4 +1,4 @@
-## Unreleased
+## v0.2.1 (2026-08-13)
 
 ### Feat
 
@@ -9,10 +9,14 @@
 
 ### Fix
 
+- remove unused headers
 - remove pdf_writer
 
 ### Refactor
 
+- simplify get_ocr_from_image by directly returning the result of get_utf8_text
+- Replace with the version of "std::ranges::all_of" that takes a range.
+- create_renderer() in PDFBuilder
 - clean up c++ wrapper file
 - optimize header imports
 - use namespaced exceptions
