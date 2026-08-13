@@ -26,7 +26,9 @@
 #endif
 
 namespace uiucprescon::ocr {
-    bool is_renderer_ready_to_use(const tesseract::TessPDFRenderer* renderer) { return renderer && renderer->happy(); }
+    bool is_renderer_ready_to_use(const tesseract::TessPDFRenderer* renderer) {
+        return (renderer != nullptr) && renderer->happy();
+    }
     PDFBuilder::PDFBuilder(const std::string& file_path, const std::shared_ptr<OCRApi>& api, const std::string& title) :
         m_pdf_file_path(file_path), m_api(api), m_title(title) {}
 
@@ -64,7 +66,7 @@ namespace uiucprescon::ocr {
                                   m_renderer.get());
     }
 
-    std::unique_ptr<tesseract::TessPDFRenderer> PDFBuilder::create_renderer() const noexcept {
+    std::unique_ptr<tesseract::TessPDFRenderer> PDFBuilder::create_renderer() const {
         return std::make_unique<tesseract::TessPDFRenderer>(
             (m_pdf_file_path.ends_with(".pdf") ? m_pdf_file_path.substr(0, m_pdf_file_path.length() - 4)
                                                : m_pdf_file_path)

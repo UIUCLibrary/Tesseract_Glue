@@ -28,7 +28,7 @@ namespace uiucprescon::ocr {
         void End();
 
         int recognize(tesseract::ETEXT_DESC* monitor);
-        char* get_utf8_text();
+        std::string get_utf8_text() const;
         ~OCRApi();
     };
 } // namespace uiucprescon::ocr

@@ -12,8 +12,7 @@
 
 namespace {
     bool string_contains_no_text(const std::string& str) {
-        return std::all_of(std::begin(str), std::end(str),
-                           [](const char character) { return std::isspace(character); });
+        return std::ranges::all_of(str, [](const char character) { return std::isspace(character); });
     }
 } // namespace
 
@@ -28,7 +27,7 @@ namespace uiucprescon::ocr {
     std::string Reader2::get_ocr_from_image(const std::shared_ptr<Image>& image) const {
         m_api->set_image(image->getPix().get());
         m_api->recognize(nullptr);
-        auto result = std::string(std::unique_ptr<char[]>(m_api->get_utf8_text(), std::default_delete<char[]>()).get());
+        auto result = m_api->get_utf8_text();
         return string_contains_no_text(result) ? std::string() : result;
     }
 } // namespace uiucprescon::ocr

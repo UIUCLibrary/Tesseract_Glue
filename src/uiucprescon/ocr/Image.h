@@ -17,7 +17,7 @@ namespace uiucprescon::ocr {
         explicit Image(std::shared_ptr<Pix> image);
         Image(const Image& other);
         ~Image() = default;
-        Image(Image&& image) noexcept = default;
+        Image(Image&& other) noexcept = default;
         Image& operator=(Image&& other) noexcept = default;
         Image& operator=(const Image& other);
 

@@ -57,7 +57,7 @@ namespace uiucprescon::ocr {
         virtual bool renderer_is_ready() const noexcept;
         virtual bool process_page(std::shared_ptr<Pix> pix, int page_index, const std::string& filename,
                                   const char* retry_config, int timeout_millisec) const;
-        virtual std::unique_ptr<tesseract::TessPDFRenderer> create_renderer() const noexcept;
+        virtual std::unique_ptr<tesseract::TessPDFRenderer> create_renderer() const;
 
     public:
         explicit PDFBuilder(const std::string& file_path, const std::shared_ptr<OCRApi>& api,

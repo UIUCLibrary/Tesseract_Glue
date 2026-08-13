@@ -41,7 +41,12 @@ namespace uiucprescon::ocr {
 
     int OCRApi::recognize(tesseract::ETEXT_DESC* monitor) { return api->Recognize(monitor); }
 
-    char* OCRApi::get_utf8_text() { return api->GetUTF8Text(); }
+    std::string OCRApi::get_utf8_text() const {
+        // GetUTF8Text() creates a copy that needs to be deleted with the delete [] operator. Using the the unique_ptr
+        // to ensure this delete happens
+        // NOLINTNEXTLINE(cppcoreguidelines-avoid-c-arrays)
+        return std::string(std::unique_ptr<char[]>(api->GetUTF8Text(), std::default_delete<char[]>()).get());
+    }
 
     OCRApi::~OCRApi() { api->End(); }
 } // namespace uiucprescon::ocr

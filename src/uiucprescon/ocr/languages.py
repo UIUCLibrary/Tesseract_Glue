@@ -3,6 +3,7 @@ import os
 import zipfile
 from urllib import request
 import tempfile
+from typing import Optional
 import hashlib
 import time
 
@@ -158,7 +159,7 @@ class LanguageDownloader:
     def download(self,
                  url: str,
                  destination: str,
-                 md5_hash: str = None) -> str:
+                 md5_hash: Optional[str] = None) -> str:
         """Download a file.
 
         Args:
@@ -212,7 +213,7 @@ class LanguageDownloader:
 
 def _download_language(url: str,
                        destination: str,
-                       md5_hash: str = None) -> str:
+                       md5_hash: Optional[str] = None) -> str:
     downloader = LanguageDownloader()
     return downloader.download(url, destination, md5_hash)
     # block_size = 16 * 1024
@@ -267,7 +268,7 @@ def _download_language(url: str,
 
 
 def download_language_pack(tesseract_version: str, destination: str,
-                           md5_hash: str = None) -> None:
+                           md5_hash: Optional[str] = None) -> None:
     """Download a specific version of Tesseract training data.
 
     Args:
