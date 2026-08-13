@@ -1293,6 +1293,9 @@ def call(){
                                     UV_TOOL_DIR='/tmp/uvtools'
                                     UV_PYTHON_CACHE_DIR='/tmp/uvpython'
                                     UV_CACHE_DIR='/tmp/uvcache'
+                                    CPPFLAGS='-fsanitize=address -fsanitize=undefined'
+                                    LD_PRELOAD='/usr/lib/gcc/x86_64-linux-gnu/13/../../../x86_64-linux-gnu/libasan.so.8'
+
                                 }
                                 when{
                                     expression {return nodesByLabel('linux && docker').size() > 0}
