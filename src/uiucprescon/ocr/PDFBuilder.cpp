@@ -66,7 +66,7 @@ namespace uiucprescon::ocr {
                                   m_renderer.get());
     }
 
-    std::unique_ptr<tesseract::TessPDFRenderer> PDFBuilder::create_renderer() const noexcept {
+    std::unique_ptr<tesseract::TessPDFRenderer> PDFBuilder::create_renderer() const {
         return std::make_unique<tesseract::TessPDFRenderer>(
             (m_pdf_file_path.ends_with(".pdf") ? m_pdf_file_path.substr(0, m_pdf_file_path.length() - 4)
                                                : m_pdf_file_path)
