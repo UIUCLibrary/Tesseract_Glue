@@ -12,8 +12,7 @@
 
 namespace {
     bool string_contains_no_text(const std::string& str) {
-        return std::all_of(std::begin(str), std::end(str),
-                           [](const char character) { return std::isspace(character); });
+        return std::ranges::all_of(str, [](const char character) { return std::isspace(character); });
     }
 } // namespace
 
