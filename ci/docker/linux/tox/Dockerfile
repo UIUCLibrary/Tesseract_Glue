@@ -16,7 +16,7 @@ ARG CONAN_CENTER_PROXY_V2_URL=https://center2.conan.io
 ARG _CONAN_CACHE_FILE=/tmp/conan_cache_save.tzst
 
 FROM ghcr.io/astral-sh/uv:latest AS uv_builder
-FROM ubuntu:22.04 AS base
+FROM ubuntu:24.04 AS base
 COPY ci/docker/linux/tox/apt-packages.txt /tmp/apt-packages.txt
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
