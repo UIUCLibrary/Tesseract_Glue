@@ -237,6 +237,7 @@ convention = "google"
 
 [tool.uv]
 cache-keys = [
+    { env = "CPPFLAGS" },
     { file = "pyproject.toml" },
     { file = "conanfile.py" },
     { file = "setup.py" },
