@@ -14,6 +14,8 @@
 #include <string>
 #include <tuple>
 
+#include "fileLoader.h"
+
 
 using Catch::Matchers::Message;
 namespace glue = uiucprescon::glue;
@@ -85,6 +87,30 @@ SCENARIO("react_pdf_builder_open_return_code") {
             THEN("Then the exception should be raised") {
                 REQUIRE_THROWS_MATCHES(glue::react_pdf_builder_open_return_code(return_code),
                                        glue::TesseractGlueException, Message(expected));
+            }
+        }
+    }
+}
+
+TEST_CASE("pixScaleToSize") {
+    GIVEN("A valid image") {
+        const auto image = ocr::ImageLoader::loadImage(TEST_IMAGE_PATH "/engwithheadings.tif");
+        WHEN("I scale the image to a valid size") {
+            const auto scaled_image = glue::pixScaleToSize(*image, 100, 100);
+            THEN("The scaled image has the correct dimensions") {
+                REQUIRE(scaled_image.get_w() == 100);
+                REQUIRE(scaled_image.get_h() == 100);
+            }
+        }
+        WHEN("I scale the image to an invalid size") {
+            THEN("An exception is thrown for negative width") {
+                REQUIRE_THROWS_AS(glue::pixScaleToSize(*image, -1, 100), glue::TesseractGlueException);
+            }
+            THEN("An exception is thrown for negative height") {
+                REQUIRE_THROWS_AS(glue::pixScaleToSize(*image, 100, -1), glue::TesseractGlueException);
+            }
+            THEN("An exception is thrown for both width and height being zero") {
+                REQUIRE_THROWS_AS(glue::pixScaleToSize(*image, 0, 0), glue::TesseractGlueException);
             }
         }
     }
