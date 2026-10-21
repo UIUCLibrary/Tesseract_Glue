@@ -885,7 +885,7 @@ def call(){
                                 filename 'ci/docker/linux/jenkins/Dockerfile'
                                 label 'linux && docker && x86'
                                 additionalBuildArgs '--label=purpose=ci --build-arg PIP_EXTRA_INDEX_URL --build-arg PIP_INDEX_URL --build-arg PIP_CACHE_DIR=/.cache/pip --build-arg UV_CACHE_DIR=/.cache/uv --build-arg CONAN_CENTER_PROXY_V2_URL'
-                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /.sonar/cache:exec --tmpfs /.sonar/_tmp --tmpfs /opt/sonar/.sonar/cache --tmpfs /tmp/test_dir --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv"
+                                args "--label=purpose=ci --label \"absoluteUrl=${currentBuild.absoluteUrl}\" --label \"JOB_NAME=${env.JOB_NAME}\" --label \"BUILD_NUMBER=${currentBuild.number}\" --mount source=python-tmp-uiucpreson-ocr,target=/tmp --tmpfs /.config --tmpfs /opt/sonar/.sonar/cache --tmpfs /tmp/test_dir --tmpfs /.tree-sitter:exec --tmpfs /.local/bin --tmpfs /.local/share:exec --tmpfs /tmp_venv:exec -e UV_PROJECT_ENVIRONMENT=/tmp_venv --tmpfs /myhome:exec -e HOME=/myhome"
                             }
                         }
                         stages{
