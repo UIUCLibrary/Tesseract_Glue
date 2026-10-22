@@ -19,7 +19,7 @@ classifiers = [
     'Topic :: Software Development :: Libraries :: Python Modules',
 ]
 readme = "README.rst"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = "NCSA"
 license-files = ["LICENSE"]
 description = "Image to text processing using Google Tesseract"
@@ -40,6 +40,12 @@ test = [
     "pytest",
     "pytest-bdd<9.0",
     "pypdf"
+]
+build = [
+    {include-group = "conan"},
+    "pybind11>=2.13",
+    "uiucprescon.build @ https://github.com/UIUCLibrary/uiucprescon_build/releases/download/v0.5.0/uiucprescon_build-0.5.0-py3-none-any.whl",
+    "setuptools>=77.0",
 ]
 conan =["conan>=2.0", "cmake<4.0"]
 docs = ["sphinx", "setuptools", "toml; python_version < '3.11'"]

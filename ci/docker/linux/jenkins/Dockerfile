@@ -44,18 +44,21 @@ COPY ci/docker/shared/conan/remotes.json  ${CONAN_HOME}/remotes.json
 ARG CONAN_CENTER_PROXY_V2_URL
 ARG UV_CACHE_DIR
 ARG PIP_CACHE_DIR
+ARG UV_FROZEN=1
 COPY --from=uv_builder /uv /uvx /bin/
 COPY ci/docker/shared/conan/remotes.json  /tmp/remotes.json
 ENV UV_PROJECT_ENVIRONMENT=/tmp/uv/venv
+ENV UV_WORKING_DIR=/tmp/uv/
 ARG _CONAN_CACHE_FILE
+ENV CONAN_TMP_FILE_PATH=/tmp/conan
 RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     --mount=type=cache,target=${CONAN_DOWNLOAD_CACHE} \
     --mount=type=cache,target=${CONAN_HOME},sharing=locked \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
+    --mount=type=bind,source=pyproject.toml,target=${UV_WORKING_DIR}/pyproject.toml \
+    --mount=type=bind,source=uv.lock,target=${UV_WORKING_DIR}/uv.lock \
     --mount=type=bind,source=ci/docker/linux/jenkins/conan/profile.ini,target=${CONAN_HOME}/profiles/default \
-    --mount=type=bind,source=conanfile.py,target=/tmp/conanfile.py \
-    --mount=type=bind,source=conan.lock,target=/tmp/conan.lock \
+    --mount=type=bind,source=conanfile.py,target=${CONAN_TMP_FILE_PATH}/conanfile.py \
+    --mount=type=bind,source=conan.lock,target=${CONAN_TMP_FILE_PATH}/conan.lock \
     --mount=type=tmpfs,target=${UV_PROJECT_ENVIRONMENT} \
     uv run --only-group=conan conan profile detect --exist-ok &&  \
     mv /tmp/remotes.json ${CONAN_HOME}/remotes.json && \
@@ -66,15 +69,15 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
           cp ${CONAN_HOME}/remotes.json /tmp/remotes.json && \
           uv run --only-group=conan conan remote update conan-center --url ${CONAN_CENTER_PROXY_V2_URL}; \
     fi && \
-    uv run --only-group=conan conan install -pr:b=default --build missing /tmp -c tools.graph:skip_test=True -c tools.build:skip_test=True && \
-    uv run --only-group=conan conan install -pr:b=default --build missing /tmp -s build_type=Debug && \
+    uv run --only-group=conan conan install "${CONAN_TMP_FILE_PATH}/conanfile.py" -pr:b=default --build missing -c tools.graph:skip_test=True -c tools.build:skip_test=True && \
+    uv run --only-group=conan conan install "${CONAN_TMP_FILE_PATH}/conanfile.py" -pr:b=default --build missing -s build_type=Debug && \
     uv run --only-group=conan conan cache clean '*' --build --temp && \
-    uv run --only-group=conan conan graph info /tmp/conanfile.py --lockfile=/tmp/conan.lock --format=json -c tools.graph:skip_build=True -c tools.graph:skip_test=True -s build_type=Release > graph.json && \
-    uv run --only-group=conan conan graph info /tmp/conanfile.py --lockfile=/tmp/conan.lock --format=json -c tools.graph:skip_build=True -s build_type=Debug > graph-debug.json && \
-    uv run --only-group=conan conan list --graph=graph.json --format=json > pkglist-release.json && \
-    uv run --only-group=conan conan list --graph=graph-debug.json --format=json > pkglist-debug.json && \
-    jq -s '.[0] * .[1]' pkglist-release.json pkglist-debug.json > pkglist.json && \
-    uv run --only-group=conan conan cache save --file ${_CONAN_CACHE_FILE} --list pkglist.json  && \
+    uv run --only-group=conan conan graph info "$CONAN_TMP_FILE_PATH/conanfile.py" --lockfile="$CONAN_TMP_FILE_PATH/conan.lock" --format=json -c tools.graph:skip_build=True -c tools.graph:skip_test=True -s build_type=Release > "$CONAN_TMP_FILE_PATH/graph.json" && \
+    uv run --only-group=conan conan graph info "$CONAN_TMP_FILE_PATH/conanfile.py" --lockfile="$CONAN_TMP_FILE_PATH/conan.lock" --format=json -c tools.graph:skip_build=True -s build_type=Debug > "$CONAN_TMP_FILE_PATH/graph-debug.json" && \
+    uv run --only-group=conan conan list --graph="$CONAN_TMP_FILE_PATH/graph.json" --format=json > "$CONAN_TMP_FILE_PATH/pkglist-release.json" && \
+    uv run --only-group=conan conan list --graph="$CONAN_TMP_FILE_PATH/graph-debug.json" --format=json > "$CONAN_TMP_FILE_PATH/pkglist-debug.json" && \
+    jq -s '.[0] * .[1]' "$CONAN_TMP_FILE_PATH/pkglist-release.json" "$CONAN_TMP_FILE_PATH/pkglist-debug.json" > "$CONAN_TMP_FILE_PATH/pkglist.json" && \
+    uv run --only-group=conan conan cache save --file ${_CONAN_CACHE_FILE} --list "$CONAN_TMP_FILE_PATH/pkglist.json"  && \
     uv run --only-group=conan conan remove '*' --lru=1d --confirm
 
 #==============================================================================
@@ -123,7 +126,7 @@ RUN --mount=type=cache,target=${UV_CACHE_DIR} \
     --mount=type=bind,source=pyproject.toml,target=/tmp/uv/pyproject.toml \
     --mount=type=bind,source=uv.lock,target=/tmp/uv/uv.lock \
     --mount=type=tmpfs,target=/tmp/uv/venv \
-    UV_PROJECT_ENVIRONMENT=/tmp/uv/venv UV_PROJECT=/tmp/uv uv run --only-group=conan conan cache restore ${_CONAN_CACHE_FILE} && \
+    UV_PROJECT_ENVIRONMENT=/tmp/uv/venv UV_PROJECT=/tmp/uv uv run --isolated --only-group=conan conan cache restore ${_CONAN_CACHE_FILE} && \
     chmod -R 777 ${CONAN_HOME}
 ENV CONAN_USER_HOME=${CONAN_USER_HOME} \
     CONAN_HOME=${CONAN_HOME}
