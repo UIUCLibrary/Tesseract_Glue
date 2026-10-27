@@ -424,95 +424,101 @@ def mac_wheels(Map args){
                             ]}
                         )
                     }
-                    if(args.jobParams.INCLUDE_MACOS_X86_64 && args.jobParams.INCLUDE_MACOS_ARM){
                         stage("Universal2 Wheel: Python ${pythonVersion}"){
-                            stage('Make Universal2 wheel'){
-                                node("mac && python${pythonVersion}") {
-                                    checkout scm
-                                    withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
-                                        unstash "python${pythonVersion} arm64 mac wheel"
-                                        unstash "python${pythonVersion} x86_64 mac wheel"
-                                        def wheelNames = []
-                                        findFiles(excludes: '', glob: 'dist/*.whl').each{wheelFile ->
-                                            wheelNames.add(wheelFile.path)
-                                        }
-                                        try{
-                                            withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
-                                                sh(label: 'Make Universal2 wheel',
-                                                   script: """python3 -m venv venv
-                                                              trap "rm -rf venv" EXIT
-                                                              ./venv/bin/pip install --disable-pip-version-check uv
-                                                              mkdir -p out
-                                                              ./venv/bin/uv run --only-group package --python ${pythonVersion} delocate-merge  ${wheelNames.join(' ')} --verbose -w ./out/
-                                                              rm dist/*.whl
-                                                           """
-                                                   )
-                                            }
-                                           def fusedWheel = findFiles(excludes: '', glob: 'out/*.whl')[0]
-                                           def pythonVersionShort = pythonVersion.replace('.','')
-                                           def props = readTOML( file: 'pyproject.toml')['project']
-                                           def universalWheel = "uiucprescon.ocr-${props.version}-cp${pythonVersionShort}-cp${pythonVersionShort}-macosx_11_0_universal2.whl"
-                                           sh "mv ${fusedWheel.path} ./dist/${universalWheel}"
-                                           stash includes: 'dist/*.whl', name: "python${pythonVersion} mac-universal2 wheel"
-                                           args.wheelStashes << "python${pythonVersion} mac-universal2 wheel"
-                                           archiveArtifacts artifacts: 'dist/*.whl'
-                                        } finally {
-                                            cleanWs(
-                                                patterns: [
-                                                        [pattern: 'out/', type: 'INCLUDE'],
-                                                        [pattern: 'dist/', type: 'INCLUDE'],
-                                                        [pattern: 'venv/', type: 'INCLUDE'],
-                                                    ],
-                                                notFailBuild: true,
-                                                deleteDirs: true
-                                            )
-                                       }
-                                   }
-                                }
-                            }
-                            if(args.jobParams.TEST_PACKAGES == true){
-                                stage('Test universal2 Wheel'){
-                                    parallel(selectedArches.collectEntries{arch ->
-                                        [
-                                            "Test Python ${pythonVersion} universal2 Wheel on ${arch} mac": {
-                                                stage("Test Python ${pythonVersion} universal2 Wheel on ${arch} mac"){
-                                                    node("mac && python${pythonVersion} && ${arch}"){
-                                                        checkout scm
-                                                        withEnv([
-                                                            "UV_CONFIG_FILE=${createUVConfig()}",
-                                                            "TESSDATA_PREFIX=${WORKSPACE}/tessdata",
-                                                            "SAMPLES_PATH=${WORKSPACE}/testdata"
-                                                        ]){
-                                                            unstash "python${pythonVersion} mac-universal2 wheel"
-                                                            unstash 'testdata'
-                                                            unstash 'tessdata'
-                                                            try{
-                                                                findFiles(glob: 'dist/*.whl').each{
-                                                                    withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
-                                                                        sh(label: 'Running Tox',
-                                                                           script: """python${pythonVersion} -m venv venv
-                                                                                      trap "rm -rf venv" EXIT
-                                                                                      ./venv/bin/python -m pip install --disable-pip-version-check uv
-                                                                                      trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                      ./venv/bin/uv run --only-group=tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration
-                                                                                   """
-                                                                        )
-                                                                    }
-                                                                }
-                                                                archiveArtifacts artifacts: 'dist/*.whl'
-                                                            } finally {
-                                                                sh "${tool(name: 'Default', type: 'git')} clean -dfx"
-                                                            }
-                                                        }
-                                                    }
-                                                }
-                                            }
-                                        ]
-                                    })
-                                }
-                            }
+                            Utils.markStageSkippedForConditional("Universal2 Wheel: Python ${pythonVersion}")
+//                 Universal Wheels are not possible with the current method until
+//                 https://github.com/matthew-brett/delocate/issues/279 is addressed
                         }
-                    }
+
+//                     if(args.jobParams.INCLUDE_MACOS_X86_64 && args.jobParams.INCLUDE_MACOS_ARM){
+//                         stage("Universal2 Wheel: Python ${pythonVersion}"){
+//                             stage('Make Universal2 wheel'){
+//                                 node("mac && python${pythonVersion}") {
+//                                     checkout scm
+//                                     withEnv(["UV_CONFIG_FILE=${createUVConfig()}"]){
+//                                         unstash "python${pythonVersion} arm64 mac wheel"
+//                                         unstash "python${pythonVersion} x86_64 mac wheel"
+//                                         def wheelNames = []
+//                                         findFiles(excludes: '', glob: 'dist/*.whl').each{wheelFile ->
+//                                             wheelNames.add(wheelFile.path)
+//                                         }
+//                                         try{
+//                                             withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
+//                                                 sh(label: 'Make Universal2 wheel',
+//                                                    script: """python3 -m venv venv
+//                                                               trap "rm -rf venv" EXIT
+//                                                               ./venv/bin/pip install --disable-pip-version-check uv
+//                                                               mkdir -p out
+//                                                               ./venv/bin/uv run --only-group package --python ${pythonVersion} delocate-merge  ${wheelNames.join(' ')} --verbose -w ./out/
+//                                                               rm dist/*.whl
+//                                                            """
+//                                                    )
+//                                             }
+//                                            def fusedWheel = findFiles(excludes: '', glob: 'out/*.whl')[0]
+//                                            def pythonVersionShort = pythonVersion.replace('.','')
+//                                            def props = readTOML( file: 'pyproject.toml')['project']
+//                                            def universalWheel = "uiucprescon.ocr-${props.version}-cp${pythonVersionShort}-cp${pythonVersionShort}-macosx_11_0_universal2.whl"
+//                                            sh "mv ${fusedWheel.path} ./dist/${universalWheel}"
+//                                            stash includes: 'dist/*.whl', name: "python${pythonVersion} mac-universal2 wheel"
+//                                            args.wheelStashes << "python${pythonVersion} mac-universal2 wheel"
+//                                            archiveArtifacts artifacts: 'dist/*.whl'
+//                                         } finally {
+//                                             cleanWs(
+//                                                 patterns: [
+//                                                         [pattern: 'out/', type: 'INCLUDE'],
+//                                                         [pattern: 'dist/', type: 'INCLUDE'],
+//                                                         [pattern: 'venv/', type: 'INCLUDE'],
+//                                                     ],
+//                                                 notFailBuild: true,
+//                                                 deleteDirs: true
+//                                             )
+//                                        }
+//                                    }
+//                                 }
+//                             }
+//                             if(args.jobParams.TEST_PACKAGES == true){
+//                                 stage('Test universal2 Wheel'){
+//                                     parallel(selectedArches.collectEntries{arch ->
+//                                         [
+//                                             "Test Python ${pythonVersion} universal2 Wheel on ${arch} mac": {
+//                                                 stage("Test Python ${pythonVersion} universal2 Wheel on ${arch} mac"){
+//                                                     node("mac && python${pythonVersion} && ${arch}"){
+//                                                         checkout scm
+//                                                         withEnv([
+//                                                             "UV_CONFIG_FILE=${createUVConfig()}",
+//                                                             "TESSDATA_PREFIX=${WORKSPACE}/tessdata",
+//                                                             "SAMPLES_PATH=${WORKSPACE}/testdata"
+//                                                         ]){
+//                                                             unstash "python${pythonVersion} mac-universal2 wheel"
+//                                                             unstash 'testdata'
+//                                                             unstash 'tessdata'
+//                                                             try{
+//                                                                 findFiles(glob: 'dist/*.whl').each{
+//                                                                     withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
+//                                                                         sh(label: 'Running Tox',
+//                                                                            script: """python${pythonVersion} -m venv venv
+//                                                                                       trap "rm -rf venv" EXIT
+//                                                                                       ./venv/bin/python -m pip install --disable-pip-version-check uv
+//                                                                                       trap "rm -rf venv && rm -rf .tox" EXIT
+//                                                                                       ./venv/bin/uv run --only-group=tox-uv tox --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration
+//                                                                                    """
+//                                                                         )
+//                                                                     }
+//                                                                 }
+//                                                                 archiveArtifacts artifacts: 'dist/*.whl'
+//                                                             } finally {
+//                                                                 sh "${tool(name: 'Default', type: 'git')} clean -dfx"
+//                                                             }
+//                                                         }
+//                                                     }
+//                                                 }
+//                                             }
+//                                         ]
+//                                     })
+//                                 }
+//                             }
+//                         }
+//                     }
                 }
             }
         ]
