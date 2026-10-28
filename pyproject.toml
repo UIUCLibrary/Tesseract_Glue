@@ -37,7 +37,7 @@ Download = "https://github.com/UIUCLibrary/ocr"
 
 [dependency-groups]
 test = [
-    "pytest",
+    "pytest<9.2",
     "pytest-bdd<9.0",
     "pypdf"
 ]
