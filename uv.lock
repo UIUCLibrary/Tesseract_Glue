@@ -1816,7 +1816,7 @@ ci = [
     { name = "pylint" },
     { name = "pypdf" },
     { name = "pysonar" },
-    { name = "pytest" },
+    { name = "pytest", specifier = "<9.2" },
     { name = "pytest-bdd", specifier = "<9.0" },
     { name = "ruff" },
     { name = "setuptools" },
@@ -1844,7 +1844,7 @@ dev = [
     { name = "pydocstyle" },
     { name = "pylint" },
     { name = "pypdf" },
-    { name = "pytest" },
+    { name = "pytest", specifier = "<9.2" },
     { name = "pytest-bdd", specifier = "<9.0" },
     { name = "ruff" },
     { name = "setuptools" },
@@ -1868,7 +1868,7 @@ publish = [{ name = "twine" }]
 security = [{ name = "bandit" }]
 test = [
     { name = "pypdf" },
-    { name = "pytest" },
+    { name = "pytest", specifier = "<9.2" },
     { name = "pytest-bdd", specifier = "<9.0" },
 ]
 tox = [{ name = "tox" }]
