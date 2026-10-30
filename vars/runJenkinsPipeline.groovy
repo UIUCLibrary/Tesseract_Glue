@@ -116,6 +116,18 @@ def get_test_data(csvFile, path){
     parallel(tasks)
 }
 
+def getConfig(){
+    node(){
+        checkout scm
+        def configCode = load('ci/jenkins/config.groovy')
+        def config = configCode.getConfig(
+            configId: 'uiucprescon_ocr_pipeline_config',
+            defaultConfigFile: 'ci/config.json'
+        )
+        return config
+    }
+}
+
 def linux_wheels(Map args){
     def selectedArches = []
     def allValidArches = ['arm64', 'x86_64']
@@ -808,8 +820,10 @@ def startup(sonarCredentialId, defaultParameterValues){
         ]
     )
 }
+
+def config = getConfig()
 stage('Pipeline Pre-tasks'){
-    startup(SONARQUBE_CREDENTIAL_ID, DEFAULT_PARAMETER_VALUES)
+    startup(config['jenkins']['sonarqube']['credentialsId'], config['jenkins']['default_parameters'])
 }
 def call(){
     library identifier: 'JenkinsPythonHelperLibrary@2024.7.0', retriever: modernSCM(
@@ -817,14 +831,7 @@ def call(){
        remote: 'https://github.com/UIUCLibrary/JenkinsPythonHelperLibrary.git',
        ])
     def wheelStashes = []
-    def SONARQUBE_CREDENTIAL_ID = 'sonarcloud_token'
-    def SUPPORTED_MAC_VERSIONS = ['3.11', '3.12', '3.13', '3.14', '3.14t']
-    def SUPPORTED_LINUX_VERSIONS = ['3.11', '3.12', '3.13', '3.14', '3.14t']
-    def SUPPORTED_WINDOWS_VERSIONS = ['3.11', '3.12', '3.13', '3.14', '3.14t']
 
-    def DEFAULT_PARAMETER_VALUES = [
-        USE_SONARQUBE: true
-    ]
     pipeline {
         agent none
         options {
@@ -1255,7 +1262,7 @@ def call(){
                                             )
                                             script{
                                                 def props = readTOML( file: 'pyproject.toml')['project']
-                                                withSonarQubeEnv(installationName:'sonarcloud', credentialsId: SONARQUBE_CREDENTIAL_ID) {
+                                                withSonarQubeEnv(installationName:'sonarcloud', credentialsId: config['jenkins']['sonarqube']['credentialsId']) {
                                                     withCredentials([string(credentialsId: params.SONARCLOUD_TOKEN, variable: 'token')]) {
                                                         sh(
                                                             label: 'Running Sonar Scanner',
@@ -1488,7 +1495,7 @@ def call(){
                         }
                         steps{
                             mac_wheels(
-                                pythonVersions: SUPPORTED_MAC_VERSIONS,
+                                pythonVersions: config['supporting']['pythonVersions']['macos'],
                                 testPackages: params.TEST_PACKAGES,
                                 jobParams: params,
                                 wheelStashes: wheelStashes
@@ -1504,7 +1511,7 @@ def call(){
                         }
                         steps{
                             linux_wheels(
-                                pythonVersions: SUPPORTED_LINUX_VERSIONS,
+                                pythonVersions: config['supporting']['pythonVersions']['linux'],
                                 testPackages: params.TEST_PACKAGES,
                                 jobParams: params,
                                 wheelStashes: wheelStashes
@@ -1517,7 +1524,7 @@ def call(){
                         }
                         steps{
                             windows_wheels(
-                                pythonVersions: SUPPORTED_WINDOWS_VERSIONS,
+                                pythonVersions: config['supporting']['pythonVersions']['windows'],
                                 testPackages: params.TEST_PACKAGES,
                                 jobParams: params,
                                 wheelStashes: wheelStashes
@@ -1570,9 +1577,9 @@ def call(){
                                 steps{
                                     testSdist(
                                         jobParams: params,
-                                        supported_mac_versions: SUPPORTED_MAC_VERSIONS,
-                                        supported_linux_versions: SUPPORTED_LINUX_VERSIONS,
-                                        supported_windows_versions:SUPPORTED_WINDOWS_VERSIONS
+                                        supported_mac_versions: config['supporting']['pythonVersions']['macos'],
+                                        supported_linux_versions: config['supporting']['pythonVersions']['linux'],
+                                        supported_windows_versions:config['supporting']['pythonVersions']['windows']
                                     )
                                 }
                             }

@@ -1,0 +1,35 @@
+{
+  "supporting": {
+    "pythonVersions": {
+        "macos": [
+          "3.11",
+          "3.12",
+          "3.13",
+          "3.14",
+          "3.14t"
+      ],
+      "windows": [
+        "3.11",
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.14t"
+      ],
+      "linux": [
+        "3.11",
+        "3.12",
+        "3.13",
+        "3.14",
+        "3.14t"
+      ]
+    }
+  },
+  "jenkins": {
+    "default_parameters": {
+      "USE_SONARQUBE": true
+    },
+    "sonarqube": {
+      "credentialsId": "sonarcloud_token"
+    }
+  }
+}
