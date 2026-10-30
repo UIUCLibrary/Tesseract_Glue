@@ -392,17 +392,17 @@ def mac_wheels(Map args){
                                                             try{
                                                                 findFiles(glob: 'dist/*.whl').each{
                                                                     withEnv(["TOX_UV_PATH=${WORKSPACE}/venv/bin/uv"]){
+                                                                        sh(label: "Installing uv",
+                                                                           script: '''python3 -m venv venv --clear
+                                                                                      ./venv/bin/pip install --disable-pip-version-check uv
+                                                                                   ''')
+                                                                        sh(label: 'Installing required Python version if not already installed', script: "uv python find cpython-${pythonVersion} --quiet 2>/dev/null || uv python install cpython-${pythonVersion}")
                                                                         def attempt = 0
                                                                         retry(2){
                                                                             withEnv([(attempt == 0) ? 'UV_OFFLINE=1' : 'UV_OFFLINE=0']){
                                                                                 attempt += 1
                                                                                 sh(label: "Running Tox: ${(attempt == 1) ? 'Offline' : 'Online'}",
-                                                                                   script: """python${pythonVersion} -m venv venv
-                                                                                              trap "rm -rf venv" EXIT
-                                                                                              ./venv/bin/pip install --disable-pip-version-check uv
-                                                                                              trap "rm -rf venv && rm -rf .tox" EXIT
-                                                                                              ./venv/bin/uv run --only-group=tox-uv --frozen --python=${pythonVersion} tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration
-                                                                                           """
+                                                                                   script: "./venv/bin/uv run --only-group=tox-uv --frozen --python=${pythonVersion} tox run --installpkg ${it.path} -e py${pythonVersion.replace('.', '')} -- --integration"
                                                                                 )
                                                                             }
                                                                         }
